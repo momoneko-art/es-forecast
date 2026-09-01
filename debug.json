@@ -1,0 +1,18 @@
+{
+  "pskreporter_debug": {},
+  "nict_findings": {
+    "status": "unconfirmed",
+    "findings": [
+      {
+        "page": "https://wdc.nict.go.jp/Ionosphere/realtime/latest-fxEs.html",
+        "status": "scanned",
+        "candidate_data_urls": []
+      },
+      {
+        "page": "https://swc.nict.go.jp/trend/es.html",
+        "status": "scanned",
+        "candidate_data_urls": []
+      }
+    ]
+  }
+}
