@@ -1,8 +1,9 @@
 """Fetch NOAA GFS near-surface pressure-level profiles (temperature / relative
 humidity / geopotential height) across a coarse grid over Japan, via the free
 Open-Meteo forecast API (https://open-meteo.com/ - plain JSON, no API key, no
-GRIB/eccodes dependency), and compute a simple tropospheric-ducting index from
-the vertical gradient of modified refractivity (M-units).
+GRIB/eccodes dependency), and compute a tropospheric-ducting index time series
+(now through ~7 days ahead, every 6h) from the vertical gradient of modified
+refractivity (M-units).
 
 Physics (standard, ITU-R P.453 style):
   N = 77.6*(P/T) + 3.73e5*(e/T^2)      radio refractivity, N-units (T in Kelvin)
@@ -15,6 +16,17 @@ temperature/humidity/geopotential-height -> M-gradient approach). This module
 looks only at the strongest (most negative) gradient across the near-surface
 layers - it is a simplified single-column index, not a ray-traced path
 prediction, and is meant to answer "is a duct present here", not exact path loss.
+
+Forecast range: requests FORECAST_DAYS (7) days of hourly GFS data per grid
+point in a single Open-Meteo call (models=gfs_seamless, so pressure-level
+fields are guaranteed out to the full range rather than whatever the
+"best_match" blend happens to carry), then samples every STEP_HOURS (6) hours
+to build a time series per point - matching the 2026-09 user request for an
+"about a week ahead" outlook, similar in spirit to
+https://www.dxinfocentre.com/tropo_eas.html . Skill beyond a few days is
+inherently limited (this is a single-column heuristic on top of a medium-range
+NWP model, not a verified ducting forecast product), which the UI should make
+clear to the user rather than presenting far-out steps with false confidence.
 
 IMPORTANT: this endpoint is a completely different one from PSKReporter/NICT and
 has not been reachable for testing from within this development session (every
@@ -40,7 +52,13 @@ LEVELS_HPA = [1000, 925, 850, 700]
 GRID_LAT_MIN, GRID_LAT_MAX, GRID_LAT_STEP = 24.0, 46.0, 2.0
 GRID_LON_MIN, GRID_LON_MAX, GRID_LON_STEP = 123.0, 149.0, 2.0
 
-BATCH_SIZE = 60           # Open-Meteo accepts many comma-separated locations per call; stay conservative
+FORECAST_DAYS = 7         # "about a week ahead" per user request; GFS itself supports up to 16
+STEP_HOURS = 6            # sample every 6h (matches GFS's native run cadence) rather than all 168 hourly points
+MODEL = "gfs_seamless"    # pin to GFS explicitly so pressure-level fields are populated for the full range
+
+BATCH_SIZE = 20           # a week of hourly pressure-level data per point is a much bigger payload than
+                          # the old "current conditions only" call, so batches are smaller than before
+FETCH_TIMEOUT_SECONDS = 60
 MIN_REFETCH_SECONDS = 50 * 60  # GFS only updates every ~6h - re-fetching every 15min cycle is pointless
 
 
@@ -122,11 +140,12 @@ def _fetch_batch(points, session=None):
         "latitude": lats,
         "longitude": lons,
         "hourly": _hourly_params(),
-        "forecast_days": 1,
+        "forecast_days": FORECAST_DAYS,
+        "models": MODEL,
         "timezone": "UTC",
     }
     getter = session.get if session else requests.get
-    resp = getter(OPEN_METEO_URL, params=params, timeout=30)
+    resp = getter(OPEN_METEO_URL, params=params, timeout=FETCH_TIMEOUT_SECONDS)
     if resp.status_code != 200:
         raise RuntimeError(f"HTTP {resp.status_code}: {resp.text[:300]}")
     data = resp.json()
@@ -136,42 +155,65 @@ def _fetch_batch(points, session=None):
     return entries
 
 
-def _entry_to_index(entry):
+def _entry_to_series(entry, step_hours=STEP_HOURS):
+    """Returns (index_series, times_iso) for one point - one duct index per
+    sampled hour, plus the matching ISO8601 UTC timestamps. Missing/short
+    arrays degrade to whatever length is actually available rather than
+    raising, since Open-Meteo occasionally trims a field a few hours short."""
     hourly = entry.get("hourly", {}) or {}
+    times = hourly.get("time") or []
+    idxs = list(range(0, len(times), step_hours))
 
-    def first(key):
-        arr = hourly.get(key)
-        return arr[0] if arr else None
-
-    levels = []
+    level_arrays = {}
     for lv in LEVELS_HPA:
-        levels.append({
-            "pressure": lv,
-            "temp_c": first(f"temperature_{lv}hPa"),
-            "rh": first(f"relative_humidity_{lv}hPa"),
-            "height_m": first(f"geopotential_height_{lv}hPa"),
-        })
-    idx, grad = duct_index_from_profile(levels)
-    return idx, grad
+        level_arrays[lv] = (
+            hourly.get(f"temperature_{lv}hPa") or [],
+            hourly.get(f"relative_humidity_{lv}hPa") or [],
+            hourly.get(f"geopotential_height_{lv}hPa") or [],
+        )
+
+    series = []
+    for i in idxs:
+        levels = []
+        for lv in LEVELS_HPA:
+            t_arr, rh_arr, h_arr = level_arrays[lv]
+            levels.append({
+                "pressure": lv,
+                "temp_c": t_arr[i] if i < len(t_arr) else None,
+                "rh": rh_arr[i] if i < len(rh_arr) else None,
+                "height_m": h_arr[i] if i < len(h_arr) else None,
+            })
+        idx, _grad = duct_index_from_profile(levels)
+        series.append(idx)
+
+    times_out = [times[i] for i in idxs]
+    return series, times_out
 
 
-def fetch_grid(session=None, fetch_batch=_fetch_batch):
-    """Returns (values_by_point dict[(lat,lon)] -> index, errors list[str])."""
+def fetch_grid(session=None, fetch_batch=_fetch_batch, step_hours=STEP_HOURS):
+    """Returns (values_by_point dict[(lat,lon)] -> list[index] one per sampled
+    hour, times list[str] ISO8601 UTC shared across all points, errors
+    list[str]). times is taken from the first point that returned data since
+    every point is fetched with the same forecast_days/model/timezone and
+    should therefore share an identical timeline."""
     lats, lons = grid_points()
     points = [(la, lo) for la in lats for lo in lons]
 
     values = {}
+    times_out = None
     errors = []
     for i in range(0, len(points), BATCH_SIZE):
         batch = points[i:i + BATCH_SIZE]
         try:
             entries = fetch_batch(batch, session=session)
             for (lat, lon), entry in zip(batch, entries):
-                idx, _grad = _entry_to_index(entry)
-                values[(lat, lon)] = idx
+                series, times = _entry_to_series(entry, step_hours=step_hours)
+                values[(lat, lon)] = series
+                if times_out is None and times:
+                    times_out = times
         except Exception as exc:  # noqa: BLE001 - degrade gracefully, one bad batch shouldn't kill the rest
             errors.append(f"batch@{batch[0]}: {exc}")
-    return values, errors
+    return values, times_out, errors
 
 
 def run(prev_tropo=None, now_ts=None):
@@ -190,20 +232,24 @@ def run(prev_tropo=None, now_ts=None):
             return out
 
     lats, lons = grid_points()
-    values, errors = fetch_grid()
+    values, times_out, errors = fetch_grid()
 
-    if not values:
+    if not values or not times_out:
         return {
             "status": "error",
             "error": "; ".join(errors[:3]) if errors else "no data",
             "fetched_at": now_ts,
         }
 
+    n_steps = len(times_out)
     grid_values = []
     for la in lats:
         row = []
         for lo in lons:
-            row.append(values.get((la, lo), 0.0))
+            series = values.get((la, lo))
+            if not series or len(series) != n_steps:
+                series = [0.0] * n_steps
+            row.append(series)
         grid_values.append(row)
 
     return {
@@ -214,6 +260,7 @@ def run(prev_tropo=None, now_ts=None):
             "lat_min": GRID_LAT_MIN, "lat_max": GRID_LAT_MAX, "lat_step": GRID_LAT_STEP,
             "lon_min": GRID_LON_MIN, "lon_max": GRID_LON_MAX, "lon_step": GRID_LON_STEP,
             "rows": len(lats), "cols": len(lons),
+            "times": times_out,
             "values": grid_values,
         },
     }
@@ -226,4 +273,5 @@ if __name__ == "__main__":
     grid = result.pop("grid", None)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     if grid:
-        print(f"grid: {grid['rows']}x{grid['cols']}, sample value: {grid['values'][0][0]}", file=sys.stderr)
+        print(f"grid: {grid['rows']}x{grid['cols']}x{len(grid['times'])} steps, "
+              f"sample series: {grid['values'][0][0][:4]}...", file=sys.stderr)

@@ -122,6 +122,13 @@
   #japan-heatmap, #self-chance-map, #tropo-map{ width:100%; height:auto; aspect-ratio:207/213; display:block; cursor:crosshair; max-height:640px; }
   .map-panel .panel-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:2px; }
   .map-panel .panel-head h3{ margin:0; }
+  .tropo-time-row{ display:flex; flex-direction:column; gap:6px; margin:10px 0 12px; }
+  .tropo-time-label{ font-size:13px; font-weight:700; color:var(--ink); }
+  .tropo-time-slider{ width:100%; accent-color: var(--tropo-high); }
+  .tropo-time-quick{ display:flex; gap:6px; flex-wrap:wrap; }
+  .time-btn{ font:inherit; font-size:11.5px; padding:5px 10px; border-radius:999px; border:1px solid var(--line); background:var(--panel-2); color:var(--ink-dim); cursor:pointer; transition:border-color .15s ease, color .15s ease; }
+  .time-btn:hover{ border-color:var(--tropo-high); color:var(--tropo-high); }
+  .time-btn.active{ border-color:var(--tropo-high); color:var(--tropo-high); background:color-mix(in srgb, var(--tropo-high) 12%, transparent); font-weight:700; }
   .map-tooltip{
     position:absolute; pointer-events:none; display:none; z-index:2;
     background:var(--panel); border:1px solid var(--line); border-radius:8px;
@@ -264,10 +271,20 @@
 
   <div class="map-panel" id="tropo-map-panel">
     <div class="panel-head">
-      <h3>UHFトロポダクト予報</h3>
+      <h3>UHFトロポダクト予報(今後7日間)</h3>
       <span class="pill" id="tropo-badge"><span class="dot"></span>読込中</span>
     </div>
-    <span class="sub">気象庁GFSモデル由来の気温・湿度・高度データから大気の屈折率(M値)の高度勾配を計算し、電波が上空に逃げずに地表付近を伝わる「ラジオダクト」が起きやすい場所を推定した地図。市民ラジオのUHF機(430MHz帯)で通常より遠距離が入感しやすいエリアの目安です。</span>
+    <span class="sub">気象庁GFSモデル由来の気温・湿度・高度データから大気の屈折率(M値)の高度勾配を計算し、電波が上空に逃げずに地表付近を伝わる「ラジオダクト」が起きやすい場所を推定した地図。市民ラジオのUHF機(430MHz帯)で通常より遠距離が入感しやすいエリアの目安です。下のスライダーで約6時間刻み・最大7日先まで予報を切り替えられます。</span>
+    <div class="tropo-time-row">
+      <div class="tropo-time-label" id="tropo-time-label">読込中…</div>
+      <input type="range" class="tropo-time-slider" id="tropo-time-slider" min="0" max="0" value="0" step="1" disabled>
+      <div class="tropo-time-quick">
+        <button type="button" class="time-btn" data-jump="now">現在</button>
+        <button type="button" class="time-btn" data-jump="1">+1日</button>
+        <button type="button" class="time-btn" data-jump="3">+3日</button>
+        <button type="button" class="time-btn" data-jump="7">+7日</button>
+      </div>
+    </div>
     <div class="map-wrap">
       <canvas id="tropo-map"></canvas>
       <div class="map-tooltip" id="tropo-tooltip"></div>
@@ -642,45 +659,140 @@
 
   var lastTropoData = null;
   var tropoProj = null;
+  var tropoStepIndex = null; // selected index into grid.times; null = not yet initialized for this grid
 
   function drawTropoMap(data){
     lastTropoData = data;
     requestAnimationFrame(function(){ requestAnimationFrame(function(){ renderTropoCanvas(data); }); });
   }
 
+  // Open-Meteo's hourly.time strings are plain "YYYY-MM-DDTHH:MM" with no
+  // offset (we request timezone=UTC) - append 'Z' so Date.parse treats them
+  // as UTC rather than the browser's local time.
+  function parseTropoTimeMs(iso){
+    if(!iso) return NaN;
+    return Date.parse(iso.length<=16 ? iso+':00Z' : iso+'Z');
+  }
+
+  function formatTropoTime(iso){
+    var ms = parseTropoTimeMs(iso);
+    if(isNaN(ms)) return iso || '--';
+    var p = jstParts(new Date(ms));
+    var wk = ['日','月','火','水','木','金','土'][new Date(Date.UTC(p.y,p.mo-1,p.d)).getUTCDay()];
+    return p.mo+'/'+p.d+'('+wk+') '+String(p.h).padStart(2,'0')+':'+String(p.mi).padStart(2,'0')+' JST';
+  }
+
+  function nearestTropoStepIndex(times, targetMs){
+    var best = 0, bestDiff = Infinity;
+    for(var i=0;i<times.length;i++){
+      var ms = parseTropoTimeMs(times[i]);
+      if(isNaN(ms)) continue;
+      var diff = Math.abs(ms - targetMs);
+      if(diff < bestDiff){ bestDiff = diff; best = i; }
+    }
+    return best;
+  }
+
+  function jumpTropoTo(target){
+    var grid = lastTropoData && lastTropoData.tropo && lastTropoData.tropo.grid;
+    if(!grid || !grid.times || !grid.times.length) return;
+    var targetMs = (target === 'now') ? Date.now() : (Date.now() + target*24*3600*1000);
+    tropoStepIndex = nearestTropoStepIndex(grid.times, targetMs);
+    renderTropoCanvas(lastTropoData);
+  }
+
+  function weeklyTropoPeak(grid){
+    var best = {v:-Infinity, stepIdx:0};
+    for(var ri=0; ri<grid.values.length; ri++){
+      var row = grid.values[ri];
+      for(var ci=0; ci<row.length; ci++){
+        var series = row[ci] || [];
+        for(var ti=0; ti<series.length; ti++){
+          if(series[ti] > best.v){ best.v = series[ti]; best.stepIdx = ti; }
+        }
+      }
+    }
+    return best;
+  }
+
   function tropoStatusNoteText(tropo){
     if(!tropo || !tropo.status) return ' データ未取得です。';
     if(tropo.status === 'error') return ' 現在データの取得に失敗しています('+(tropo.error||'不明なエラー')+')。しばらく待って再読み込みしてください。';
-    if(tropo.status === 'partial') return ' 一部の格子点で取得に失敗しています(errors: '+(tropo.errors||[]).length+'件)。';
+    var extra = '';
+    if(tropo.status === 'partial') extra = ' (一部の格子点で取得に失敗: errors '+(tropo.errors||[]).length+'件)';
     var age = (tropo.fetched_at != null) ? Math.max(0, Math.round((Date.now()/1000 - tropo.fetched_at)/60)) : null;
-    var ageTxt = age != null ? '約'+age+'分前の気象モデルデータ' : '取得時刻不明の気象モデルデータ';
-    return ' '+ageTxt+'に基づく推定です(GFSの更新は約6時間毎)。あくまで気象モデルによる推定であり、NICT実測のようなEsの証拠とは性質が異なります。';
+    var ageTxt = age != null ? '約'+age+'分前に取得した' : '取得時刻不明の';
+    var peakTxt = '';
+    if(tropo.grid && tropo.grid.values && tropo.grid.values.length && tropo.grid.times && tropo.grid.times.length){
+      var peak = weeklyTropoPeak(tropo.grid);
+      if(isFinite(peak.v)){
+        peakTxt = ' 今後約7日間の全国ピークは推定 '+Math.round(peak.v)+'('+formatTropoTime(tropo.grid.times[peak.stepIdx])+'頃)です。';
+      }
+    }
+    return ' '+ageTxt+'GFSモデルデータに基づく推定です(GFSの更新は約6時間毎)'+extra+'。あくまで気象モデルによる推定であり、精度は数日先になるほど下がります。NICT実測のようなEsの証拠とは性質が異なります。'+peakTxt;
   }
 
-  function updateTropoBadgeAndNote(data){
+  function updateTropoBadgeAndNote(data, grid, stepIdx){
     var tropo = data && data.tropo;
     var badge = document.getElementById('tropo-badge');
     var note = document.getElementById('tropo-status-note');
     if(note) note.textContent = tropoStatusNoteText(tropo);
     if(!badge) return;
-    if(!tropo || tropo.status === 'error' || !tropo.grid){
+    if(!grid || !grid.values || !grid.values.length){
       badge.className = 'pill tropo-ok';
       badge.innerHTML = '<span class="dot"></span>' + (tropo && tropo.status==='error' ? '取得失敗' : '未取得');
       return;
     }
-    var grid = tropo.grid, maxV = -Infinity;
-    for(var r=0;r<grid.values.length;r++){ for(var c=0;c<grid.values[r].length;c++){ if(grid.values[r][c]>maxV) maxV = grid.values[r][c]; } }
+    var maxV = -Infinity;
+    for(var r=0;r<grid.values.length;r++){
+      var row = grid.values[r];
+      for(var c=0;c<row.length;c++){
+        var v = (row[c] || [])[stepIdx];
+        if(v != null && v>maxV) maxV = v;
+      }
+    }
     if(!isFinite(maxV)) maxV = 0;
     var st = tropoStatusOf(maxV);
     badge.className = 'pill ' + st.cls;
-    badge.innerHTML = '<span class="dot"></span>' + st.label + '(全国最大 ' + Math.round(maxV) + ')';
+    badge.innerHTML = '<span class="dot"></span>' + st.label + '(選択時刻の全国最大 ' + Math.round(maxV) + ')';
+  }
+
+  function updateTropoTimeControls(grid, stepIdx){
+    var slider = document.getElementById('tropo-time-slider');
+    var label = document.getElementById('tropo-time-label');
+    if(!grid || !grid.times || !grid.times.length){
+      if(slider){ slider.disabled = true; slider.max = 0; slider.value = 0; }
+      if(label) label.textContent = 'データ取得待ちです';
+      return;
+    }
+    if(slider){
+      slider.disabled = false;
+      slider.max = grid.times.length - 1;
+      slider.value = stepIdx;
+    }
+    if(label){
+      var nowIdx = nearestTropoStepIndex(grid.times, Date.now());
+      label.textContent = formatTropoTime(grid.times[stepIdx]) + (stepIdx === nowIdx ? '(現在に最も近い予報)' : '');
+    }
   }
 
   function renderTropoCanvas(data){
     var canvas = document.getElementById('tropo-map');
     if(!canvas || !coastline) return;
-    updateTropoBadgeAndNote(data);
     var tropo = data && data.tropo;
+    var grid = tropo && tropo.grid;
+
+    if(grid && grid.times && grid.times.length){
+      if(tropoStepIndex == null || tropoStepIndex >= grid.times.length){
+        tropoStepIndex = nearestTropoStepIndex(grid.times, Date.now());
+      }
+    } else {
+      tropoStepIndex = null;
+    }
+    var stepIdx = tropoStepIndex || 0;
+
+    updateTropoBadgeAndNote(data, grid, stepIdx);
+    updateTropoTimeControls(grid, stepIdx);
 
     var dpr = window.devicePixelRatio || 1;
     var w = canvas.clientWidth, h = canvas.clientHeight || 440;
@@ -701,7 +813,6 @@
       path.closePath();
     });
 
-    var grid = tropo && tropo.grid;
     if(grid && grid.values && grid.values.length){
       ctx.save();
       ctx.clip(path);
@@ -713,7 +824,8 @@
           var p0 = proj.toXY(lat0, lon0), p1 = proj.toXY(lat1, lon1);
           var x = Math.min(p0[0], p1[0]), y = Math.min(p0[1], p1[1]);
           var cw = Math.abs(p1[0]-p0[0]) + 1, ch = Math.abs(p1[1]-p0[1]) + 1;
-          ctx.fillStyle = valueToTropoColor(row[ci]);
+          var v = (row[ci] || [])[stepIdx];
+          ctx.fillStyle = valueToTropoColor(v == null ? 0 : v);
           ctx.fillRect(x, y, cw, ch);
         }
       }
@@ -747,12 +859,29 @@
       var ri = Math.round((ll[0]-grid.lat_min)/grid.lat_step);
       var ci = Math.round((ll[1]-grid.lon_min)/grid.lon_step);
       if(ri<0 || ri>=grid.rows || ci<0 || ci>=grid.cols){ tip.style.display='none'; return; }
-      var v = grid.values[ri][ci];
+      var v = (grid.values[ri][ci] || [])[tropoStepIndex || 0];
+      if(v == null){ tip.style.display='none'; return; }
       var st = tropoStatusOf(v);
       tip.innerHTML = 'ダクト指数 <b>'+v.toFixed(0)+'</b> /100 ('+st.label+')';
       tip.style.left = x+'px'; tip.style.top = y+'px'; tip.style.display='block';
     });
     canvas.addEventListener('mouseleave', function(){ tip.style.display='none'; });
+  }
+
+  function initTropoTimeControls(){
+    var slider = document.getElementById('tropo-time-slider');
+    if(slider){
+      slider.addEventListener('input', function(){
+        tropoStepIndex = parseInt(slider.value, 10) || 0;
+        if(lastTropoData) renderTropoCanvas(lastTropoData);
+      });
+    }
+    document.querySelectorAll('#tropo-map-panel .time-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var jump = btn.getAttribute('data-jump');
+        jumpTropoTo(jump === 'now' ? 'now' : parseFloat(jump));
+      });
+    });
   }
 
   // ---------------------------------------------------------------------
@@ -1195,6 +1324,7 @@
     initMapTooltip();
     initSelfChanceTooltip();
     initTropoTooltip();
+    initTropoTimeControls();
     populateQthSelect();
     loadCoastline().then(function(){
       if(lastHeatmapData){ drawJapanHeatmap(lastHeatmapData); drawSelfChanceMap(lastHeatmapData); }
