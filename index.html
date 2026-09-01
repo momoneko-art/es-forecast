@@ -103,6 +103,21 @@
   .map-legend .bar{ flex:1; height:10px; border-radius:5px; }
   .map-loading{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12.5px; color:var(--ink-dim); }
 
+  .path-panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); }
+  .path-panel h3{ margin:0 0 2px; font-size:14px; font-weight:700; }
+  .path-panel .sub{ font-size:12px; color:var(--ink-dim); margin-bottom:10px; display:block; }
+  .qth-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  .qth-row label{ font-size:12.5px; color:var(--ink-dim); }
+  .qth-select{ font:inherit; font-size:13.5px; padding:7px 10px; border-radius:9px; border:1px solid var(--line); background:var(--panel-2); color:var(--ink); }
+  .path-cards{ display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:10px; }
+  .path-card{ background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:11px 12px; display:flex; flex-direction:column; gap:6px; }
+  .path-card .city{ font-weight:700; font-size:13.5px; }
+  .path-card .dir{ font-size:11.5px; color:var(--ink-dim); font-family:'JetBrains Mono',monospace; }
+  .path-card .val{ font-size:22px; font-weight:800; }
+  .path-card .val .unit{ font-size:11px; font-weight:600; color:var(--ink-dim); margin-left:2px; }
+  .path-card .note{ font-size:10.5px; color:var(--ink-dim); }
+  .path-empty{ font-size:12.5px; color:var(--ink-dim); padding:6px 2px; }
+
   .grid-2{ display:grid; grid-template-columns:1.3fr 1fr; gap:14px; }
   @media (max-width:720px){ .grid-2{ grid-template-columns:1fr; } }
   .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); }
@@ -170,6 +185,18 @@
       <div class="bar" id="map-legend-bar"></div>
       <span>100</span>
     </div>
+  </div>
+
+  <div class="path-panel">
+    <h3>自局から見た方位別 Es 伝搬見込み</h3>
+    <span class="sub">自局と主要都市を結ぶパスの中間地点(Esが実際に反射する場所)の活動指数から算出。単発ホップの目安は概ね500〜2400km。</span>
+    <div class="qth-row">
+      <label for="qth-select">自局(送信地点):</label>
+      <select class="qth-select" id="qth-select">
+        <option value="">選択してください</option>
+      </select>
+    </div>
+    <div class="path-cards" id="path-cards"></div>
   </div>
 
   <div class="grid-2">
@@ -439,6 +466,144 @@
     canvas.addEventListener('mouseleave', function(){ tip.style.display='none'; });
   }
 
+  // ---------------------------------------------------------------------
+  // Self-station path panel: great-circle bearing/distance/midpoint from a
+  // registered QTH (prefecture) to major target cities, looked up against
+  // the same heatmap grid used for the map above.
+  // ---------------------------------------------------------------------
+
+  var PREFECTURES = [
+    ["北海道",43.06,141.35],["青森県",40.82,140.74],["岩手県",39.70,141.15],["宮城県",38.27,140.87],
+    ["秋田県",39.72,140.10],["山形県",38.24,140.36],["福島県",37.75,140.47],["茨城県",36.34,140.45],
+    ["栃木県",36.57,139.88],["群馬県",36.39,139.06],["埼玉県",35.86,139.65],["千葉県",35.60,140.12],
+    ["東京都",35.69,139.69],["神奈川県",35.45,139.64],["新潟県",37.90,139.02],["富山県",36.70,137.21],
+    ["石川県",36.59,136.63],["福井県",36.07,136.22],["山梨県",35.66,138.57],["長野県",36.65,138.18],
+    ["岐阜県",35.39,136.72],["静岡県",34.98,138.38],["愛知県",35.18,136.91],["三重県",34.73,136.51],
+    ["滋賀県",35.00,135.87],["京都府",35.02,135.76],["大阪府",34.69,135.52],["兵庫県",34.69,135.18],
+    ["奈良県",34.69,135.83],["和歌山県",34.23,135.17],["鳥取県",35.50,134.24],["島根県",35.47,133.05],
+    ["岡山県",34.66,133.93],["広島県",34.40,132.46],["山口県",34.19,131.47],["徳島県",34.07,134.56],
+    ["香川県",34.34,134.04],["愛媛県",33.84,132.77],["高知県",33.56,133.53],["福岡県",33.61,130.42],
+    ["佐賀県",33.25,130.30],["長崎県",32.74,129.87],["熊本県",32.79,130.74],["大分県",33.24,131.61],
+    ["宮崎県",31.91,131.42],["鹿児島県",31.56,130.56],["沖縄県",26.21,127.68]
+  ];
+
+  var TARGET_CITIES = [
+    ["札幌(北海道)",43.06,141.35],["仙台(東北)",38.27,140.87],["東京(関東)",35.69,139.69],
+    ["名古屋(中部)",35.18,136.91],["大阪(近畿)",34.69,135.52],["広島(中国)",34.40,132.46],
+    ["高松(四国)",34.34,134.04],["福岡(九州)",33.61,130.42],["那覇(沖縄)",26.21,127.68]
+  ];
+
+  var QTH_KEY = 'esforecast_qth_pref';
+
+  function toRad(d){ return d*Math.PI/180; }
+  function toDeg(r){ return r*180/Math.PI; }
+
+  function greatCircleKm(lat1,lon1,lat2,lon2){
+    var R=6371, p1=toRad(lat1), p2=toRad(lat2), dp=toRad(lat2-lat1), dl=toRad(lon2-lon1);
+    var a = Math.sin(dp/2)*Math.sin(dp/2) + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)*Math.sin(dl/2);
+    return R * 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  function initialBearingDeg(lat1,lon1,lat2,lon2){
+    var p1=toRad(lat1), p2=toRad(lat2), dl=toRad(lon2-lon1);
+    var y = Math.sin(dl)*Math.cos(p2);
+    var x = Math.cos(p1)*Math.sin(p2) - Math.sin(p1)*Math.cos(p2)*Math.cos(dl);
+    return (toDeg(Math.atan2(y,x)) + 360) % 360;
+  }
+
+  function bearingToCompass16(deg){
+    var names = ['北','北北東','北東','東北東','東','東南東','南東','南南東','南','南南西','南西','西南西','西','西北西','北西','北北西'];
+    return names[Math.round(deg/22.5) % 16];
+  }
+
+  function geographicMidpoint(lat1,lon1,lat2,lon2){
+    var p1=toRad(lat1), l1=toRad(lon1), p2=toRad(lat2), l2=toRad(lon2);
+    var x = Math.cos(p1)*Math.cos(l1) + Math.cos(p2)*Math.cos(l2);
+    var y = Math.cos(p1)*Math.sin(l1) + Math.cos(p2)*Math.sin(l2);
+    var z = Math.sin(p1) + Math.sin(p2);
+    var hyp = Math.sqrt(x*x + y*y);
+    return [toDeg(Math.atan2(z, hyp)), toDeg(Math.atan2(y, x))];
+  }
+
+  function heatmapValueAt(lat, lon){
+    if(!lastHeatmapData || !lastHeatmapData.heatmap) return null;
+    var hm = lastHeatmapData.heatmap;
+    var fr = (lat - hm.lat_min) / hm.lat_step, fc = (lon - hm.lon_min) / hm.lon_step;
+    fr = Math.max(0, Math.min(hm.rows - 1, fr));
+    fc = Math.max(0, Math.min(hm.cols - 1, fc));
+    var r0 = Math.floor(fr), c0 = Math.floor(fc);
+    var r1 = Math.min(hm.rows - 1, r0 + 1), c1 = Math.min(hm.cols - 1, c0 + 1);
+    var tr = fr - r0, tc = fc - c0;
+    var v00 = hm.values[r0][c0], v01 = hm.values[r0][c1], v10 = hm.values[r1][c0], v11 = hm.values[r1][c1];
+    var v0 = v00 + (v01 - v00) * tc, v1 = v10 + (v11 - v10) * tc;
+    return v0 + (v1 - v0) * tr;
+  }
+
+  function loadQth(){
+    try { return localStorage.getItem(QTH_KEY) || ''; } catch(e){ return ''; }
+  }
+  function saveQth(name){
+    try { localStorage.setItem(QTH_KEY, name); } catch(e){ /* ignore: private mode etc. */ }
+  }
+
+  function populateQthSelect(){
+    var sel = document.getElementById('qth-select');
+    if(!sel || sel.dataset.filled) return;
+    PREFECTURES.forEach(function(p){
+      var opt = document.createElement('option');
+      opt.value = p[0]; opt.textContent = p[0];
+      sel.appendChild(opt);
+    });
+    sel.dataset.filled = '1';
+    var saved = loadQth();
+    if(saved) sel.value = saved;
+    sel.addEventListener('change', function(){
+      saveQth(sel.value);
+      renderPathPanel();
+    });
+  }
+
+  function renderPathPanel(){
+    var wrap = document.getElementById('path-cards');
+    if(!wrap) return;
+    var sel = document.getElementById('qth-select');
+    var qthName = sel ? sel.value : loadQth();
+    if(!qthName){
+      wrap.innerHTML = '<div class="path-empty">自局(送信地点)を選択すると、主要都市方向ごとのEs伝搬見込みが表示されます。</div>';
+      return;
+    }
+    var qth = PREFECTURES.find(function(p){ return p[0] === qthName; });
+    if(!qth){ wrap.innerHTML = ''; return; }
+    if(!lastHeatmapData || !lastHeatmapData.heatmap){
+      wrap.innerHTML = '<div class="path-empty">地図データの読み込みを待っています…</div>';
+      return;
+    }
+    var html = '';
+    TARGET_CITIES.forEach(function(city){
+      var dist = greatCircleKm(qth[1], qth[2], city[1], city[2]);
+      if(dist < 80){
+        html += '<div class="path-card"><div class="city">'+city[0]+'</div><div class="dir">自局とほぼ同じ地点</div></div>';
+        return;
+      }
+      var bearing = initialBearingDeg(qth[1], qth[2], city[1], city[2]);
+      var mid = geographicMidpoint(qth[1], qth[2], city[1], city[2]);
+      var v = heatmapValueAt(mid[0], mid[1]);
+      var st = v == null ? {cls:'', label:'--'} : statusOf(v);
+      var rangeNote = '';
+      if(dist < 500) rangeNote = '距離がやや近め(単発Esが開きにくい距離)';
+      else if(dist > 2400) rangeNote = '距離がやや遠め(マルチホップが必要な距離)';
+      html +=
+        '<div class="path-card">' +
+          '<div class="city">'+city[0]+'</div>' +
+          '<div class="dir">'+bearingToCompass16(bearing)+'方向 &middot; 約'+Math.round(dist)+'km</div>' +
+          '<div class="val mono">'+(v==null?'--':Math.round(v))+'<span class="unit">/100</span></div>' +
+          '<span class="pill '+st.cls+'" style="align-self:flex-start;"><span class="dot"></span>'+st.label+'</span>' +
+          (rangeNote ? '<div class="note">'+rangeNote+'</div>' : '') +
+        '</div>';
+    });
+    wrap.innerHTML = html;
+  }
+
   function render(data){
     var accent = cssVar('--accent'), accentWarm = cssVar('--accent-warm');
 
@@ -511,6 +676,7 @@
     document.getElementById('footer-updated').textContent = '最終データ更新: '+genJst+' JST';
 
     drawJapanHeatmap(data);
+    renderPathPanel();
   }
 
   function loadData(){
@@ -527,6 +693,7 @@
     tickClock();
     setInterval(tickClock, 1000);
     initMapTooltip();
+    populateQthSelect();
     loadCoastline().then(function(){ if(lastHeatmapData) drawJapanHeatmap(lastHeatmapData); });
     loadData();
     setInterval(loadData, 5 * 60 * 1000);
