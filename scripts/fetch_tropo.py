@@ -82,6 +82,16 @@ FETCH_TIMEOUT_SECONDS = 60
 # doesn't push us to miss an entire cycle.
 MIN_REFETCH_SECONDS = int(5.5 * 60 * 60)
 
+# Bumped whenever a change to the duct-index FORMULA (not just the grid/JSON
+# schema) would make old cached values wrong even though they still look
+# structurally valid (same keys, still has "times", etc) - e.g. LEVELS_HPA
+# changing what altitudes are sampled. The reuse check below requires an exact
+# match, so a version bump forces an immediate re-fetch on the very next run
+# instead of silently reusing pre-fix numbers for up to MIN_REFETCH_SECONDS.
+# v2: added 975/950/925/900/850hPa (was only 1000/925/850/700hPa) so thin
+# near-surface ducts stop getting averaged away to ~0.
+INDEX_VERSION = 2
+
 
 def _frange(lo, hi, step):
     n = int(round((hi - lo) / step))
@@ -254,8 +264,10 @@ def run(prev_tropo=None, now_ts=None):
     # expire. "times" is only present in the current schema's grid.
     prev_grid = (prev_tropo or {}).get("grid") or {}
     prev_is_current_schema = bool(prev_grid.get("times"))
+    prev_is_current_formula = prev_tropo and prev_tropo.get("index_version") == INDEX_VERSION
 
-    if prev_tropo and prev_is_current_schema and prev_tropo.get("status") == "ok" and prev_tropo.get("fetched_at"):
+    if (prev_tropo and prev_is_current_schema and prev_is_current_formula
+            and prev_tropo.get("status") == "ok" and prev_tropo.get("fetched_at")):
         age = now_ts - prev_tropo["fetched_at"]
         if age < MIN_REFETCH_SECONDS:
             out = dict(prev_tropo)
@@ -270,6 +282,7 @@ def run(prev_tropo=None, now_ts=None):
             "status": "error",
             "error": "; ".join(errors[:3]) if errors else "no data",
             "fetched_at": now_ts,
+            "index_version": INDEX_VERSION,
         }
 
     n_steps = len(times_out)
@@ -287,6 +300,7 @@ def run(prev_tropo=None, now_ts=None):
         "status": "ok" if not errors else "partial",
         "errors": errors[:5],
         "fetched_at": now_ts,
+        "index_version": INDEX_VERSION,
         "grid": {
             "lat_min": GRID_LAT_MIN, "lat_max": GRID_LAT_MAX, "lat_step": GRID_LAT_STEP,
             "lon_min": GRID_LON_MIN, "lon_max": GRID_LON_MAX, "lon_step": GRID_LON_STEP,
