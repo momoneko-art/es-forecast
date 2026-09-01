@@ -91,11 +91,16 @@
   .evidence-row b{ color:var(--ink); font-family:'JetBrains Mono',monospace; }
   .model-tag{ font-size:10.5px; color:var(--ink-dim); font-family:'JetBrains Mono',monospace; }
 
+  .map-grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; }
+  @media (max-width:860px){ .map-grid-2{ grid-template-columns:1fr; } }
   .map-panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); }
   .map-panel h3{ margin:0 0 2px; font-size:14px; font-weight:700; }
   .map-panel .sub{ font-size:12px; color:var(--ink-dim); margin-bottom:10px; display:block; }
   .map-wrap{ position:relative; }
-  #japan-heatmap{ width:100%; height:440px; display:block; cursor:crosshair; }
+  /* Japan's coastline bbox is roughly 20.7deg(lon,cos-adjusted) x 21.3deg(lat) - close to
+     square - so an aspect-ratio box (instead of a fixed height) lets the map fill its
+     column edge-to-edge with no wasted side padding, at any column width. */
+  #japan-heatmap, #self-chance-map{ width:100%; height:auto; aspect-ratio:207/213; display:block; cursor:crosshair; max-height:640px; }
   .map-tooltip{
     position:absolute; pointer-events:none; display:none; z-index:2;
     background:var(--panel); border:1px solid var(--line); border-radius:8px;
@@ -189,20 +194,40 @@
     <div class="stations" id="station-grid"></div>
   </div>
 
-  <div class="map-panel">
-    <h3>全国Es活動分布</h3>
-    <span class="sub">気候学モデルを緯度方向に空間補間し、PSKReporter全受信局の位置とNICT実測foEsをガウスカーネルで重ね合わせた全国推定分布</span>
-    <div class="map-wrap">
-      <canvas id="japan-heatmap"></canvas>
-      <div class="map-tooltip" id="map-tooltip"></div>
-      <div class="map-loading" id="map-loading">地図データを読み込んでいます…</div>
+  <div class="map-grid-2">
+    <div class="map-panel">
+      <h3>全国Es活動分布</h3>
+      <span class="sub">気候学モデルを緯度方向に空間補間し、PSKReporter全受信局の位置とNICT実測foEsをガウスカーネルで重ね合わせた全国推定分布</span>
+      <div class="map-wrap">
+        <canvas id="japan-heatmap"></canvas>
+        <div class="map-tooltip" id="map-tooltip"></div>
+        <div class="map-loading" id="map-loading">地図データを読み込んでいます…</div>
+      </div>
+      <div class="map-legend">
+        <span id="map-legend-min">0</span>
+        <div class="bar" id="map-legend-bar"></div>
+        <span id="map-legend-max">100</span>
+      </div>
+      <span class="sub" style="margin:6px 0 0;">色は0〜100の固定スケール(弱=緑 → やや強=黄 → 強=橙 → 非常に強=赤、30/50/80が色の変わり目)。現在の全国実測範囲: <strong id="map-legend-current">-</strong>。地図にマウスを合わせると地点ごとの数値も見られます。</span>
     </div>
-    <div class="map-legend">
-      <span id="map-legend-min">0</span>
-      <div class="bar" id="map-legend-bar"></div>
-      <span id="map-legend-max">100</span>
+
+    <div class="map-panel" id="self-chance-map-panel">
+      <h3>自局Es交信チャンスマップ</h3>
+      <span class="sub">自局から各地点までを結ぶ経路の中間地点(Esの反射点)の活動指数に、単発ホップの目安(概ね500〜2400km)から外れる距離ほど薄くなる補正をかけた地図。色が濃い場所ほど今この瞬間、自局から交信が届きやすい可能性が高いエリアです。</span>
+      <div class="path-empty" id="self-chance-empty">「自局(送信地点)」を選択すると、方角ごとの見込みが地図で表示されます(選択欄はこの下にあります)。</div>
+      <div id="self-chance-wrap" style="display:none;">
+        <div class="map-wrap">
+          <canvas id="self-chance-map"></canvas>
+          <div class="map-tooltip" id="self-chance-tooltip"></div>
+        </div>
+        <div class="map-legend">
+          <span>0</span>
+          <div class="bar" id="self-chance-legend-bar"></div>
+          <span>100</span>
+        </div>
+        <span class="sub" style="margin:6px 0 0;">配色は全国Es活動分布と同じ0〜100固定スケール。現在の自局から見た範囲: <strong id="self-chance-legend-current">-</strong>。白丸=主要都市の位置、大きな丸=自局。</span>
+      </div>
     </div>
-    <span class="sub" style="margin:6px 0 0;">色は0〜100の固定スケール(弱=緑 → やや強=黄 → 強=橙 → 非常に強=赤、30/50/80が色の変わり目)。現在の全国実測範囲: <strong id="map-legend-current">-</strong>。地図にマウスを合わせると地点ごとの数値も見られます。</span>
   </div>
 
   <div class="path-panel">
@@ -215,24 +240,6 @@
       </select>
     </div>
     <div class="path-cards" id="path-cards"></div>
-  </div>
-
-  <div class="map-panel" id="self-chance-map-panel">
-    <h3>自局Es交信チャンスマップ</h3>
-    <span class="sub">自局から各地点までを結ぶ経路の中間地点(Esの反射点)の活動指数に、単発ホップの目安(概ね500〜2400km)から外れる距離ほど薄くなる補正をかけた地図。色が濃い場所ほど今この瞬間、自局から交信が届きやすい可能性が高いエリアです。</span>
-    <div class="path-empty" id="self-chance-empty">上の「自局(送信地点)」を選択すると、方角ごとの見込みが地図で表示されます。</div>
-    <div id="self-chance-wrap" style="display:none;">
-      <div class="map-wrap">
-        <canvas id="self-chance-map"></canvas>
-        <div class="map-tooltip" id="self-chance-tooltip"></div>
-      </div>
-      <div class="map-legend">
-        <span>0</span>
-        <div class="bar" id="self-chance-legend-bar"></div>
-        <span>100</span>
-      </div>
-      <span class="sub" style="margin:6px 0 0;">配色は全国Es活動分布と同じ0〜100固定スケール。現在の自局から見た範囲: <strong id="self-chance-legend-current">-</strong>。白丸=主要都市の位置、大きな丸=自局。</span>
-    </div>
   </div>
 
   <div class="contacts-panel">
