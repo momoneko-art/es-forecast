@@ -35,6 +35,18 @@ def maidenhead_to_latlon(locator):
         return None
 
 
+JAPAN_BBOX = {"lat_min": 24.0, "lat_max": 46.0, "lon_min": 122.5, "lon_max": 149.5}
+
+
+def in_japan_bbox(lat, lon):
+    """Loose bounding-box check used for the nationwide heatmap (broader than the
+    4-station assignment below, so it also captures reports away from the anchors)."""
+    if lat is None or lon is None:
+        return False
+    return (JAPAN_BBOX["lat_min"] <= lat <= JAPAN_BBOX["lat_max"] and
+            JAPAN_BBOX["lon_min"] <= lon <= JAPAN_BBOX["lon_max"])
+
+
 def nearest_station_by_lat(lat, lon):
     """Assign a receiver to the closest of the 4 stations, restricted to roughly the Japan longitude band."""
     if lon is None or not (122 <= lon <= 148):

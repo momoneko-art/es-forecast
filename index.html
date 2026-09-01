@@ -87,6 +87,22 @@
   .evidence-row b{ color:var(--ink); font-family:'JetBrains Mono',monospace; }
   .model-tag{ font-size:10.5px; color:var(--ink-dim); font-family:'JetBrains Mono',monospace; }
 
+  .map-panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); }
+  .map-panel h3{ margin:0 0 2px; font-size:14px; font-weight:700; }
+  .map-panel .sub{ font-size:12px; color:var(--ink-dim); margin-bottom:10px; display:block; }
+  .map-wrap{ position:relative; }
+  #japan-heatmap{ width:100%; height:440px; display:block; cursor:crosshair; }
+  .map-tooltip{
+    position:absolute; pointer-events:none; display:none; z-index:2;
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:6px 9px; font-size:11.5px; color:var(--ink); box-shadow:var(--shadow);
+    transform:translate(-50%,-115%); white-space:nowrap;
+  }
+  .map-tooltip b{ font-family:'JetBrains Mono',monospace; }
+  .map-legend{ display:flex; align-items:center; gap:8px; margin-top:10px; font-size:11px; color:var(--ink-dim); }
+  .map-legend .bar{ flex:1; height:10px; border-radius:5px; }
+  .map-loading{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12.5px; color:var(--ink-dim); }
+
   .grid-2{ display:grid; grid-template-columns:1.3fr 1fr; gap:14px; }
   @media (max-width:720px){ .grid-2{ grid-template-columns:1fr; } }
   .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); }
@@ -139,6 +155,21 @@
       <span class="sub">NICT実測foEs + PSKReporter実伝播データ（15分毎更新）+ 季節・時刻統計 のハイブリッド指数</span>
     </div>
     <div class="stations" id="station-grid"></div>
+  </div>
+
+  <div class="map-panel">
+    <h3>全国 Es 活動ヒートマップ</h3>
+    <span class="sub">気候学モデルを緯度方向に空間補間し、PSKReporter全受信局の位置とNICT実測foEsをガウスカーネルで重ね合わせた全国推定分布</span>
+    <div class="map-wrap">
+      <canvas id="japan-heatmap"></canvas>
+      <div class="map-tooltip" id="map-tooltip"></div>
+      <div class="map-loading" id="map-loading">地図データを読み込んでいます…</div>
+    </div>
+    <div class="map-legend">
+      <span>0</span>
+      <div class="bar" id="map-legend-bar"></div>
+      <span>100</span>
+    </div>
   </div>
 
   <div class="grid-2">
@@ -222,6 +253,192 @@
     ctx.beginPath(); ctx.arc(X(n-1), Y(last.kp), 3.4, 0, Math.PI*2); ctx.fillStyle = accentColor; ctx.fill();
   }
 
+  // ---------------------------------------------------------------------
+  // Nationwide heatmap (spatial interpolation of climatology + evidence)
+  // ---------------------------------------------------------------------
+
+  var coastline = null;      // {rings, lonMin, lonMax, latMin, latMax}
+  var lastHeatmapData = null; // full data.json payload, kept for redraws (e.g. after coastline finishes loading)
+  var mapProj = null;         // current projector info, used by the hover tooltip
+
+  var HEAT_STOPS_LIGHT = [
+    [0.00, [205,244,251]], [0.25, [134,223,239]], [0.50, [57,202,229]],
+    [0.75, [28,149,171]],  [1.00, [13,92,107]]
+  ];
+  var HEAT_STOPS_DARK = [
+    [0.00, [22,48,58]], [0.25, [31,79,92]], [0.50, [45,126,143]],
+    [0.75, [63,179,199]], [1.00, [111,227,242]]
+  ];
+
+  function isDarkMode(){
+    var root = document.documentElement;
+    var t = root.getAttribute('data-theme');
+    if(t === 'dark') return true;
+    if(t === 'light') return false;
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+
+  function lerpColor(stops, t){
+    t = Math.max(0, Math.min(1, t));
+    for(var i=1;i<stops.length;i++){
+      if(t <= stops[i][0]){
+        var a = stops[i-1], b = stops[i];
+        var span = b[0]-a[0];
+        var k = span ? (t-a[0])/span : 0;
+        var c = [0,1,2].map(function(ch){ return Math.round(a[1][ch] + (b[1][ch]-a[1][ch])*k); });
+        return 'rgb('+c[0]+','+c[1]+','+c[2]+')';
+      }
+    }
+    var last = stops[stops.length-1][1];
+    return 'rgb('+last[0]+','+last[1]+','+last[2]+')';
+  }
+
+  // Real index values cluster around 20-60 on the nominal 0-100 scale (100 means
+  // "as strong as the seasonal Es peak ever gets, right at the daily peak hours,
+  // with heavy live evidence" - rare). Mapping the color ramp to the literal 0-100
+  // range leaves most of the country looking uniformly pale. Instead the ramp is
+  // anchored to the range where real values actually live, so day-to-day and
+  // region-to-region differences stay visible; 0 and 100 still clamp to the ramp's
+  // endpoints so an unusually quiet or strong reading is never off-scale.
+  var HEAT_DOMAIN_MIN = 15;
+  var HEAT_DOMAIN_MAX = 65;
+
+  function valueToColor(v){
+    var t = (Math.max(0, Math.min(100, v)) - HEAT_DOMAIN_MIN) / (HEAT_DOMAIN_MAX - HEAT_DOMAIN_MIN);
+    t = Math.max(0, Math.min(1, t));
+    return lerpColor(isDarkMode() ? HEAT_STOPS_DARK : HEAT_STOPS_LIGHT, t);
+  }
+
+  function setLegendGradient(){
+    var samples = [];
+    for(var i=0;i<=10;i++) samples.push(valueToColor(i*10) + ' ' + (i*10) + '%');
+    var bar = document.getElementById('map-legend-bar');
+    if(bar) bar.style.background = 'linear-gradient(90deg, '+samples.join(', ')+')';
+  }
+
+  function loadCoastline(){
+    return fetch('./japan_coastline.json', {cache:'force-cache'})
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(d){
+        var lonMin=Infinity, lonMax=-Infinity, latMin=Infinity, latMax=-Infinity;
+        d.rings.forEach(function(ring){
+          ring.forEach(function(p){
+            if(p[0]<lonMin) lonMin=p[0]; if(p[0]>lonMax) lonMax=p[0];
+            if(p[1]<latMin) latMin=p[1]; if(p[1]>latMax) latMax=p[1];
+          });
+        });
+        coastline = {rings:d.rings, lonMin:lonMin, lonMax:lonMax, latMin:latMin, latMax:latMax};
+        var loading = document.getElementById('map-loading');
+        if(loading) loading.style.display = 'none';
+      })
+      .catch(function(){
+        var loading = document.getElementById('map-loading');
+        if(loading) loading.textContent = '地図データの読み込みに失敗しました';
+      });
+  }
+
+  function makeProjector(bbox, w, h, pad){
+    var latMid = (bbox.latMin+bbox.latMax)/2;
+    var cosLat = Math.cos(latMid*Math.PI/180);
+    var lonSpan = (bbox.lonMax-bbox.lonMin)*cosLat;
+    var latSpan = (bbox.latMax-bbox.latMin);
+    var innerW = w-2*pad, innerH = h-2*pad;
+    var scale = Math.min(innerW/lonSpan, innerH/latSpan);
+    var usedW = lonSpan*scale, usedH = latSpan*scale;
+    var offX = pad + (innerW-usedW)/2;
+    var offY = pad + (innerH-usedH)/2;
+    return {
+      cosLat:cosLat, scale:scale, offX:offX, offY:offY, bbox:bbox,
+      toXY: function(lat, lon){
+        return [offX + (lon-bbox.lonMin)*cosLat*scale, offY + (bbox.latMax-lat)*scale];
+      },
+      toLatLon: function(x, y){
+        return [bbox.latMax - (y-offY)/scale, bbox.lonMin + (x-offX)/(cosLat*scale)];
+      }
+    };
+  }
+
+  function drawJapanHeatmap(data){
+    lastHeatmapData = data;
+    var canvas = document.getElementById('japan-heatmap');
+    if(!canvas || !coastline) return;
+    var dpr = window.devicePixelRatio || 1;
+    var w = canvas.clientWidth, h = canvas.clientHeight || 440;
+    canvas.width = w*dpr; canvas.height = h*dpr;
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+
+    var proj = makeProjector(coastline, w, h, 14);
+    mapProj = proj;
+
+    var path = new Path2D();
+    coastline.rings.forEach(function(ring){
+      ring.forEach(function(p, i){
+        var xy = proj.toXY(p[1], p[0]);
+        if(i===0) path.moveTo(xy[0], xy[1]); else path.lineTo(xy[0], xy[1]);
+      });
+      path.closePath();
+    });
+
+    var hm = data.heatmap;
+    if(hm && hm.values && hm.values.length){
+      ctx.save();
+      ctx.clip(path);
+      for(var ri=0; ri<hm.rows; ri++){
+        var lat0 = hm.lat_min + ri*hm.lat_step, lat1 = lat0 + hm.lat_step;
+        var row = hm.values[ri];
+        for(var ci=0; ci<hm.cols; ci++){
+          var lon0 = hm.lon_min + ci*hm.lon_step, lon1 = lon0 + hm.lon_step;
+          var p0 = proj.toXY(lat0, lon0), p1 = proj.toXY(lat1, lon1);
+          var x = Math.min(p0[0], p1[0]), y = Math.min(p0[1], p1[1]);
+          var cw = Math.abs(p1[0]-p0[0]) + 1, ch = Math.abs(p1[1]-p0[1]) + 1;
+          ctx.fillStyle = valueToColor(row[ci]);
+          ctx.fillRect(x, y, cw, ch);
+        }
+      }
+      ctx.restore();
+    }
+
+    ctx.strokeStyle = cssVar('--ink-dim'); ctx.lineWidth = 1; ctx.globalAlpha = 0.55;
+    ctx.stroke(path);
+    ctx.globalAlpha = 1;
+
+    (data.stations||[]).forEach(function(s){
+      if(s.lat == null || s.lon == null) return;
+      var xy = proj.toXY(s.lat, s.lon);
+      ctx.beginPath(); ctx.arc(xy[0], xy[1], 4.5, 0, Math.PI*2);
+      ctx.fillStyle = cssVar('--panel'); ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = cssVar('--ink'); ctx.stroke();
+      ctx.font = "11px 'Zen Kaku Gothic New', sans-serif";
+      ctx.fillStyle = cssVar('--ink');
+      ctx.textAlign = xy[0] > w-60 ? 'right' : 'left';
+      ctx.fillText(s.name, xy[0] + (xy[0] > w-60 ? -8 : 8), xy[1]+4);
+    });
+
+    setLegendGradient();
+  }
+
+  function initMapTooltip(){
+    var canvas = document.getElementById('japan-heatmap');
+    var tip = document.getElementById('map-tooltip');
+    if(!canvas || !tip) return;
+    canvas.addEventListener('mousemove', function(ev){
+      if(!mapProj || !lastHeatmapData || !lastHeatmapData.heatmap){ tip.style.display='none'; return; }
+      var rect = canvas.getBoundingClientRect();
+      var x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+      var ll = mapProj.toLatLon(x, y);
+      var hm = lastHeatmapData.heatmap;
+      var ri = Math.floor((ll[0]-hm.lat_min)/hm.lat_step);
+      var ci = Math.floor((ll[1]-hm.lon_min)/hm.lon_step);
+      if(ri<0 || ri>=hm.rows || ci<0 || ci>=hm.cols){ tip.style.display='none'; return; }
+      var v = hm.values[ri][ci];
+      tip.innerHTML = 'Es活動指数 <b>'+v.toFixed(0)+'</b> /100';
+      tip.style.left = x+'px'; tip.style.top = y+'px'; tip.style.display='block';
+    });
+    canvas.addEventListener('mouseleave', function(){ tip.style.display='none'; });
+  }
+
   function render(data){
     var accent = cssVar('--accent'), accentWarm = cssVar('--accent-warm');
 
@@ -292,6 +509,8 @@
 
     var genJst = data.generated_at_jst ? data.generated_at_jst.replace('T',' ').slice(0,16) : '--';
     document.getElementById('footer-updated').textContent = '最終データ更新: '+genJst+' JST';
+
+    drawJapanHeatmap(data);
   }
 
   function loadData(){
@@ -307,8 +526,15 @@
   function init(){
     tickClock();
     setInterval(tickClock, 1000);
+    initMapTooltip();
+    loadCoastline().then(function(){ if(lastHeatmapData) drawJapanHeatmap(lastHeatmapData); });
     loadData();
     setInterval(loadData, 5 * 60 * 1000);
+    var resizeTimer = null;
+    window.addEventListener('resize', function(){
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function(){ if(lastHeatmapData) drawJapanHeatmap(lastHeatmapData); }, 150);
+    });
   }
 
   if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }

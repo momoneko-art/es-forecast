@@ -10,6 +10,7 @@ from climatology import jst_now, day_of_year, climatology_index
 import fetch_pskreporter
 import fetch_nict
 import fetch_noaa
+import heatmap
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HISTORY_PATH = os.path.join(ROOT, "history.csv")
@@ -170,7 +171,7 @@ def run():
         es_index = max(0.0, min(100.0, es_index))
 
         stations_out.append({
-            "id": s["id"], "name": s["name"], "loc": s["loc"],
+            "id": s["id"], "name": s["name"], "loc": s["loc"], "lat": s["lat"], "lon": s["lon"],
             "es_index": round(es_index, 1),
             "climatology_index": round(clima, 1),
             "live_evidence": {"ft8_6m_spots_15min": count6, "ft8_10m_spots_15min": count10},
@@ -191,20 +192,32 @@ def run():
             except ValueError:
                 pass
 
+    # Nationwide heatmap: spatially interpolates the same climatology + evidence
+    # model used for the 4 stations above across a grid covering all of Japan,
+    # using every individual PSKReporter receiver location (not just the 4-bucket
+    # counts) plus the NICT foEs readings as anchors.
+    all_psk_points = []
+    for band in psk_result.values():
+        if band.get("status") == "ok":
+            all_psk_points.extend(band.get("heatmap_points", []))
+    heatmap_grid = heatmap.compute(now_jst, kp, all_psk_points, nict_stations)
+
+    EXCLUDE_KEYS = {"region_counts_raw", "heatmap_points"}
     data = {
         "generated_at": now_utc_iso + "Z",
         "generated_at_jst": now_jst.strftime("%Y-%m-%dT%H:%M:%S+09:00"),
         "kp": {"status": noaa.get("status"), "value": kp, "time_tag": noaa.get("time_tag")},
         "kp_history": kp_history,
-        "pskreporter": {k: {kk: vv for kk, vv in v.items() if kk != "region_counts_raw"} for k, v in psk_result.items()},
+        "pskreporter": {k: {kk: vv for kk, vv in v.items() if kk not in EXCLUDE_KEYS} for k, v in psk_result.items()},
         "nict": {"status": nict_result.get("status"), "stations": nict_stations},
         "stations": stations_out,
+        "heatmap": heatmap_grid,
         "history_rows": len(history_rows),
         "models_trained": sorted(models.keys()),
     }
 
     with open(DATA_JSON_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+        json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
 
     with open(DEBUG_JSON_PATH, "w", encoding="utf-8") as f:
         json.dump({"pskreporter_debug": psk_debug, "nict_findings": nict_result}, f, ensure_ascii=False, indent=2)

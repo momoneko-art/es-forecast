@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 
 import requests
 
-from stations import maidenhead_to_latlon, nearest_station_by_lat, STATIONS
+from stations import maidenhead_to_latlon, nearest_station_by_lat, in_japan_bbox, STATIONS
 
 BASE = "https://retrieve.pskreporter.info/query"
 HEADERS = {
@@ -69,11 +69,15 @@ def summarize_band(band_name, lo, hi):
     reports = parse_reports(raw["text"])
     region_counts = {s["id"]: 0 for s in STATIONS}
     counted = 0
+    heatmap_points = []  # [lat, lon] for every receiver inside Japan, used for the nationwide heatmap
     for r in reports:
         latlon = maidenhead_to_latlon(r.get("receiver_locator"))
         if not latlon:
             continue
-        station_id = nearest_station_by_lat(*latlon)
+        lat, lon = latlon
+        if in_japan_bbox(lat, lon):
+            heatmap_points.append([round(lat, 3), round(lon, 3)])
+        station_id = nearest_station_by_lat(lat, lon)
         if station_id:
             region_counts[station_id] += 1
             counted += 1
@@ -83,6 +87,7 @@ def summarize_band(band_name, lo, hi):
         "total_reports": len(reports),
         "matched_to_station": counted,
         "region_counts": region_counts,
+        "heatmap_points": heatmap_points,
     }
     # keep a small raw sample for debugging schema drift, not the full payload
     debug_sample = raw["text"][:1500]
