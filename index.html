@@ -79,9 +79,13 @@
   .station-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
   .station-head .name{ font-weight:700; font-size:15px; }
   .station-head .loc{ font-size:11.5px; color:var(--ink-dim); }
-  .gauge-row{ display:flex; align-items:baseline; gap:8px; }
+  .gauge-row{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; row-gap:6px; }
   .gauge-num{ font-size:30px; font-weight:800; }
   .gauge-num .unit{ font-size:12px; font-weight:600; color:var(--ink-dim); margin-left:2px; }
+  .trend{ font-size:12.5px; font-weight:700; white-space:nowrap; flex-shrink:0; }
+  .trend.up{ color:var(--accent-warm); }
+  .trend.down{ color:var(--ink-dim); }
+  .trend.flat{ color:var(--ink-dim); }
   .clima-note{ font-size:11px; color:var(--ink-dim); }
   .evidence-row{ display:flex; gap:10px; font-size:11.5px; color:var(--ink-dim); flex-wrap:wrap; }
   .evidence-row b{ color:var(--ink); font-family:'JetBrains Mono',monospace; }
@@ -172,6 +176,7 @@
       <span class="num mono" id="headline-num">--</span>
       <span class="label">全国最高値エリアの活動指数</span>
       <span class="pill ok" id="headline-pill"><span class="dot"></span>読込中</span>
+      <span id="headline-trend"></span>
     </div>
     <div class="headline-text" id="headline-text">データを取得しています…</div>
   </div>
@@ -185,7 +190,7 @@
   </div>
 
   <div class="map-panel">
-    <h3>全国 Es 活動ヒートマップ</h3>
+    <h3>全国Es活動分布</h3>
     <span class="sub">気候学モデルを緯度方向に空間補間し、PSKReporter全受信局の位置とNICT実測foEsをガウスカーネルで重ね合わせた全国推定分布</span>
     <div class="map-wrap">
       <canvas id="japan-heatmap"></canvas>
@@ -193,14 +198,15 @@
       <div class="map-loading" id="map-loading">地図データを読み込んでいます…</div>
     </div>
     <div class="map-legend">
-      <span>0</span>
+      <span id="map-legend-min">0</span>
       <div class="bar" id="map-legend-bar"></div>
-      <span>100</span>
+      <span id="map-legend-max">100</span>
     </div>
+    <span class="sub" style="margin:6px 0 0;">色の範囲は今この瞬間の全国最低〜最高値に合わせて自動調整されます。数値そのものは各カードでご確認ください。</span>
   </div>
 
   <div class="path-panel">
-    <h3>自局から見た方位別 Es 伝搬見込み</h3>
+    <h3>自局Es交信チャンス</h3>
     <span class="sub">自局と主要都市を結ぶパスの中間地点(Esが実際に反射する場所)の活動指数から算出。単発ホップの目安は概ね500〜2400km。</span>
     <div class="qth-row">
       <label for="qth-select">自局(送信地点):</label>
@@ -271,6 +277,16 @@
     document.getElementById('clock-time').textContent = String(p.h).padStart(2,'0')+':'+String(p.mi).padStart(2,'0')+':'+String(p.s).padStart(2,'0');
   }
 
+  function trendHtml(s){
+    if(!s || s.trend == null || s.trend === 'unknown') return '';
+    var arrows = {up:'&#8593;', down:'&#8595;', flat:'&#8594;'};
+    var labels = {up:'上昇中', down:'下降中', flat:'横ばい'};
+    var arrow = arrows[s.trend]; var label = labels[s.trend];
+    if(!arrow) return '';
+    var deltaTxt = (s.trend_delta != null) ? ' ('+(s.trend_delta>0?'+':'')+s.trend_delta+')' : '';
+    return '<span class="trend '+s.trend+'" title="前回(約15分前)比'+deltaTxt+'">'+arrow+' '+label+'</span>';
+  }
+
   function statusOf(v){
     if(v>=75) return {cls:'vhigh', label:'非常に高い'};
     if(v>=50) return {cls:'high',  label:'高い'};
@@ -307,11 +323,11 @@
   var mapProj = null;         // current projector info, used by the hover tooltip
 
   var HEAT_STOPS_LIGHT = [
-    [0.00, [205,244,251]], [0.25, [134,223,239]], [0.50, [57,202,229]],
+    [0.00, [170,221,236]], [0.25, [134,223,239]], [0.50, [57,202,229]],
     [0.75, [28,149,171]],  [1.00, [13,92,107]]
   ];
   var HEAT_STOPS_DARK = [
-    [0.00, [22,48,58]], [0.25, [31,79,92]], [0.50, [45,126,143]],
+    [0.00, [28,66,79]], [0.25, [31,79,92]], [0.50, [45,126,143]],
     [0.75, [63,179,199]], [1.00, [111,227,242]]
   ];
 
@@ -338,27 +354,49 @@
     return 'rgb('+last[0]+','+last[1]+','+last[2]+')';
   }
 
-  // Real index values cluster around 20-60 on the nominal 0-100 scale (100 means
-  // "as strong as the seasonal Es peak ever gets, right at the daily peak hours,
-  // with heavy live evidence" - rare). Mapping the color ramp to the literal 0-100
-  // range leaves most of the country looking uniformly pale. Instead the ramp is
-  // anchored to the range where real values actually live, so day-to-day and
-  // region-to-region differences stay visible; 0 and 100 still clamp to the ramp's
-  // endpoints so an unusually quiet or strong reading is never off-scale.
-  var HEAT_DOMAIN_MIN = 15;
-  var HEAT_DOMAIN_MAX = 65;
+  // The index swings hugely over a day/season (roughly single digits on a quiet
+  // winter night up to 80+ at an active summer midday), so a FIXED color domain
+  // is either washed-out-flat during quiet spells or over-saturated during
+  // active ones. Instead the domain adapts to whatever this render's own grid
+  // actually contains, with a minimum span so a near-uniform quiet map doesn't
+  // get stretched into exaggerated-looking noise, and the ramp's palest stop is
+  // deliberately not near-white so the map always reads as "filled in", never
+  // as an empty outline, even at the very bottom of that range.
+  var HEAT_DOMAIN_MIN_SPAN = 20;
+  var heatDomain = {min: 15, max: 65}; // fallback until the first grid is drawn
+
+  function updateHeatDomain(hm){
+    if(!hm || !hm.values || !hm.values.length){ return; }
+    var lo = Infinity, hi = -Infinity;
+    for(var r=0; r<hm.values.length; r++){
+      for(var c=0; c<hm.values[r].length; c++){
+        var v = hm.values[r][c];
+        if(v < lo) lo = v;
+        if(v > hi) hi = v;
+      }
+    }
+    if(!isFinite(lo) || !isFinite(hi)) return;
+    if(hi - lo < HEAT_DOMAIN_MIN_SPAN) hi = lo + HEAT_DOMAIN_MIN_SPAN;
+    heatDomain = {min: Math.max(0, lo), max: Math.min(100, hi)};
+  }
 
   function valueToColor(v){
-    var t = (Math.max(0, Math.min(100, v)) - HEAT_DOMAIN_MIN) / (HEAT_DOMAIN_MAX - HEAT_DOMAIN_MIN);
+    var t = (Math.max(0, Math.min(100, v)) - heatDomain.min) / (heatDomain.max - heatDomain.min);
     t = Math.max(0, Math.min(1, t));
     return lerpColor(isDarkMode() ? HEAT_STOPS_DARK : HEAT_STOPS_LIGHT, t);
   }
 
   function setLegendGradient(){
     var samples = [];
-    for(var i=0;i<=10;i++) samples.push(valueToColor(i*10) + ' ' + (i*10) + '%');
+    for(var i=0;i<=10;i++){
+      var v = heatDomain.min + (heatDomain.max - heatDomain.min) * (i/10);
+      samples.push(valueToColor(v) + ' ' + (i*10) + '%');
+    }
     var bar = document.getElementById('map-legend-bar');
     if(bar) bar.style.background = 'linear-gradient(90deg, '+samples.join(', ')+')';
+    var minEl = document.getElementById('map-legend-min'), maxEl = document.getElementById('map-legend-max');
+    if(minEl) minEl.textContent = Math.round(heatDomain.min);
+    if(maxEl) maxEl.textContent = Math.round(heatDomain.max);
   }
 
   function loadCoastline(){
@@ -427,6 +465,7 @@
     });
 
     var hm = data.heatmap;
+    updateHeatDomain(hm);
     if(hm && hm.values && hm.values.length){
       ctx.save();
       ctx.clip(path);
@@ -688,6 +727,7 @@
           '<span class="pill '+st.cls+'"><span class="dot"></span>'+st.label+'</span>' +
         '</div>' +
         '<div class="gauge-row"><span class="gauge-num mono">'+Math.round(s.es_index)+'<span class="unit">/100</span></span>'+
+          trendHtml(s) +
           (hasEvidence ? '<span class="pill live">実伝播あり</span>' : '') +
           (nict.status === 'ok' ? '<span class="pill live">NICT実測</span>' : '') + '</div>' +
         '<div class="clima-note">統計ベースライン: '+Math.round(s.climatology_index)+'</div>' +
@@ -707,6 +747,7 @@
       var pillEl = document.getElementById('headline-pill');
       pillEl.className = 'pill '+st2.cls;
       pillEl.innerHTML = '<span class="dot"></span>'+st2.label;
+      document.getElementById('headline-trend').innerHTML = trendHtml(top);
       var evidenceNote = (top.live_evidence.ft8_6m_spots_15min>0)
         ? ' 実際に6m FT8で'+top.live_evidence.ft8_6m_spots_15min+'局の受信報告があり、Esによる伝播が実測で確認できています。'
         : ' 現時点でこの地点への実伝播報告はまだ確認できていません(統計モデルによる見込み値)。';

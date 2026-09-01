@@ -100,9 +100,27 @@ def predict_expected_count(model_info, dt, kp):
     return max(0.0, float(pred))
 
 
+TREND_THRESHOLD = 3.0  # points; smaller deltas are shown as "flat" to avoid noisy flicker
+
+
+def read_prev_es_index():
+    """Best-effort read of the es_index each station had last cycle, from the
+    data.json we are about to overwrite. Used only to compute up/down/flat trend
+    arrows; any failure (missing file, first run, schema drift) degrades to no
+    trend info rather than breaking the pipeline."""
+    try:
+        with open(DATA_JSON_PATH, encoding="utf-8") as f:
+            prev = json.load(f)
+        return {s["id"]: s["es_index"] for s in prev.get("stations", []) if "id" in s and "es_index" in s}
+    except Exception:  # noqa: BLE001 - degrade gracefully
+        return {}
+
+
 def run():
     now_jst = jst_now()
     now_utc_iso = datetime.utcnow().isoformat()
+
+    prev_es_index = read_prev_es_index()
 
     noaa = fetch_noaa.run()
     kp = noaa.get("kp") if noaa.get("status") == "ok" else None
@@ -170,9 +188,22 @@ def run():
         es_index = clima * (1 + 0.6 * combined_boost)
         es_index = max(0.0, min(100.0, es_index))
 
+        prev_index = prev_es_index.get(s["id"])
+        trend = "unknown"
+        trend_delta = None
+        if prev_index is not None:
+            trend_delta = round(es_index - prev_index, 1)
+            if trend_delta > TREND_THRESHOLD:
+                trend = "up"
+            elif trend_delta < -TREND_THRESHOLD:
+                trend = "down"
+            else:
+                trend = "flat"
+
         stations_out.append({
             "id": s["id"], "name": s["name"], "loc": s["loc"], "lat": s["lat"], "lon": s["lon"],
             "es_index": round(es_index, 1),
+            "trend": trend, "trend_delta": trend_delta,
             "climatology_index": round(clima, 1),
             "live_evidence": {"ft8_6m_spots_15min": count6, "ft8_10m_spots_15min": count10},
             "nict": {
