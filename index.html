@@ -475,6 +475,15 @@
 
   function drawJapanHeatmap(data){
     lastHeatmapData = data;
+    // Deferring two animation frames guarantees a full layout pass has
+    // completed before we measure the canvas - matters most right after a
+    // viewport-width change (e.g. iOS Safari's "Request Desktop Website"),
+    // where clientWidth/clientHeight can otherwise be briefly stale and draw
+    // the map at the wrong size/position.
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ renderJapanHeatmapCanvas(data); }); });
+  }
+
+  function renderJapanHeatmapCanvas(data){
     var canvas = document.getElementById('japan-heatmap');
     if(!canvas || !coastline) return;
     var dpr = window.devicePixelRatio || 1;
@@ -769,6 +778,20 @@
     }
     panelWrap.style.display = '';
     empty.style.display = 'none';
+
+    // Right after un-hiding the panel (or right after a viewport-width change,
+    // e.g. iOS Safari's "Request Desktop Website" re-laying out the whole page
+    // at a much wider virtual viewport), some mobile browsers can still report
+    // a stale/zero clientWidth for a beat, which would draw the map at the
+    // wrong size and shift the coastline off to the side. Deferring two
+    // animation frames guarantees a full layout pass has actually completed
+    // before we measure the canvas, on every call - not just the first reveal.
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ renderSelfChanceCanvas(data, qth); }); });
+  }
+
+  function renderSelfChanceCanvas(data, qth){
+    var canvas = document.getElementById('self-chance-map');
+    if(!canvas || !coastline) return;
 
     var dpr = window.devicePixelRatio || 1;
     var w = canvas.clientWidth, h = canvas.clientHeight || 440;
