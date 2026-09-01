@@ -65,7 +65,13 @@ MODEL = "gfs_seamless"    # pin to GFS explicitly so pressure-level fields are p
 BATCH_SIZE = 20           # a week of hourly pressure-level data per point is a much bigger payload than
                           # the old "current conditions only" call, so batches are smaller than before
 FETCH_TIMEOUT_SECONDS = 60
-MIN_REFETCH_SECONDS = 50 * 60  # GFS only updates every ~6h - re-fetching every 15min cycle is pointless
+# GFS runs every 6h (00/06/12/18 UTC) and the user confirmed dxinfocentre.com itself
+# only refreshes on that same 6h cadence, so re-fetching every 15min build cycle (or
+# even every 50min, this module's first throttle value) was needlessly wasteful -
+# almost every one of those fetches would have pulled back the same underlying model
+# run. 5.5h leaves a margin under the full 6h so a slightly late Open-Meteo publish
+# doesn't push us to miss an entire cycle.
+MIN_REFETCH_SECONDS = int(5.5 * 60 * 60)
 
 
 def _frange(lo, hi, step):
