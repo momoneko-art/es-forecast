@@ -6,7 +6,10 @@ with the rest of the pipeline rather than needing an extra optional import.
 import math
 
 from stations import STATIONS
-from climatology import day_of_year, diurnal_factor, seasonal_factor, kp_modifier, virtual_station_at
+from climatology import (
+    day_of_year, diurnal_factor, seasonal_factor, kp_modifier, virtual_station_at,
+    nict_floor_from_foes,
+)
 
 GRID_LAT_MIN, GRID_LAT_MAX, GRID_LAT_STEP = 24.0, 46.0, 0.5
 GRID_LON_MIN, GRID_LON_MAX, GRID_LON_STEP = 122.5, 149.5, 0.5
@@ -42,9 +45,10 @@ def compute(now_jst, kp, psk_points, nict_stations):
     for s in STATIONS:
         st = nict_stations.get(s["id"])
         if st and st.get("esp_status") == "ok" and st.get("foes_mhz") is not None:
-            boost = max(0.0, min(1.0, (st["foes_mhz"] - 2.0) / 8.0))
-            if boost > 0:
-                nict_anchors.append((s["lat"], s["lon"], boost))
+            foes_mhz = st["foes_mhz"]
+            boost = max(0.0, min(1.0, (foes_mhz - 2.0) / 8.0))
+            if boost > 0 or nict_floor_from_foes(foes_mhz) > 0:
+                nict_anchors.append((s["lat"], s["lon"], boost, foes_mhz))
 
     # Pre-filter PSK points to only those that could plausibly influence this grid's
     # bbox at all (cheap safety net; in practice fetch_pskreporter already restricts
@@ -70,14 +74,25 @@ def compute(now_jst, kp, psk_points, nict_stations):
             psk_boost = min(1.0, dens / PSK_KERNEL_SCALE)
 
             nict_boost = 0.0
-            for (slat, slon, boost) in nict_anchors:
+            nict_floor = 0.0
+            for (slat, slon, boost, foes_mhz) in nict_anchors:
                 d = _km_dist(lat, lon, slat, slon)
-                w = boost * math.exp(-0.5 * (d / NICT_KERNEL_SIGMA_KM) ** 2)
+                decay = math.exp(-0.5 * (d / NICT_KERNEL_SIGMA_KM) ** 2)
+                w = boost * decay
                 if w > nict_boost:
                     nict_boost = w
+                # Same ground-truth-floor reasoning as the per-station index (see
+                # nict_floor_from_foes): a strong nearby foEs reading must be able
+                # to push this cell's score up even when clima is near-zero (e.g.
+                # a real Es event outside the climatological peak hours), fading
+                # out with distance from the ionosonde site like the boost above.
+                f = nict_floor_from_foes(foes_mhz) * decay
+                if f > nict_floor:
+                    nict_floor = f
 
             combined = 1 - (1 - psk_boost) * (1 - nict_boost)
-            v = max(0.0, min(100.0, clima * (1 + 0.6 * combined)))
+            v = max(clima * (1 + 0.6 * combined), nict_floor)
+            v = max(0.0, min(100.0, v))
             row.append(round(v, 1))
         values.append(row)
 

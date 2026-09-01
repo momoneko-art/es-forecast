@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 
 from stations import STATIONS
-from climatology import jst_now, day_of_year, climatology_index
+from climatology import jst_now, day_of_year, climatology_index, nict_floor_from_foes
 import fetch_pskreporter
 import fetch_nict
 import fetch_noaa
@@ -209,6 +209,15 @@ def run():
         combined_boost = 1 - (1 - evidence_boost) * (1 - nict_boost)
 
         es_index = clima * (1 + 0.6 * combined_boost)
+
+        # A real NICT ionosonde reading is ground truth for what's happening right
+        # now, and must not be capped by a low climatology baseline (e.g. a strong
+        # early-morning Es event outside the 11:00/16:30 climatological peaks was
+        # previously getting multiplied down to a near-zero score). See
+        # nict_floor_from_foes() for the MUF-based reasoning behind the thresholds.
+        if nict_status == "ok" and foes_mhz is not None:
+            es_index = max(es_index, nict_floor_from_foes(foes_mhz))
+
         es_index = max(0.0, min(100.0, es_index))
 
         prev_index = prev_es_index.get(s["id"])
