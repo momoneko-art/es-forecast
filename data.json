@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-09-01T03:49:56.233612Z",
-  "generated_at_jst": "2026-09-01T12:49:56+09:00",
+  "generated_at": "2026-09-01T03:53:47.281743Z",
+  "generated_at_jst": "2026-09-01T12:53:47+09:00",
   "kp": {
     "status": "ok",
     "value": 0,
-    "time_tag": "2026-09-01T03:47:00"
+    "time_tag": "2026-09-01T03:51:00"
   },
   "kp_history": [
     {
@@ -14,16 +14,20 @@
     {
       "t": "2026-09-01T03:49:56.233612",
       "kp": 0.0
+    },
+    {
+      "t": "2026-09-01T03:53:47.281743",
+      "kp": 0.0
     }
   ],
   "pskreporter": {
     "10m": {
       "status": "error",
-      "error": "403 Client Error: Forbidden for url: https://retrieve.pskreporter.info/query?frange=28070000-28078000&mode=FT8&flowStartSeconds=-900&rronly=1"
+      "error": "HTTP 403: <!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\"><meta name=\"robots\" content=\"noindex,nofollow\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"content-security-policy\" content=\"default-src &#39;none&#39;; script-src &#39;nonce-RYiq4VAwCFIoEsBUchi5j3&#39; &#39;unsafe-eval&#39; https://challenges.cloudflare.com; script-s"
     },
     "6m": {
       "status": "error",
-      "error": "403 Client Error: Forbidden for url: https://retrieve.pskreporter.info/query?frange=50300000-50320000&mode=FT8&flowStartSeconds=-900&rronly=1"
+      "error": "HTTP 403: <!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\"><meta name=\"robots\" content=\"noindex,nofollow\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"content-security-policy\" content=\"default-src &#39;none&#39;; script-src &#39;nonce-HwPZlWwJoalIV35BANFbJU&#39; &#39;unsafe-eval&#39; https://challenges.cloudflare.com; script-s"
     }
   },
   "nict": {
@@ -34,8 +38,8 @@
       "id": "wakkanai",
       "name": "稚内",
       "loc": "北海道",
-      "es_index": 20.7,
-      "climatology_index": 20.7,
+      "es_index": 20.6,
+      "climatology_index": 20.6,
       "live_evidence": {
         "ft8_6m_spots_15min": 0,
         "ft8_10m_spots_15min": 0
@@ -46,8 +50,8 @@
       "id": "kokubunji",
       "name": "国分寺",
       "loc": "東京都",
-      "es_index": 28.1,
-      "climatology_index": 28.1,
+      "es_index": 28.0,
+      "climatology_index": 28.0,
       "live_evidence": {
         "ft8_6m_spots_15min": 0,
         "ft8_10m_spots_15min": 0
@@ -58,8 +62,8 @@
       "id": "yamagawa",
       "name": "山川",
       "loc": "鹿児島県",
-      "es_index": 33.2,
-      "climatology_index": 33.2,
+      "es_index": 33.1,
+      "climatology_index": 33.1,
       "live_evidence": {
         "ft8_6m_spots_15min": 0,
         "ft8_10m_spots_15min": 0
@@ -70,8 +74,8 @@
       "id": "oogimi",
       "name": "大宜味",
       "loc": "沖縄県",
-      "es_index": 36.2,
-      "climatology_index": 36.2,
+      "es_index": 36.0,
+      "climatology_index": 36.0,
       "live_evidence": {
         "ft8_6m_spots_15min": 0,
         "ft8_10m_spots_15min": 0
@@ -79,6 +83,6 @@
       "model": "climatology_only"
     }
   ],
-  "history_rows": 2,
+  "history_rows": 3,
   "models_trained": []
 }
