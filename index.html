@@ -12,7 +12,9 @@
     --ink:#182430; --ink-dim:#4c5c6b;
     --paper:#eef1f4; --panel:#ffffff; --panel-2:#f6f8fa; --line:#d7dde3;
     --accent:#157d90; --accent-strong:#0f6577; --accent-warm:#c96a12;
-    --ok:#2f8f5b; --watch:#b3891c; --high:#c96a2e; --vhigh:#c23f38;
+    /* 強い/弱いバッジの色は、全国Es活動分布の配色(緑→黄→橙→赤、0/30/50/80/100)と
+       色相を揃えてある(明度・彩度はバッジとして読みやすい値を維持)。 */
+    --ok:#338f2f; --watch:#a3b31c; --high:#c9892e; --vhigh:#c25d38;
     --shadow: 0 1px 2px rgba(24,36,48,.06), 0 8px 24px -12px rgba(24,36,48,.18);
     color-scheme: light;
   }
@@ -21,7 +23,7 @@
       --ink:#e7edf2; --ink-dim:#9fb0bd;
       --paper:#0e1520; --panel:#161f2a; --panel-2:#1c2733; --line:#293848;
       --accent:#4fd3e6; --accent-strong:#7fe3f1; --accent-warm:#f0a545;
-      --ok:#4bc383; --watch:#e3c15a; --high:#e3925a; --vhigh:#f0645c;
+      --ok:#4bc366; --watch:#c7e35a; --high:#e3a45a; --vhigh:#f07e5c;
       --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.6);
       color-scheme: dark;
     }
@@ -30,7 +32,7 @@
     --ink:#e7edf2; --ink-dim:#9fb0bd;
     --paper:#0e1520; --panel:#161f2a; --panel-2:#1c2733; --line:#293848;
     --accent:#4fd3e6; --accent-strong:#7fe3f1; --accent-warm:#f0a545;
-    --ok:#4bc383; --watch:#e3c15a; --high:#e3925a; --vhigh:#f0645c;
+    --ok:#4bc366; --watch:#c7e35a; --high:#e3a45a; --vhigh:#f07e5c;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.6);
     color-scheme: dark;
   }
@@ -317,10 +319,11 @@
     return '<span class="trend '+s.trend+'" title="前回(約15分前)比'+deltaTxt+'">'+arrow+' '+label+'</span>';
   }
 
+  // しきい値(30/50/80)は全国Es活動分布ヒートマップの色の変わり目と揃えている。
   function statusOf(v){
-    if(v>=75) return {cls:'vhigh', label:'非常に高い'};
+    if(v>=80) return {cls:'vhigh', label:'非常に高い'};
     if(v>=50) return {cls:'high',  label:'高い'};
-    if(v>=25) return {cls:'watch', label:'中程度'};
+    if(v>=30) return {cls:'watch', label:'中程度'};
     return {cls:'ok', label:'低い'};
   }
 
