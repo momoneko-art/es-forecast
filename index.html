@@ -23,6 +23,9 @@
     /* 強い/弱いバッジの色は、全国Es活動分布の配色(緑→黄→橙→赤、0/30/50/80/100)と
        色相を揃えてある(明度・彩度はバッジとして読みやすい値を維持)。 */
     --ok:#338f2f; --watch:#a3b31c; --high:#c9892e; --vhigh:#c25d38;
+    /* トロポダクト(UHF)マップは全国Es活動分布とは別の物理現象(電波ダクト)なので、
+       あえて別の色相(青→紫→マゼンタ)にして地図もバッジも一目でEsと区別できるようにしている。 */
+    --tropo-ok:#3a6fa8; --tropo-watch:#5a5fc4; --tropo-high:#8a3fa8; --tropo-vhigh:#b8306f;
     --shadow: 0 1px 2px rgba(24,36,48,.06), 0 8px 24px -12px rgba(24,36,48,.18);
     color-scheme: light;
   }
@@ -32,6 +35,7 @@
       --paper:#0e1520; --panel:#161f2a; --panel-2:#1c2733; --line:#293848;
       --accent:#4fd3e6; --accent-strong:#7fe3f1; --accent-warm:#f0a545;
       --ok:#4bc366; --watch:#c7e35a; --high:#e3a45a; --vhigh:#f07e5c;
+      --tropo-ok:#7fb2e8; --tropo-watch:#9a9ff0; --tropo-high:#c98ae8; --tropo-vhigh:#e879a8;
       --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.6);
       color-scheme: dark;
     }
@@ -41,6 +45,7 @@
     --paper:#0e1520; --panel:#161f2a; --panel-2:#1c2733; --line:#293848;
     --accent:#4fd3e6; --accent-strong:#7fe3f1; --accent-warm:#f0a545;
     --ok:#4bc366; --watch:#c7e35a; --high:#e3a45a; --vhigh:#f07e5c;
+    --tropo-ok:#7fb2e8; --tropo-watch:#9a9ff0; --tropo-high:#c98ae8; --tropo-vhigh:#e879a8;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.6);
     color-scheme: dark;
   }
@@ -79,6 +84,10 @@
   .pill.high{ color:var(--high); background:color-mix(in srgb, var(--high) 16%, transparent); }
   .pill.vhigh{ color:var(--vhigh); background:color-mix(in srgb, var(--vhigh) 16%, transparent); }
   .pill.live{ color:var(--accent-strong); background:color-mix(in srgb, var(--accent) 16%, transparent); }
+  .pill.tropo-ok{ color:var(--tropo-ok); background:color-mix(in srgb, var(--tropo-ok) 14%, transparent); }
+  .pill.tropo-watch{ color:var(--tropo-watch); background:color-mix(in srgb, var(--tropo-watch) 16%, transparent); }
+  .pill.tropo-high{ color:var(--tropo-high); background:color-mix(in srgb, var(--tropo-high) 16%, transparent); }
+  .pill.tropo-vhigh{ color:var(--tropo-vhigh); background:color-mix(in srgb, var(--tropo-vhigh) 16%, transparent); }
 
   .section-title{ display:flex; align-items:baseline; gap:8px; margin:4px 2px 0; }
   .section-title h2{ font-size:15px; margin:0; font-weight:700; }
@@ -110,7 +119,9 @@
   /* Japan's coastline bbox is roughly 20.7deg(lon,cos-adjusted) x 21.3deg(lat) - close to
      square - so an aspect-ratio box (instead of a fixed height) lets the map fill its
      column edge-to-edge with no wasted side padding, at any column width. */
-  #japan-heatmap, #self-chance-map{ width:100%; height:auto; aspect-ratio:207/213; display:block; cursor:crosshair; max-height:640px; }
+  #japan-heatmap, #self-chance-map, #tropo-map{ width:100%; height:auto; aspect-ratio:207/213; display:block; cursor:crosshair; max-height:640px; }
+  .map-panel .panel-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:2px; }
+  .map-panel .panel-head h3{ margin:0; }
   .map-tooltip{
     position:absolute; pointer-events:none; display:none; z-index:2;
     background:var(--panel); border:1px solid var(--line); border-radius:8px;
@@ -251,6 +262,24 @@
     </div>
   </div>
 
+  <div class="map-panel" id="tropo-map-panel">
+    <div class="panel-head">
+      <h3>UHFトロポダクト予報</h3>
+      <span class="pill" id="tropo-badge"><span class="dot"></span>読込中</span>
+    </div>
+    <span class="sub">気象庁GFSモデル由来の気温・湿度・高度データから大気の屈折率(M値)の高度勾配を計算し、電波が上空に逃げずに地表付近を伝わる「ラジオダクト」が起きやすい場所を推定した地図。市民ラジオのUHF機(430MHz帯)で通常より遠距離が入感しやすいエリアの目安です。</span>
+    <div class="map-wrap">
+      <canvas id="tropo-map"></canvas>
+      <div class="map-tooltip" id="tropo-tooltip"></div>
+    </div>
+    <div class="map-legend">
+      <span>0</span>
+      <div class="bar" id="tropo-legend-bar"></div>
+      <span>100</span>
+    </div>
+    <span class="sub" style="margin:6px 0 0;">色は0(標準的な大気=ダクトなし)〜100(強いダクト発生の可能性)の固定スケール。Esのヒートマップとは別の色相(青→紫→マゼンタ)にしています。格子は約2度間隔とEsの地図より粗めです。<span id="tropo-status-note"></span></span>
+  </div>
+
   <div class="path-panel">
     <h3>自局Es交信チャンス</h3>
     <span class="sub">自局と主要都市を結ぶパスの中間地点(Esが実際に反射する場所)の活動指数から算出。単発ホップの目安は概ね500〜2400km。</span>
@@ -378,6 +407,18 @@
     [0.80, [193,113,62]], [1.00, [193,79,72]]
   ];
 
+  // トロポダクト指数(0-100)も同じ「絶対値スケール」の考え方だが、Esとは別の物理現象
+  // なので色相を青→紫→マゼンタに変え、地図を一目見ただけでEsのヒートマップと混同しない
+  // ようにしている。しきい値15/35/60はバッジ(tropoStatusOf)の変わり目と揃えてある。
+  var TROPO_STOPS_LIGHT = [
+    [0.00, [219,229,242]], [0.15, [148,186,224]], [0.35, [124,140,214]],
+    [0.60, [151,101,196]], [1.00, [199,66,140]]
+  ];
+  var TROPO_STOPS_DARK = [
+    [0.00, [40,52,68]], [0.15, [58,88,120]], [0.35, [76,84,150]],
+    [0.60, [110,74,150]], [1.00, [190,70,130]]
+  ];
+
   function isDarkMode(){
     var root = document.documentElement;
     var t = root.getAttribute('data-theme');
@@ -437,6 +478,27 @@
         ? Math.round(currentRange.min) + '〜' + Math.round(currentRange.max)
         : '-';
     }
+  }
+
+  function valueToTropoColor(v){
+    var t = Math.max(0, Math.min(100, v)) / 100;
+    return lerpColor(isDarkMode() ? TROPO_STOPS_DARK : TROPO_STOPS_LIGHT, t);
+  }
+
+  function setTropoLegendGradient(){
+    var samples = [];
+    for(var i=0;i<=10;i++){ samples.push(valueToTropoColor(i*10) + ' ' + (i*10) + '%'); }
+    var bar = document.getElementById('tropo-legend-bar');
+    if(bar) bar.style.background = 'linear-gradient(90deg, '+samples.join(', ')+')';
+  }
+
+  // fetch_tropo.pyのidxスケール(0=標準大気, 20〜40=境界域, 40〜100=真のダクト)に合わせた
+  // しきい値。Esのバッジ(30/50/80)とは意味が異なるので数値・ラベルとも別建てにしている。
+  function tropoStatusOf(v){
+    if(v>=60) return {cls:'tropo-vhigh', label:'ダクト発生中'};
+    if(v>=35) return {cls:'tropo-high',  label:'ダクト発生の可能性'};
+    if(v>=15) return {cls:'tropo-watch', label:'やや増強'};
+    return {cls:'tropo-ok', label:'標準大気'};
   }
 
   function loadCoastline(){
@@ -567,6 +629,127 @@
       if(ri<0 || ri>=hm.rows || ci<0 || ci>=hm.cols){ tip.style.display='none'; return; }
       var v = hm.values[ri][ci];
       tip.innerHTML = 'Es活動指数 <b>'+v.toFixed(0)+'</b> /100';
+      tip.style.left = x+'px'; tip.style.top = y+'px'; tip.style.display='block';
+    });
+    canvas.addEventListener('mouseleave', function(){ tip.style.display='none'; });
+  }
+
+  // ---------------------------------------------------------------------
+  // Tropospheric ducting (UHF) map: same coastline/projector machinery as the
+  // Es heatmap above, but reads data.tropo.grid (a much coarser ~2deg grid
+  // from GFS via Open-Meteo) and its own color ramp/status thresholds.
+  // ---------------------------------------------------------------------
+
+  var lastTropoData = null;
+  var tropoProj = null;
+
+  function drawTropoMap(data){
+    lastTropoData = data;
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ renderTropoCanvas(data); }); });
+  }
+
+  function tropoStatusNoteText(tropo){
+    if(!tropo || !tropo.status) return ' データ未取得です。';
+    if(tropo.status === 'error') return ' 現在データの取得に失敗しています('+(tropo.error||'不明なエラー')+')。しばらく待って再読み込みしてください。';
+    if(tropo.status === 'partial') return ' 一部の格子点で取得に失敗しています(errors: '+(tropo.errors||[]).length+'件)。';
+    var age = (tropo.fetched_at != null) ? Math.max(0, Math.round((Date.now()/1000 - tropo.fetched_at)/60)) : null;
+    var ageTxt = age != null ? '約'+age+'分前の気象モデルデータ' : '取得時刻不明の気象モデルデータ';
+    return ' '+ageTxt+'に基づく推定です(GFSの更新は約6時間毎)。あくまで気象モデルによる推定であり、NICT実測のようなEsの証拠とは性質が異なります。';
+  }
+
+  function updateTropoBadgeAndNote(data){
+    var tropo = data && data.tropo;
+    var badge = document.getElementById('tropo-badge');
+    var note = document.getElementById('tropo-status-note');
+    if(note) note.textContent = tropoStatusNoteText(tropo);
+    if(!badge) return;
+    if(!tropo || tropo.status === 'error' || !tropo.grid){
+      badge.className = 'pill tropo-ok';
+      badge.innerHTML = '<span class="dot"></span>' + (tropo && tropo.status==='error' ? '取得失敗' : '未取得');
+      return;
+    }
+    var grid = tropo.grid, maxV = -Infinity;
+    for(var r=0;r<grid.values.length;r++){ for(var c=0;c<grid.values[r].length;c++){ if(grid.values[r][c]>maxV) maxV = grid.values[r][c]; } }
+    if(!isFinite(maxV)) maxV = 0;
+    var st = tropoStatusOf(maxV);
+    badge.className = 'pill ' + st.cls;
+    badge.innerHTML = '<span class="dot"></span>' + st.label + '(全国最大 ' + Math.round(maxV) + ')';
+  }
+
+  function renderTropoCanvas(data){
+    var canvas = document.getElementById('tropo-map');
+    if(!canvas || !coastline) return;
+    updateTropoBadgeAndNote(data);
+    var tropo = data && data.tropo;
+
+    var dpr = window.devicePixelRatio || 1;
+    var w = canvas.clientWidth, h = canvas.clientHeight || 440;
+    canvas.width = w*dpr; canvas.height = h*dpr;
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+
+    var proj = makeProjector(coastline, w, h, 14);
+    tropoProj = proj;
+
+    var path = new Path2D();
+    coastline.rings.forEach(function(ring){
+      ring.forEach(function(p, i){
+        var xy = proj.toXY(p[1], p[0]);
+        if(i===0) path.moveTo(xy[0], xy[1]); else path.lineTo(xy[0], xy[1]);
+      });
+      path.closePath();
+    });
+
+    var grid = tropo && tropo.grid;
+    if(grid && grid.values && grid.values.length){
+      ctx.save();
+      ctx.clip(path);
+      for(var ri=0; ri<grid.rows; ri++){
+        var lat0 = grid.lat_min + (ri-0.5)*grid.lat_step, lat1 = lat0 + grid.lat_step;
+        var row = grid.values[ri];
+        for(var ci=0; ci<grid.cols; ci++){
+          var lon0 = grid.lon_min + (ci-0.5)*grid.lon_step, lon1 = lon0 + grid.lon_step;
+          var p0 = proj.toXY(lat0, lon0), p1 = proj.toXY(lat1, lon1);
+          var x = Math.min(p0[0], p1[0]), y = Math.min(p0[1], p1[1]);
+          var cw = Math.abs(p1[0]-p0[0]) + 1, ch = Math.abs(p1[1]-p0[1]) + 1;
+          ctx.fillStyle = valueToTropoColor(row[ci]);
+          ctx.fillRect(x, y, cw, ch);
+        }
+      }
+      ctx.restore();
+    }
+
+    ctx.strokeStyle = cssVar('--ink-dim'); ctx.lineWidth = 1; ctx.globalAlpha = 0.55;
+    ctx.stroke(path);
+    ctx.globalAlpha = 1;
+
+    if(!grid || !grid.values || !grid.values.length){
+      ctx.fillStyle = cssVar('--ink-dim');
+      ctx.font = "12.5px 'Zen Kaku Gothic New', sans-serif";
+      ctx.textAlign = 'center';
+      ctx.fillText('データ取得待ちです', w/2, h/2);
+    }
+
+    setTropoLegendGradient();
+  }
+
+  function initTropoTooltip(){
+    var canvas = document.getElementById('tropo-map');
+    var tip = document.getElementById('tropo-tooltip');
+    if(!canvas || !tip) return;
+    canvas.addEventListener('mousemove', function(ev){
+      var grid = lastTropoData && lastTropoData.tropo && lastTropoData.tropo.grid;
+      if(!tropoProj || !grid){ tip.style.display='none'; return; }
+      var rect = canvas.getBoundingClientRect();
+      var x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+      var ll = tropoProj.toLatLon(x, y);
+      var ri = Math.round((ll[0]-grid.lat_min)/grid.lat_step);
+      var ci = Math.round((ll[1]-grid.lon_min)/grid.lon_step);
+      if(ri<0 || ri>=grid.rows || ci<0 || ci>=grid.cols){ tip.style.display='none'; return; }
+      var v = grid.values[ri][ci];
+      var st = tropoStatusOf(v);
+      tip.innerHTML = 'ダクト指数 <b>'+v.toFixed(0)+'</b> /100 ('+st.label+')';
       tip.style.left = x+'px'; tip.style.top = y+'px'; tip.style.display='block';
     });
     canvas.addEventListener('mouseleave', function(){ tip.style.display='none'; });
@@ -992,6 +1175,7 @@
     drawJapanHeatmap(data);
     renderPathPanel();
     drawSelfChanceMap(data);
+    drawTropoMap(data);
     renderContactsPanel(data);
   }
 
@@ -1010,9 +1194,11 @@
     setInterval(tickClock, 1000);
     initMapTooltip();
     initSelfChanceTooltip();
+    initTropoTooltip();
     populateQthSelect();
     loadCoastline().then(function(){
       if(lastHeatmapData){ drawJapanHeatmap(lastHeatmapData); drawSelfChanceMap(lastHeatmapData); }
+      if(lastTropoData){ drawTropoMap(lastTropoData); }
     });
     loadData();
     setInterval(loadData, 5 * 60 * 1000);
@@ -1021,6 +1207,7 @@
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(function(){
         if(lastHeatmapData){ drawJapanHeatmap(lastHeatmapData); drawSelfChanceMap(lastHeatmapData); }
+        if(lastTropoData){ drawTropoMap(lastTropoData); }
       }, 150);
     });
   }

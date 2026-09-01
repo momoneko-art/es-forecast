@@ -10,6 +10,7 @@ from climatology import jst_now, day_of_year, climatology_index
 import fetch_pskreporter
 import fetch_nict
 import fetch_noaa
+import fetch_tropo
 import heatmap
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -116,17 +117,39 @@ def read_prev_es_index():
         return {}
 
 
+def read_prev_tropo():
+    """Best-effort read of last cycle's data['tropo'] dict, used by fetch_tropo.run()
+    to decide whether GFS has likely updated yet (see MIN_REFETCH_SECONDS there).
+    Any failure (missing file, first run, schema drift) degrades to None, which
+    fetch_tropo.run() treats as "always fetch"."""
+    try:
+        with open(DATA_JSON_PATH, encoding="utf-8") as f:
+            prev = json.load(f)
+        return prev.get("tropo")
+    except Exception:  # noqa: BLE001 - degrade gracefully
+        return None
+
+
 def run():
     now_jst = jst_now()
     now_utc_iso = datetime.utcnow().isoformat()
 
     prev_es_index = read_prev_es_index()
+    prev_tropo = read_prev_tropo()
 
     noaa = fetch_noaa.run()
     kp = noaa.get("kp") if noaa.get("status") == "ok" else None
 
     psk_result, psk_debug = fetch_pskreporter.run()
     nict_result = fetch_nict.run()
+
+    # Tropospheric ducting (UHF/VHF) index grid - a completely separate
+    # NOAA-GFS-derived signal from the Es (sporadic-E) machinery above. Throttled
+    # internally (fetch_tropo.MIN_REFETCH_SECONDS) since GFS only updates ~every 6h.
+    try:
+        tropo_result = fetch_tropo.run(prev_tropo=prev_tropo, now_ts=None)
+    except Exception as exc:  # noqa: BLE001 - never let a tropo fetch failure kill the whole pipeline
+        tropo_result = {"status": "error", "error": str(exc)}
 
     # --- append this sample to history ---
     row = {"timestamp_utc": now_utc_iso, "kp": kp if kp is not None else ""}
@@ -243,6 +266,7 @@ def run():
         "nict": {"status": nict_result.get("status"), "stations": nict_stations},
         "stations": stations_out,
         "heatmap": heatmap_grid,
+        "tropo": tropo_result,
         "history_rows": len(history_rows),
         "models_trained": sorted(models.keys()),
     }
@@ -251,7 +275,9 @@ def run():
         json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
 
     with open(DEBUG_JSON_PATH, "w", encoding="utf-8") as f:
-        json.dump({"pskreporter_debug": psk_debug, "nict_findings": nict_result}, f, ensure_ascii=False, indent=2)
+        json.dump({"pskreporter_debug": psk_debug, "nict_findings": nict_result,
+                    "tropo_status": {k: v for k, v in tropo_result.items() if k != "grid"}},
+                   f, ensure_ascii=False, indent=2)
 
     print(json.dumps({"stations": [(s["id"], s["es_index"]) for s in stations_out], "kp": kp,
                        "history_rows": len(history_rows), "models_trained": list(models.keys())}, ensure_ascii=False))
