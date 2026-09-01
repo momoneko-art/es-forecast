@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Es予測ダッシュボード</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%93%A1%3C/text%3E%3C/svg%3E">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+  :root{
+    --ink:#182430; --ink-dim:#4c5c6b;
+    --paper:#eef1f4; --panel:#ffffff; --panel-2:#f6f8fa; --line:#d7dde3;
+    --accent:#157d90; --accent-strong:#0f6577; --accent-warm:#c96a12;
+    --ok:#2f8f5b; --watch:#b3891c; --high:#c96a2e; --vhigh:#c23f38;
+    --shadow: 0 1px 2px rgba(24,36,48,.06), 0 8px 24px -12px rgba(24,36,48,.18);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#e7edf2; --ink-dim:#9fb0bd;
+      --paper:#0e1520; --panel:#161f2a; --panel-2:#1c2733; --line:#293848;
+      --accent:#4fd3e6; --accent-strong:#7fe3f1; --accent-warm:#f0a545;
+      --ok:#4bc383; --watch:#e3c15a; --high:#e3925a; --vhigh:#f0645c;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.6);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#e7edf2; --ink-dim:#9fb0bd;
+    --paper:#0e1520; --panel:#161f2a; --panel-2:#1c2733; --line:#293848;
+    --accent:#4fd3e6; --accent-strong:#7fe3f1; --accent-warm:#f0a545;
+    --ok:#4bc383; --watch:#e3c15a; --high:#e3925a; --vhigh:#f0645c;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.6);
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:'Zen Kaku Gothic New', "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:1040px; margin:0 auto; padding:20px 16px 64px; display:flex; flex-direction:column; gap:20px; }
+  .mono{ font-family:'JetBrains Mono', ui-monospace, monospace; font-variant-numeric:tabular-nums; }
+
+  .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .brand{ display:flex; flex-direction:column; gap:2px; }
+  .brand .eyebrow{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-strong); font-weight:700; }
+  .brand h1{ margin:0; font-size:22px; font-weight:900; letter-spacing:.01em; text-wrap:balance; }
+  .clock{ text-align:right; color:var(--ink-dim); font-size:13px; }
+  .clock .time{ font-size:20px; color:var(--ink); font-weight:600; }
+
+  .headline{
+    background:linear-gradient(160deg, var(--panel), var(--panel-2));
+    border:1px solid var(--line); border-radius:16px; padding:20px 22px; box-shadow:var(--shadow);
+    display:flex; gap:20px; align-items:center; flex-wrap:wrap;
+  }
+  .headline-index{ display:flex; flex-direction:column; align-items:flex-start; gap:2px; min-width:140px; }
+  .headline-index .num{ font-size:44px; font-weight:800; line-height:1; }
+  .headline-index .label{ font-size:12px; color:var(--ink-dim); }
+  .headline-text{ flex:1; min-width:220px; font-size:14.5px; color:var(--ink-dim); }
+  .headline-text b{ color:var(--ink); font-weight:700; }
+
+  .pill{ display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:.02em; border:1px solid transparent; }
+  .pill .dot{ width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .pill.ok{ color:var(--ok); background:color-mix(in srgb, var(--ok) 14%, transparent); }
+  .pill.watch{ color:var(--watch); background:color-mix(in srgb, var(--watch) 16%, transparent); }
+  .pill.high{ color:var(--high); background:color-mix(in srgb, var(--high) 16%, transparent); }
+  .pill.vhigh{ color:var(--vhigh); background:color-mix(in srgb, var(--vhigh) 16%, transparent); }
+  .pill.live{ color:var(--accent-strong); background:color-mix(in srgb, var(--accent) 16%, transparent); }
+
+  .section-title{ display:flex; align-items:baseline; gap:8px; margin:4px 2px 0; }
+  .section-title h2{ font-size:15px; margin:0; font-weight:700; }
+  .section-title .sub{ font-size:12px; color:var(--ink-dim); }
+
+  .stations{ display:grid; grid-template-columns:repeat(auto-fit, minmax(230px,1fr)); gap:14px; }
+  .station{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px; }
+  .station-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .station-head .name{ font-weight:700; font-size:15px; }
+  .station-head .loc{ font-size:11.5px; color:var(--ink-dim); }
+  .gauge-row{ display:flex; align-items:baseline; gap:8px; }
+  .gauge-num{ font-size:30px; font-weight:800; }
+  .gauge-num .unit{ font-size:12px; font-weight:600; color:var(--ink-dim); margin-left:2px; }
+  .clima-note{ font-size:11px; color:var(--ink-dim); }
+  .evidence-row{ display:flex; gap:10px; font-size:11.5px; color:var(--ink-dim); flex-wrap:wrap; }
+  .evidence-row b{ color:var(--ink); font-family:'JetBrains Mono',monospace; }
+  .model-tag{ font-size:10.5px; color:var(--ink-dim); font-family:'JetBrains Mono',monospace; }
+
+  .grid-2{ display:grid; grid-template-columns:1.3fr 1fr; gap:14px; }
+  @media (max-width:720px){ .grid-2{ grid-template-columns:1fr; } }
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); }
+  .panel h3{ margin:0 0 4px; font-size:14px; font-weight:700; }
+  .kp-current{ display:flex; align-items:baseline; gap:8px; margin:8px 0 4px; }
+  .kp-current .num{ font-size:32px; font-weight:800; }
+  .kp-current .lbl{ font-size:12px; color:var(--ink-dim); }
+  .updated{ font-size:11.5px; color:var(--ink-dim); margin-top:6px; }
+
+  .links{ display:flex; flex-direction:column; gap:8px; }
+  .link-item{ display:flex; align-items:center; justify-content:space-between; padding:9px 11px; border:1px solid var(--line); border-radius:10px; text-decoration:none; color:var(--ink); background:var(--panel-2); font-size:13px; transition:border-color .15s ease; }
+  .link-item:hover{ border-color:var(--accent); }
+  .link-item .go{ color:var(--accent-strong); font-family:'JetBrains Mono',monospace; font-size:12px; }
+
+  .method{ background:var(--panel-2); border:1px dashed var(--line); border-radius:12px; padding:14px 16px; font-size:12.5px; color:var(--ink-dim); }
+  .method h3{ margin:0 0 6px; font-size:12.5px; color:var(--ink); font-weight:700; letter-spacing:.02em; }
+  .method ul{ margin:6px 0 0; padding-left:18px; }
+  .method li{ margin:3px 0; }
+  footer{ text-align:center; font-size:11.5px; color:var(--ink-dim); padding-top:8px; }
+  a{ color:var(--accent-strong); }
+  .err{ font-size:12.5px; color:var(--vhigh); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="eyebrow">Es Forecast &middot; GitHub Actions実データ版</span>
+      <h1>Es予測ダッシュボード</h1>
+    </div>
+    <div class="clock">
+      <div><span id="clock-date"></span></div>
+      <div class="time mono" id="clock-time">--:--:--</div>
+    </div>
+  </div>
+
+  <div class="headline" id="headline-card">
+    <div class="headline-index">
+      <span class="num mono" id="headline-num">--</span>
+      <span class="label">全国最高値エリアの活動指数</span>
+      <span class="pill ok" id="headline-pill"><span class="dot"></span>読込中</span>
+    </div>
+    <div class="headline-text" id="headline-text">データを取得しています…</div>
+  </div>
+
+  <div>
+    <div class="section-title">
+      <h2>観測4地点の Es 活動指数</h2>
+      <span class="sub">PSKReporter実伝播データ（15分毎更新）+ 季節・時刻統計 のハイブリッド指数</span>
+    </div>
+    <div class="stations" id="station-grid"></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h3>宇宙天気（NOAA SWPC 実測）</h3>
+      <div class="kp-current">
+        <span class="num mono" id="kp-num">--</span>
+        <span class="lbl">Kp指数</span>
+      </div>
+      <canvas id="kp-chart" style="width:100%;height:80px;display:block;"></canvas>
+      <div class="updated" id="kp-updated">データ取得待ち</div>
+    </div>
+    <div class="panel">
+      <h3>一次情報へのリンク</h3>
+      <div class="links">
+        <a class="link-item" href="https://swc.nict.go.jp/trend/es.html" target="_blank" rel="noopener"><span>NICT 電離圏擾乱リアルタイム(Es現況)</span><span class="go">開く →</span></a>
+        <a class="link-item" href="https://wdc.nict.go.jp/Ionosphere/realtime/latest-fxEs.html" target="_blank" rel="noopener"><span>NICT イオノゾンデ 最新2時間</span><span class="go">開く →</span></a>
+        <a class="link-item" href="https://pskreporter.info/pskmap.html" target="_blank" rel="noopener"><span>PSKReporter 実伝播マップ(FT8等)</span><span class="go">開く →</span></a>
+        <a class="link-item" href="https://www.spaceweather.gov/products/planetary-k-index" target="_blank" rel="noopener"><span>NOAA SWPC 惑星間Kp指数</span><span class="go">開く →</span></a>
+      </div>
+    </div>
+  </div>
+
+  <div class="method" id="method-box">
+    <h3>このダッシュボードの仕組み</h3>
+    <ul>
+      <li>GitHub Actionsが15分ごとにPSKReporter(FT8実伝播データ・10m/6m帯)とNOAA宇宙天気(Kp指数)を実測取得し、このリポジトリに書き戻しています。</li>
+      <li>各地点の指数は「季節・時刻の統計モデル(気候学的ベースライン)」に「実際のFT8伝播観測(=Esで短距離オープンした証拠)」を上乗せして算出しています。実伝播が観測できた時間帯ほど数値の信頼度が上がります。</li>
+      <li>データが十分に蓄積されると(目安60サンプル=15時間分)、Ridge回帰モデルが自動学習され、統計的な「通常より多い/少ない」を判定に使うようになります。<span id="model-status"></span></li>
+      <li>NICTのイオノゾンデ生データはAPI非公開のため実験的スクレイピングを試みていますが確度は保証できません。最終確認は必ず上記リンクの公式データで行ってください。</li>
+    </ul>
+  </div>
+
+  <footer>Es予測ダッシュボード &middot; EDFSの構成を参考にした個人プロジェクト &middot; <span id="footer-updated"></span></footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  function jstParts(date){
+    var fmt = new Intl.DateTimeFormat('en-US', { timeZone:'Asia/Tokyo', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
+    var parts = {}; fmt.formatToParts(date).forEach(function(p){ parts[p.type] = p.value; });
+    return { y:+parts.year, mo:+parts.month, d:+parts.day, h:+parts.hour%24, mi:+parts.minute, s:+parts.second };
+  }
+
+  function tickClock(){
+    var p = jstParts(new Date());
+    var wk = ['日','月','火','水','木','金','土'][new Date(Date.UTC(p.y,p.mo-1,p.d)).getUTCDay()];
+    document.getElementById('clock-date').textContent = p.y+'年'+p.mo+'月'+p.d+'日（'+wk+'）JST';
+    document.getElementById('clock-time').textContent = String(p.h).padStart(2,'0')+':'+String(p.mi).padStart(2,'0')+':'+String(p.s).padStart(2,'0');
+  }
+
+  function statusOf(v){
+    if(v>=75) return {cls:'vhigh', label:'非常に高い'};
+    if(v>=50) return {cls:'high',  label:'高い'};
+    if(v>=25) return {cls:'watch', label:'中程度'};
+    return {cls:'ok', label:'低い'};
+  }
+
+  function drawKpChart(canvas, points, accentColor){
+    var dpr = window.devicePixelRatio || 1;
+    var w = canvas.clientWidth, h = canvas.clientHeight || 80;
+    canvas.width = w*dpr; canvas.height = h*dpr;
+    var ctx = canvas.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,w,h);
+    if(!points.length) return;
+    var max=9, min=0, n=points.length, pad=6;
+    function X(i){ return n<=1 ? w/2 : pad + (w-2*pad)*(i/(n-1)); }
+    function Y(v){ return h-6 - (h-16)*((v-min)/(max-min)); }
+    ctx.strokeStyle = cssVar('--line'); ctx.lineWidth=1;
+    [0,3,5,7,9].forEach(function(v){ var gy=Y(v); ctx.beginPath(); ctx.moveTo(pad,gy); ctx.lineTo(w-pad,gy); ctx.stroke(); });
+    if(n>1){
+      ctx.beginPath(); ctx.moveTo(X(0), Y(points[0].kp));
+      for(var i=1;i<n;i++) ctx.lineTo(X(i), Y(points[i].kp));
+      ctx.strokeStyle = accentColor; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.stroke();
+    }
+    var last = points[n-1];
+    ctx.beginPath(); ctx.arc(X(n-1), Y(last.kp), 3.4, 0, Math.PI*2); ctx.fillStyle = accentColor; ctx.fill();
+  }
+
+  function render(data){
+    var accent = cssVar('--accent'), accentWarm = cssVar('--accent-warm');
+
+    // Kp panel
+    if(data.kp && data.kp.status === 'ok'){
+      document.getElementById('kp-num').textContent = data.kp.value;
+      var d = new Date(data.kp.time_tag + (data.kp.time_tag.endsWith('Z') ? '' : 'Z'));
+      var jp = new Intl.DateTimeFormat('ja-JP', {timeZone:'Asia/Tokyo', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}).format(d);
+      document.getElementById('kp-updated').textContent = '実測値: '+jp+' JST';
+    } else {
+      document.getElementById('kp-num').textContent = '--';
+      document.getElementById('kp-updated').innerHTML = '<span class="err">宇宙天気データの取得に失敗しました（次回更新で再試行）</span>';
+    }
+    drawKpChart(document.getElementById('kp-chart'), (data.kp_history||[]).map(function(p){return {kp:p.kp};}), accentWarm);
+
+    // stations
+    var grid = document.getElementById('station-grid');
+    grid.innerHTML = '';
+    (data.stations||[]).forEach(function(s){
+      var st = statusOf(s.es_index);
+      var hasEvidence = (s.live_evidence.ft8_6m_spots_15min + s.live_evidence.ft8_10m_spots_15min) > 0;
+      var card = document.createElement('div');
+      card.className = 'station';
+      card.innerHTML =
+        '<div class="station-head">' +
+          '<div><div class="name">'+s.name+'</div><div class="loc">'+s.loc+'</div></div>' +
+          '<span class="pill '+st.cls+'"><span class="dot"></span>'+st.label+'</span>' +
+        '</div>' +
+        '<div class="gauge-row"><span class="gauge-num mono">'+Math.round(s.es_index)+'<span class="unit">/100</span></span>'+
+          (hasEvidence ? '<span class="pill live">実伝播あり</span>' : '') + '</div>' +
+        '<div class="clima-note">統計ベースライン: '+Math.round(s.climatology_index)+'</div>' +
+        '<div class="evidence-row">' +
+          '<span>6m FT8: <b>'+s.live_evidence.ft8_6m_spots_15min+'</b>局</span>' +
+          '<span>10m FT8: <b>'+s.live_evidence.ft8_10m_spots_15min+'</b>局</span>' +
+        '</div>' +
+        '<div class="model-tag">'+s.model+'</div>';
+      grid.appendChild(card);
+    });
+
+    var top = (data.stations||[]).reduce(function(a,b){ return (!a || b.es_index>a.es_index) ? b : a; }, null);
+    if(top){
+      var st2 = statusOf(top.es_index);
+      document.getElementById('headline-num').textContent = Math.round(top.es_index);
+      var pillEl = document.getElementById('headline-pill');
+      pillEl.className = 'pill '+st2.cls;
+      pillEl.innerHTML = '<span class="dot"></span>'+st2.label;
+      var evidenceNote = (top.live_evidence.ft8_6m_spots_15min>0)
+        ? ' 実際に6m FT8で'+top.live_evidence.ft8_6m_spots_15min+'局の受信報告があり、Esによる伝播が実測で確認できています。'
+        : ' 現時点でこの地点への実伝播報告はまだ確認できていません(統計モデルによる見込み値)。';
+      document.getElementById('headline-text').innerHTML =
+        '現在もっとも活動指数が高いのは <b>'+top.name+'</b>（'+top.loc+'）です。'+evidenceNote;
+    }
+
+    document.getElementById('model-status').textContent =
+      ' 現在の蓄積データ: '+(data.history_rows||0)+'件'+
+      ((data.models_trained && data.models_trained.length) ? '（学習済み地点: '+data.models_trained.join(', ')+'）' : '（学習にはまだデータ不足です）') + '。';
+
+    var genJst = data.generated_at_jst ? data.generated_at_jst.replace('T',' ').slice(0,16) : '--';
+    document.getElementById('footer-updated').textContent = '最終データ更新: '+genJst+' JST';
+  }
+
+  function loadData(){
+    fetch('./data.json?t=' + Date.now(), {cache:'no-store'})
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(render)
+      .catch(function(err){
+        document.getElementById('headline-text').innerHTML =
+          '<span class="err">data.json の取得に失敗しました（'+err.message+'）。GitHub Actionsの初回実行が完了するまでお待ちください。</span>';
+      });
+  }
+
+  function init(){
+    tickClock();
+    setInterval(tickClock, 1000);
+    loadData();
+    setInterval(loadData, 5 * 60 * 1000);
+  }
+
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }
+})();
+</script>
+</body>
+</html>
