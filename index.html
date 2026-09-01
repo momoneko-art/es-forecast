@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Es予測ダッシュボード</title>
+<title>CB'er向け異常伝搬予報システム</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%93%A1%3C/text%3E%3C/svg%3E">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
@@ -118,6 +118,18 @@
   .path-card .note{ font-size:10.5px; color:var(--ink-dim); }
   .path-empty{ font-size:12.5px; color:var(--ink-dim); padding:6px 2px; }
 
+  .contacts-panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); }
+  .contacts-panel h3{ margin:0 0 2px; font-size:14px; font-weight:700; }
+  .contacts-panel .sub{ font-size:12px; color:var(--ink-dim); margin-bottom:10px; display:block; }
+  .contacts-cols{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:640px){ .contacts-cols{ grid-template-columns:1fr; } }
+  .contacts-col h4{ margin:0 0 8px; font-size:12.5px; font-weight:700; color:var(--ink-dim); }
+  .contacts-stat{ font-size:11.5px; color:var(--ink-dim); margin-bottom:8px; }
+  .contacts-stat b{ color:var(--ink); font-family:'JetBrains Mono',monospace; }
+  .contact-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 9px; border:1px solid var(--line); border-radius:9px; background:var(--panel-2); font-size:12px; margin-bottom:6px; }
+  .contact-row .calls{ font-family:'JetBrains Mono',monospace; font-weight:600; }
+  .contact-row .dist{ font-family:'JetBrains Mono',monospace; color:var(--accent-strong); font-weight:700; white-space:nowrap; }
+
   .grid-2{ display:grid; grid-template-columns:1.3fr 1fr; gap:14px; }
   @media (max-width:720px){ .grid-2{ grid-template-columns:1fr; } }
   .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); }
@@ -147,7 +159,7 @@
   <div class="topbar">
     <div class="brand">
       <span class="eyebrow">Es Forecast &middot; GitHub Actions実データ版</span>
-      <h1>Es予測ダッシュボード</h1>
+      <h1>CB'er向け異常伝搬予報システム</h1>
     </div>
     <div class="clock">
       <div><span id="clock-date"></span></div>
@@ -199,6 +211,12 @@
     <div class="path-cards" id="path-cards"></div>
   </div>
 
+  <div class="contacts-panel">
+    <h3>直近の遠距離伝搬レポート(FT8)</h3>
+    <span class="sub">受信局・送信局の両方のグリッドロケーターが分かる報告だけを距離順に表示。数百km以上ならEs等のスカイウェーブが実際に効いている証拠です。</span>
+    <div class="contacts-cols" id="contacts-cols"></div>
+  </div>
+
   <div class="grid-2">
     <div class="panel">
       <h3>宇宙天気（NOAA SWPC 実測）</h3>
@@ -222,7 +240,7 @@
   </div>
 
   <div class="method" id="method-box">
-    <h3>このダッシュボードの仕組み</h3>
+    <h3>このシステムの仕組み</h3>
     <ul>
       <li>GitHub Actionsが15分ごとにPSKReporter(FT8実伝播データ・10m/6m帯)とNOAA宇宙天気(Kp指数)を実測取得し、このリポジトリに書き戻しています。</li>
       <li>各地点の指数は「季節・時刻の統計モデル(気候学的ベースライン)」に「実際のFT8伝播観測(=Esで短距離オープンした証拠)」を上乗せして算出しています。実伝播が観測できた時間帯ほど数値の信頼度が上がります。</li>
@@ -231,7 +249,7 @@
     </ul>
   </div>
 
-  <footer>Es予測ダッシュボード &middot; EDFSの構成を参考にした個人プロジェクト &middot; <span id="footer-updated"></span></footer>
+  <footer>CB'er向け異常伝搬予報システム &middot; EDFSの構成を参考にした個人プロジェクト &middot; <span id="footer-updated"></span></footer>
 </div>
 
 <script>
@@ -604,6 +622,34 @@
     wrap.innerHTML = html;
   }
 
+  var BAND_LABELS = {"10m":"10mバンド", "6m":"6mバンド"};
+
+  function renderContactsPanel(data){
+    var wrap = document.getElementById('contacts-cols');
+    if(!wrap) return;
+    var psk = data.pskreporter || {};
+    var html = '';
+    ["10m","6m"].forEach(function(band){
+      var b = psk[band];
+      html += '<div class="contacts-col"><h4>'+(BAND_LABELS[band]||band)+'</h4>';
+      if(!b || b.status !== 'ok' || !b.pair_stats){
+        html += '<div class="path-empty">データ取得待ち</div></div>';
+        return;
+      }
+      var ps = b.pair_stats;
+      if(!ps.matched_pairs){
+        html += '<div class="path-empty">現在、距離が分かる報告はありません</div></div>';
+        return;
+      }
+      html += '<div class="contacts-stat">両端判明: <b>'+ps.matched_pairs+'</b>件 &middot; 平均 <b>'+ps.avg_distance_km+'</b>km &middot; 最長 <b>'+ps.max_distance_km+'</b>km</div>';
+      (ps.top_contacts||[]).forEach(function(c){
+        html += '<div class="contact-row"><span class="calls">'+(c.sender_callsign||'?')+' → '+(c.receiver_callsign||'?')+'</span><span class="dist">'+c.distance_km+'km</span></div>';
+      });
+      html += '</div>';
+    });
+    wrap.innerHTML = html;
+  }
+
   function render(data){
     var accent = cssVar('--accent'), accentWarm = cssVar('--accent-warm');
 
@@ -677,6 +723,7 @@
 
     drawJapanHeatmap(data);
     renderPathPanel();
+    renderContactsPanel(data);
   }
 
   function loadData(){

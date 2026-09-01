@@ -4,7 +4,9 @@ import xml.etree.ElementTree as ET
 
 import requests
 
-from stations import maidenhead_to_latlon, nearest_station_by_lat, in_japan_bbox, STATIONS
+from stations import maidenhead_to_latlon, nearest_station_by_lat, in_japan_bbox, great_circle_km, STATIONS
+
+TOP_CONTACTS_PER_BAND = 6
 
 BASE = "https://retrieve.pskreporter.info/query"
 HEADERS = {
@@ -70,6 +72,8 @@ def summarize_band(band_name, lo, hi):
     region_counts = {s["id"]: 0 for s in STATIONS}
     counted = 0
     heatmap_points = []  # [lat, lon] for every receiver inside Japan, used for the nationwide heatmap
+    pair_distances = []  # every report where BOTH ends resolve, distance in km
+    contacts = []        # same, plus callsigns/freq, kept for the "notable long-distance" list
     for r in reports:
         latlon = maidenhead_to_latlon(r.get("receiver_locator"))
         if not latlon:
@@ -82,12 +86,51 @@ def summarize_band(band_name, lo, hi):
             region_counts[station_id] += 1
             counted += 1
 
+        # Pair distance: only meaningful when the receiver is somewhere in Japan
+        # (matches the heatmap's scope) and the sender's own locator also resolves.
+        if not in_japan_bbox(lat, lon):
+            continue
+        sender_latlon = maidenhead_to_latlon(r.get("sender_locator"))
+        if not sender_latlon:
+            continue
+        s_lat, s_lon = sender_latlon
+        dist_km = great_circle_km(lat, lon, s_lat, s_lon)
+        pair_distances.append(dist_km)
+        contacts.append({
+            "sender_callsign": r.get("sender_callsign"),
+            "receiver_callsign": r.get("receiver_callsign"),
+            "distance_km": round(dist_km),
+            "sn_r": r.get("sn_r"),
+        })
+
+    contacts.sort(key=lambda c: c["distance_km"], reverse=True)
+    # De-duplicate by (sender, receiver) pair - the same two stations can appear
+    # in several FT8 cycles inside one 15-minute window.
+    seen_pairs = set()
+    top_contacts = []
+    for c in contacts:
+        key = (c["sender_callsign"], c["receiver_callsign"])
+        if key in seen_pairs:
+            continue
+        seen_pairs.add(key)
+        top_contacts.append(c)
+        if len(top_contacts) >= TOP_CONTACTS_PER_BAND:
+            break
+
+    pair_stats = {
+        "matched_pairs": len(pair_distances),
+        "avg_distance_km": round(sum(pair_distances) / len(pair_distances)) if pair_distances else None,
+        "max_distance_km": round(max(pair_distances)) if pair_distances else None,
+        "top_contacts": top_contacts,
+    }
+
     summary = {
         "status": "ok",
         "total_reports": len(reports),
         "matched_to_station": counted,
         "region_counts": region_counts,
         "heatmap_points": heatmap_points,
+        "pair_stats": pair_stats,
     }
     # keep a small raw sample for debugging schema drift, not the full payload
     debug_sample = raw["text"][:1500]
