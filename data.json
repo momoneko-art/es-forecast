@@ -1,25 +1,29 @@
 {
-  "generated_at": "2026-09-01T03:45:58.219138Z",
-  "generated_at_jst": "2026-09-01T12:45:58+09:00",
+  "generated_at": "2026-09-01T03:49:56.233612Z",
+  "generated_at_jst": "2026-09-01T12:49:56+09:00",
   "kp": {
     "status": "ok",
     "value": 0,
-    "time_tag": "2026-09-01T03:43:00"
+    "time_tag": "2026-09-01T03:47:00"
   },
   "kp_history": [
     {
       "t": "2026-09-01T03:45:58.219138",
+      "kp": 0.0
+    },
+    {
+      "t": "2026-09-01T03:49:56.233612",
       "kp": 0.0
     }
   ],
   "pskreporter": {
     "10m": {
       "status": "error",
-      "error": "HTTPSConnectionPool(host='retrievedata.pskreporter.info', port=443): Max retries exceeded with url: /query?frange=28070000-28078000&mode=FT8&flowStartSeconds=-900&rronly=1 (Caused by NameResolutionError(\"HTTPSConnection(host='retrievedata.pskreporter.info', port=443): Failed to resolve 'retrievedata.pskreporter.info' ([Errno -5] No address associated with hostname)\"))"
+      "error": "403 Client Error: Forbidden for url: https://retrieve.pskreporter.info/query?frange=28070000-28078000&mode=FT8&flowStartSeconds=-900&rronly=1"
     },
     "6m": {
       "status": "error",
-      "error": "HTTPSConnectionPool(host='retrievedata.pskreporter.info', port=443): Max retries exceeded with url: /query?frange=50300000-50320000&mode=FT8&flowStartSeconds=-900&rronly=1 (Caused by NameResolutionError(\"HTTPSConnection(host='retrievedata.pskreporter.info', port=443): Failed to resolve 'retrievedata.pskreporter.info' ([Errno -5] No address associated with hostname)\"))"
+      "error": "403 Client Error: Forbidden for url: https://retrieve.pskreporter.info/query?frange=50300000-50320000&mode=FT8&flowStartSeconds=-900&rronly=1"
     }
   },
   "nict": {
@@ -30,8 +34,8 @@
       "id": "wakkanai",
       "name": "稚内",
       "loc": "北海道",
-      "es_index": 20.8,
-      "climatology_index": 20.8,
+      "es_index": 20.7,
+      "climatology_index": 20.7,
       "live_evidence": {
         "ft8_6m_spots_15min": 0,
         "ft8_10m_spots_15min": 0
@@ -42,8 +46,8 @@
       "id": "kokubunji",
       "name": "国分寺",
       "loc": "東京都",
-      "es_index": 28.2,
-      "climatology_index": 28.2,
+      "es_index": 28.1,
+      "climatology_index": 28.1,
       "live_evidence": {
         "ft8_6m_spots_15min": 0,
         "ft8_10m_spots_15min": 0
@@ -54,8 +58,8 @@
       "id": "yamagawa",
       "name": "山川",
       "loc": "鹿児島県",
-      "es_index": 33.3,
-      "climatology_index": 33.3,
+      "es_index": 33.2,
+      "climatology_index": 33.2,
       "live_evidence": {
         "ft8_6m_spots_15min": 0,
         "ft8_10m_spots_15min": 0
@@ -66,8 +70,8 @@
       "id": "oogimi",
       "name": "大宜味",
       "loc": "沖縄県",
-      "es_index": 36.3,
-      "climatology_index": 36.3,
+      "es_index": 36.2,
+      "climatology_index": 36.2,
       "live_evidence": {
         "ft8_6m_spots_15min": 0,
         "ft8_10m_spots_15min": 0
@@ -75,6 +79,6 @@
       "model": "climatology_only"
     }
   ],
-  "history_rows": 1,
+  "history_rows": 2,
   "models_trained": []
 }
