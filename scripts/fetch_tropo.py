@@ -2,7 +2,7 @@
 humidity / geopotential height) across a coarse grid over Japan, via the free
 Open-Meteo forecast API (https://open-meteo.com/ - plain JSON, no API key, no
 GRIB/eccodes dependency), and compute a tropospheric-ducting index time series
-(now through ~7 days ahead, every 6h) from the vertical gradient of modified
+(now through ~7 days ahead, hourly) from the vertical gradient of modified
 refractivity (M-units).
 
 Physics (standard, ITU-R P.453 style):
@@ -20,23 +20,29 @@ prediction, and is meant to answer "is a duct present here", not exact path loss
 Forecast range: requests FORECAST_DAYS (7) days of hourly GFS data per grid
 point in a single Open-Meteo call (models=gfs_seamless, so pressure-level
 fields are guaranteed out to the full range rather than whatever the
-"best_match" blend happens to carry), then samples every STEP_HOURS (6) hours
-to build a time series per point - matching the 2026-09 user request for an
-"about a week ahead" outlook, similar in spirit to
-https://www.dxinfocentre.com/tropo_eas.html . Skill beyond a few days is
-inherently limited (this is a single-column heuristic on top of a medium-range
-NWP model, not a verified ducting forecast product), which the UI should make
-clear to the user rather than presenting far-out steps with false confidence.
+"best_match" blend happens to carry), then samples every STEP_HOURS (1, i.e.
+every hour Open-Meteo returns) to build a time series per point - matching
+both the 2026-09 user request for an "about a week ahead" outlook and their
+follow-up request to match dxinfocentre.com's hour-by-hour display, rather
+than the coarser 6h steps this module used at first. Skill beyond a few days
+is inherently limited (this is a single-column heuristic on top of a
+medium-range NWP model, not a verified ducting forecast product), which the
+UI should make clear to the user rather than presenting far-out steps with
+false confidence.
 
-IMPORTANT: this endpoint is a completely different one from PSKReporter/NICT and
-has not been reachable for testing from within this development session (every
-outbound network path available while building this - the cloud sandbox and the
-device-bridge shell on the user's own PC - goes through an organisation-controlled
-egress allowlist that blocks it, see the deploy notes). It should be reachable from
-plain GitHub Actions runners and from agent.py running natively on the user's PC
-(neither of those goes through that allowlist), matching how PSKReporter itself
-only became reachable once fetched from a real residential/actions IP - but this
-needs to be confirmed after deployment by checking debug.json / agent.log.
+The map deliberately does NOT clip the duct-index fill to the Japan coastline
+(unlike the Es heatmap) - ducting is at least as significant over water as
+over land (in fact many real-world tropo openings are strongest along
+coastlines and over the sea), so clipping to land would hide the most
+relevant part of the picture. The coastline is drawn as a reference outline
+on top of the full grid instead.
+
+CONFIRMED WORKING (2026-09-01): debug.json's tropo_status showed status "ok"
+with no errors after the first GitHub Actions run following deployment, so
+Open-Meteo is reachable from GitHub Actions runners as expected (this could
+not be tested directly from within the development session itself - both the
+cloud sandbox and the device-bridge shell on the user's own PC sit behind an
+organisation-controlled egress allowlist that blocks api.open-meteo.com).
 """
 import math
 
@@ -53,7 +59,7 @@ GRID_LAT_MIN, GRID_LAT_MAX, GRID_LAT_STEP = 24.0, 46.0, 2.0
 GRID_LON_MIN, GRID_LON_MAX, GRID_LON_STEP = 123.0, 149.0, 2.0
 
 FORECAST_DAYS = 7         # "about a week ahead" per user request; GFS itself supports up to 16
-STEP_HOURS = 6            # sample every 6h (matches GFS's native run cadence) rather than all 168 hourly points
+STEP_HOURS = 1            # hourly, per user request to match dxinfocentre.com's hour-by-hour display
 MODEL = "gfs_seamless"    # pin to GFS explicitly so pressure-level fields are populated for the full range
 
 BATCH_SIZE = 20           # a week of hourly pressure-level data per point is a much bigger payload than
@@ -224,7 +230,17 @@ def run(prev_tropo=None, now_ts=None):
     if now_ts is None:
         now_ts = time.time()
 
-    if prev_tropo and prev_tropo.get("status") == "ok" and prev_tropo.get("fetched_at"):
+    # A prev_tropo written by an older version of this module (e.g. the
+    # single-current-value shape from before the weekly time series was
+    # added, or a 6h-step grid from before hourly steps) is never reused,
+    # however fresh - otherwise a stale writer (a PC agent process that
+    # hasn't been restarted since a deploy) can keep the whole site stuck on
+    # an old schema/resolution until its own throttle window happens to
+    # expire. "times" is only present in the current schema's grid.
+    prev_grid = (prev_tropo or {}).get("grid") or {}
+    prev_is_current_schema = bool(prev_grid.get("times"))
+
+    if prev_tropo and prev_is_current_schema and prev_tropo.get("status") == "ok" and prev_tropo.get("fetched_at"):
         age = now_ts - prev_tropo["fetched_at"]
         if age < MIN_REFETCH_SECONDS:
             out = dict(prev_tropo)

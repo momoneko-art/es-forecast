@@ -271,10 +271,10 @@
 
   <div class="map-panel" id="tropo-map-panel">
     <div class="panel-head">
-      <h3>UHFトロポダクト予報(今後7日間)</h3>
+      <h3>VHF/UHFトロポダクト予報(今後7日間)</h3>
       <span class="pill" id="tropo-badge"><span class="dot"></span>読込中</span>
     </div>
-    <span class="sub">気象庁GFSモデル由来の気温・湿度・高度データから大気の屈折率(M値)の高度勾配を計算し、電波が上空に逃げずに地表付近を伝わる「ラジオダクト」が起きやすい場所を推定した地図。市民ラジオのUHF機(430MHz帯)で通常より遠距離が入感しやすいエリアの目安です。下のスライダーで約6時間刻み・最大7日先まで予報を切り替えられます。</span>
+    <span class="sub">気象庁GFSモデル由来の気温・湿度・高度データから大気の屈折率(M値)の高度勾配を計算し、電波が上空に逃げずに地表付近を伝わる「ラジオダクト」が起きやすい場所を推定した地図。140MHz帯・351MHz帯・420MHz帯など市民ラジオのVHF/UHF機で通常より遠距離が入感しやすいエリアの目安です(周波数が高いほどダクトの影響を受けやすい傾向)。海上でもダクトは発生する(むしろ海上のほうが起きやすいことも多い)ため、地図は日本列島の輪郭で切り取らず、海上を含む格子全体を着色しています。下のスライダーで1時間刻み・最大7日先まで予報を切り替えられます。</span>
     <div class="tropo-time-row">
       <div class="tropo-time-label" id="tropo-time-label">読込中…</div>
       <input type="range" class="tropo-time-slider" id="tropo-time-slider" min="0" max="0" value="0" step="1" disabled>
@@ -801,7 +801,17 @@
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,w,h);
 
-    var proj = makeProjector(coastline, w, h, 14);
+    // Unlike the Es heatmap, the tropo grid is deliberately projected against
+    // its OWN bbox (not the coastline's) and its fill is NOT clipped to the
+    // Japan landmass - tropo ducting happens over the sea at least as often
+    // as over land (coastal/over-water paths are classic tropo openings), so
+    // clipping to land would hide the most relevant part of the map. The
+    // coastline is drawn as a reference outline on top of the full grid.
+    var tropoBbox = grid ? {
+      lonMin: grid.lon_min - grid.lon_step/2, lonMax: grid.lon_max + grid.lon_step/2,
+      latMin: grid.lat_min - grid.lat_step/2, latMax: grid.lat_max + grid.lat_step/2
+    } : coastline;
+    var proj = makeProjector(tropoBbox, w, h, 14);
     tropoProj = proj;
 
     var path = new Path2D();
@@ -814,8 +824,6 @@
     });
 
     if(grid && grid.values && grid.values.length){
-      ctx.save();
-      ctx.clip(path);
       for(var ri=0; ri<grid.rows; ri++){
         var lat0 = grid.lat_min + (ri-0.5)*grid.lat_step, lat1 = lat0 + grid.lat_step;
         var row = grid.values[ri];
@@ -829,10 +837,9 @@
           ctx.fillRect(x, y, cw, ch);
         }
       }
-      ctx.restore();
     }
 
-    ctx.strokeStyle = cssVar('--ink-dim'); ctx.lineWidth = 1; ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = cssVar('--ink-dim'); ctx.lineWidth = 1; ctx.globalAlpha = 0.7;
     ctx.stroke(path);
     ctx.globalAlpha = 1;
 
