@@ -8,7 +8,7 @@
 
 - `scripts/fetch_pskreporter.py` — PSKReporterから直近15分の10m/6m帯FT8受信報告を取得し、受信者グリッドロケータから4地点付近の受信数を集計
 - `scripts/fetch_noaa.py` — NOAA SWPCから最新のKp指数を取得
-- `scripts/fetch_nict.py` — NICTのEsリアルタイムページから機械可読データを探す実験的スクレイパー(見つからない場合は `unconfirmed` を返す)
+- `scripts/fetch_nict.py` — NICTの電離圏概況モバイルページ(15分更新)から各地点の実測foEs値をスクレイピング(実測のE層臨界周波数、最優先の証拠として扱う)
 - `scripts/climatology.py` — 季節・時刻から統計的なEs活動ベースラインを算出
 - `scripts/build_index.py` — 上記を統合し、`history.csv` に蓄積した実測データが十分たまるとRidge回帰モデルを自動学習し、`data.json` を生成
 - `index.html` — `data.json` を読み込んで表示する静的ダッシュボード(GitHub Pagesで公開)
