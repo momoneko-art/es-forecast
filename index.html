@@ -105,6 +105,12 @@
   .trend.up{ color:var(--accent-warm); }
   .trend.down{ color:var(--ink-dim); }
   .trend.flat{ color:var(--ink-dim); }
+  .trend.hot{ color:var(--vhigh); }
+  /* 直近4サイクル分の推移矢印(過去3+現在)。連続で上昇中の時だけ赤(--vhigh)で強調する。 */
+  .trend-hist{ display:inline-flex; gap:1px; font-size:12.5px; font-weight:700; flex-shrink:0; letter-spacing:-1px; }
+  .trend-step{ color:var(--ink-dim); }
+  .trend-step.up{ color:var(--accent-warm); }
+  .trend-step.hot{ color:var(--vhigh); }
   .clima-note{ font-size:11px; color:var(--ink-dim); }
   .evidence-row{ display:flex; gap:10px; font-size:11.5px; color:var(--ink-dim); flex-wrap:wrap; }
   .evidence-row b{ color:var(--ink); font-family:'JetBrains Mono',monospace; }
@@ -363,14 +369,31 @@
     document.getElementById('clock-time').textContent = String(p.h).padStart(2,'0')+':'+String(p.mi).padStart(2,'0')+':'+String(p.s).padStart(2,'0');
   }
 
+  var TREND_ARROWS = {up:'&#8593;', down:'&#8595;', flat:'&#8594;'};
+  var TREND_LABELS = {up:'上昇中', down:'下降中', flat:'横ばい'};
+
+  // 直近(最大4サイクル=約1時間分)の推移を「過去3つ→現在」の矢印で並べて表示。
+  // 直近2ステップが連続で上昇なら「上昇中」を赤(--vhigh)で強調する。
   function trendHtml(s){
-    if(!s || s.trend == null || s.trend === 'unknown') return '';
-    var arrows = {up:'&#8593;', down:'&#8595;', flat:'&#8594;'};
-    var labels = {up:'上昇中', down:'下降中', flat:'横ばい'};
-    var arrow = arrows[s.trend]; var label = labels[s.trend];
-    if(!arrow) return '';
+    if(!s) return '';
+    var hist = s.trend_history || [];
+    var sustainedUp = hist.length >= 2 && hist[hist.length-1] === 'up' && hist[hist.length-2] === 'up';
+
+    var histHtml = '';
+    if(hist.length){
+      histHtml = '<span class="trend-hist" title="直近'+hist.length+'サイクル(約15分毎)の推移: 過去'+(hist.length-1)+'つ→現在">' +
+        hist.map(function(t){
+          var hot = sustainedUp && t === 'up';
+          return '<span class="trend-step '+t+(hot?' hot':'')+'">'+(TREND_ARROWS[t]||'?')+'</span>';
+        }).join('') + '</span> ';
+    }
+
+    if(s.trend == null || s.trend === 'unknown') return histHtml;
+    var arrow = TREND_ARROWS[s.trend]; var label = TREND_LABELS[s.trend];
+    if(!arrow) return histHtml;
     var deltaTxt = (s.trend_delta != null) ? ' ('+(s.trend_delta>0?'+':'')+s.trend_delta+')' : '';
-    return '<span class="trend '+s.trend+'" title="前回(約15分前)比'+deltaTxt+'">'+arrow+' '+label+'</span>';
+    var curCls = 'trend '+s.trend+(sustainedUp ? ' hot' : '');
+    return histHtml + '<span class="'+curCls+'" title="前回(約15分前)比'+deltaTxt+'">'+arrow+' '+label+'</span>';
   }
 
   // しきい値(30/50/80)は全国Es活動分布ヒートマップの色の変わり目と揃えている。

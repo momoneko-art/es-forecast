@@ -102,17 +102,22 @@ def predict_expected_count(model_info, dt, kp):
 
 
 TREND_THRESHOLD = 3.0  # points; smaller deltas are shown as "flat" to avoid noisy flicker
+TREND_HISTORY_LEN = 4  # how many recent per-cycle trend steps to keep for the arrow-sequence UI
 
 
-def read_prev_es_index():
-    """Best-effort read of the es_index each station had last cycle, from the
-    data.json we are about to overwrite. Used only to compute up/down/flat trend
-    arrows; any failure (missing file, first run, schema drift) degrades to no
-    trend info rather than breaking the pipeline."""
+def read_prev_stations():
+    """Best-effort read of each station's last cycle es_index and short
+    trend_history, from the data.json we are about to overwrite. Used to compute
+    the up/down/flat trend arrow and to carry forward the rolling 4-entry trend
+    history (see TREND_HISTORY_LEN); any failure (missing file, first run,
+    schema drift) degrades to no trend info rather than breaking the pipeline."""
     try:
         with open(DATA_JSON_PATH, encoding="utf-8") as f:
             prev = json.load(f)
-        return {s["id"]: s["es_index"] for s in prev.get("stations", []) if "id" in s and "es_index" in s}
+        return {
+            s["id"]: {"es_index": s.get("es_index"), "trend_history": s.get("trend_history") or []}
+            for s in prev.get("stations", []) if "id" in s
+        }
     except Exception:  # noqa: BLE001 - degrade gracefully
         return {}
 
@@ -134,7 +139,7 @@ def run():
     now_jst = jst_now()
     now_utc_iso = datetime.utcnow().isoformat()
 
-    prev_es_index = read_prev_es_index()
+    prev_stations = read_prev_stations()
     prev_tropo = read_prev_tropo()
 
     noaa = fetch_noaa.run()
@@ -220,7 +225,8 @@ def run():
 
         es_index = max(0.0, min(100.0, es_index))
 
-        prev_index = prev_es_index.get(s["id"])
+        prev_station = prev_stations.get(s["id"]) or {}
+        prev_index = prev_station.get("es_index")
         trend = "unknown"
         trend_delta = None
         if prev_index is not None:
@@ -232,10 +238,19 @@ def run():
             else:
                 trend = "flat"
 
+        # Rolling window of the last few per-cycle trend steps (oldest first), so
+        # the UI can show a short "momentum" arrow sequence (e.g. down/flat/up/up)
+        # instead of just the single latest up/down/flat. A step is only appended
+        # once it's actually known (not "unknown", e.g. the very first run ever).
+        trend_history = list(prev_station.get("trend_history") or [])
+        if trend != "unknown":
+            trend_history.append(trend)
+        trend_history = trend_history[-TREND_HISTORY_LEN:]
+
         stations_out.append({
             "id": s["id"], "name": s["name"], "loc": s["loc"], "lat": s["lat"], "lon": s["lon"],
             "es_index": round(es_index, 1),
-            "trend": trend, "trend_delta": trend_delta,
+            "trend": trend, "trend_delta": trend_delta, "trend_history": trend_history,
             "climatology_index": round(clima, 1),
             "live_evidence": {"ft8_6m_spots_15min": count6, "ft8_10m_spots_15min": count10},
             "nict": {
