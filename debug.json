@@ -1,18 +1,32 @@
 {
   "pskreporter_debug": {},
   "nict_findings": {
-    "status": "unconfirmed",
-    "findings": [
-      {
-        "page": "https://wdc.nict.go.jp/Ionosphere/realtime/latest-fxEs.html",
-        "status": "scanned",
-        "candidate_data_urls": []
+    "status": "ok",
+    "stations": {
+      "wakkanai": {
+        "storm": "Qui.",
+        "dis": "Qui.",
+        "foes_mhz": 3.9,
+        "esp_status": "ok"
       },
-      {
-        "page": "https://swc.nict.go.jp/trend/es.html",
-        "status": "scanned",
-        "candidate_data_urls": []
+      "kokubunji": {
+        "storm": "Qui.",
+        "dis": "Qui.",
+        "foes_mhz": 3.0,
+        "esp_status": "ok"
+      },
+      "yamagawa": {
+        "storm": "Qui.",
+        "dis": "Qui.",
+        "foes_mhz": 3.6,
+        "esp_status": "ok"
+      },
+      "oogimi": {
+        "storm": "Atn-",
+        "dis": "Qui.",
+        "foes_mhz": 4.6,
+        "esp_status": "ok"
       }
-    ]
+    }
   }
 }
