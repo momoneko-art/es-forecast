@@ -217,6 +217,24 @@
     <div class="path-cards" id="path-cards"></div>
   </div>
 
+  <div class="map-panel" id="self-chance-map-panel">
+    <h3>自局Es交信チャンスマップ</h3>
+    <span class="sub">自局から各地点までを結ぶ経路の中間地点(Esの反射点)の活動指数に、単発ホップの目安(概ね500〜2400km)から外れる距離ほど薄くなる補正をかけた地図。色が濃い場所ほど今この瞬間、自局から交信が届きやすい可能性が高いエリアです。</span>
+    <div class="path-empty" id="self-chance-empty">上の「自局(送信地点)」を選択すると、方角ごとの見込みが地図で表示されます。</div>
+    <div id="self-chance-wrap" style="display:none;">
+      <div class="map-wrap">
+        <canvas id="self-chance-map"></canvas>
+        <div class="map-tooltip" id="self-chance-tooltip"></div>
+      </div>
+      <div class="map-legend">
+        <span>0</span>
+        <div class="bar" id="self-chance-legend-bar"></div>
+        <span>100</span>
+      </div>
+      <span class="sub" style="margin:6px 0 0;">配色は全国Es活動分布と同じ0〜100固定スケール。現在の自局から見た範囲: <strong id="self-chance-legend-current">-</strong>。白丸=主要都市の位置、大きな丸=自局。</span>
+    </div>
+  </div>
+
   <div class="contacts-panel">
     <h3>直近の遠距離伝搬レポート(FT8)</h3>
     <span class="sub">受信局・送信局の両方のグリッドロケーターが分かる報告だけを距離順に表示。数百km以上ならEs等のスカイウェーブが実際に効いている証拠です。</span>
@@ -616,6 +634,7 @@
     sel.addEventListener('change', function(){
       saveQth(sel.value);
       renderPathPanel();
+      drawSelfChanceMap(lastHeatmapData);
     });
   }
 
@@ -658,6 +677,169 @@
         '</div>';
     });
     wrap.innerHTML = html;
+  }
+
+  // ---------------------------------------------------------------------
+  // Self-station "contact chance" map: like the nationwide activity map
+  // above, but every grid cell is re-colored by the activity at the
+  // MIDPOINT of the path from the registered QTH to that cell (the point
+  // where Es actually reflects the signal), tapered toward 0 for cells
+  // whose distance from the QTH falls outside the ~500-2400km single-hop
+  // window. Same fixed 0-100 color scale as the main map, for consistency.
+  // ---------------------------------------------------------------------
+
+  var RANGE_FULL_MIN = 500, RANGE_FULL_MAX = 2400, RANGE_TAPER_KM = 300;
+
+  function rangeFactor(distKm){
+    if(distKm >= RANGE_FULL_MIN && distKm <= RANGE_FULL_MAX) return 1;
+    if(distKm < RANGE_FULL_MIN){
+      var lo = RANGE_FULL_MIN - RANGE_TAPER_KM;
+      if(distKm <= lo) return 0;
+      return (distKm - lo) / RANGE_TAPER_KM;
+    }
+    var hi = RANGE_FULL_MAX + RANGE_TAPER_KM;
+    if(distKm >= hi) return 0;
+    return (hi - distKm) / RANGE_TAPER_KM;
+  }
+
+  function computeSelfChanceGrid(hm, selfLat, selfLon){
+    var values = [];
+    for(var r=0; r<hm.rows; r++){
+      var lat = hm.lat_min + (r+0.5)*hm.lat_step;
+      var rowArr = [];
+      for(var c=0; c<hm.cols; c++){
+        var lon = hm.lon_min + (c+0.5)*hm.lon_step;
+        var dist = greatCircleKm(selfLat, selfLon, lat, lon);
+        var mid = geographicMidpoint(selfLat, selfLon, lat, lon);
+        var midVal = heatmapValueAt(mid[0], mid[1]);
+        rowArr.push((midVal==null?0:midVal) * rangeFactor(dist));
+      }
+      values.push(rowArr);
+    }
+    return {rows:hm.rows, cols:hm.cols, lat_min:hm.lat_min, lat_step:hm.lat_step,
+            lon_min:hm.lon_min, lon_step:hm.lon_step, values:values};
+  }
+
+  var lastSelfChanceGrid = null, lastSelfChanceProj = null;
+  var selfChanceRange = {min: null, max: null};
+
+  function setSelfChanceLegend(){
+    var samples = [];
+    for(var i=0;i<=10;i++){ samples.push(valueToColor(i*10) + ' ' + (i*10) + '%'); }
+    var bar = document.getElementById('self-chance-legend-bar');
+    if(bar) bar.style.background = 'linear-gradient(90deg, '+samples.join(', ')+')';
+    var curEl = document.getElementById('self-chance-legend-current');
+    if(curEl){
+      curEl.textContent = (selfChanceRange.min != null)
+        ? Math.round(selfChanceRange.min) + '〜' + Math.round(selfChanceRange.max)
+        : '-';
+    }
+  }
+
+  function drawSelfChanceMap(data){
+    var panelWrap = document.getElementById('self-chance-wrap');
+    var empty = document.getElementById('self-chance-empty');
+    var canvas = document.getElementById('self-chance-map');
+    if(!canvas || !panelWrap || !empty) return;
+
+    var sel = document.getElementById('qth-select');
+    var qthName = sel ? sel.value : loadQth();
+    var qth = qthName ? PREFECTURES.find(function(p){ return p[0] === qthName; }) : null;
+
+    if(!qth || !coastline || !data || !data.heatmap || !data.heatmap.values || !data.heatmap.values.length){
+      panelWrap.style.display = 'none';
+      empty.style.display = '';
+      if(qth && (!coastline || !data)) empty.textContent = '地図データの読み込みを待っています…';
+      return;
+    }
+    panelWrap.style.display = '';
+    empty.style.display = 'none';
+
+    var dpr = window.devicePixelRatio || 1;
+    var w = canvas.clientWidth, h = canvas.clientHeight || 440;
+    canvas.width = w*dpr; canvas.height = h*dpr;
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+
+    var proj = makeProjector(coastline, w, h, 14);
+    lastSelfChanceProj = proj;
+
+    var path = new Path2D();
+    coastline.rings.forEach(function(ring){
+      ring.forEach(function(p, i){
+        var xy = proj.toXY(p[1], p[0]);
+        if(i===0) path.moveTo(xy[0], xy[1]); else path.lineTo(xy[0], xy[1]);
+      });
+      path.closePath();
+    });
+
+    var grid = computeSelfChanceGrid(data.heatmap, qth[1], qth[2]);
+    lastSelfChanceGrid = grid;
+
+    var lo = Infinity, hi = -Infinity;
+    ctx.save();
+    ctx.clip(path);
+    for(var ri=0; ri<grid.rows; ri++){
+      var lat0 = grid.lat_min + ri*grid.lat_step, lat1 = lat0 + grid.lat_step;
+      var row = grid.values[ri];
+      for(var ci=0; ci<grid.cols; ci++){
+        var lon0 = grid.lon_min + ci*grid.lon_step, lon1 = lon0 + grid.lon_step;
+        var p0 = proj.toXY(lat0, lon0), p1 = proj.toXY(lat1, lon1);
+        var x = Math.min(p0[0], p1[0]), y = Math.min(p0[1], p1[1]);
+        var cw = Math.abs(p1[0]-p0[0]) + 1, ch = Math.abs(p1[1]-p0[1]) + 1;
+        var v = row[ci];
+        if(v < lo) lo = v; if(v > hi) hi = v;
+        ctx.fillStyle = valueToColor(v);
+        ctx.fillRect(x, y, cw, ch);
+      }
+    }
+    ctx.restore();
+    if(isFinite(lo)) selfChanceRange = {min: lo, max: hi};
+
+    ctx.strokeStyle = cssVar('--ink-dim'); ctx.lineWidth = 1; ctx.globalAlpha = 0.55;
+    ctx.stroke(path);
+    ctx.globalAlpha = 1;
+
+    // Reference dots for the 9 target cities used in the cards above.
+    TARGET_CITIES.forEach(function(city){
+      var xy = proj.toXY(city[1], city[2]);
+      ctx.beginPath(); ctx.arc(xy[0], xy[1], 3, 0, Math.PI*2);
+      ctx.fillStyle = cssVar('--panel'); ctx.fill();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = cssVar('--ink-dim'); ctx.stroke();
+    });
+
+    // Self marker, drawn last so it stays on top.
+    var sxy = proj.toXY(qth[1], qth[2]);
+    ctx.beginPath(); ctx.arc(sxy[0], sxy[1], 6, 0, Math.PI*2);
+    ctx.fillStyle = cssVar('--accent-warm'); ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = cssVar('--panel'); ctx.stroke();
+    ctx.font = "bold 12px 'Zen Kaku Gothic New', sans-serif";
+    ctx.fillStyle = cssVar('--ink');
+    ctx.textAlign = sxy[0] > w-70 ? 'right' : 'left';
+    ctx.fillText('自局('+qth[0]+')', sxy[0] + (sxy[0] > w-70 ? -10 : 10), sxy[1]+4);
+
+    setSelfChanceLegend();
+  }
+
+  function initSelfChanceTooltip(){
+    var canvas = document.getElementById('self-chance-map');
+    var tip = document.getElementById('self-chance-tooltip');
+    if(!canvas || !tip) return;
+    canvas.addEventListener('mousemove', function(ev){
+      if(!lastSelfChanceProj || !lastSelfChanceGrid){ tip.style.display='none'; return; }
+      var rect = canvas.getBoundingClientRect();
+      var x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+      var ll = lastSelfChanceProj.toLatLon(x, y);
+      var g = lastSelfChanceGrid;
+      var ri = Math.floor((ll[0]-g.lat_min)/g.lat_step);
+      var ci = Math.floor((ll[1]-g.lon_min)/g.lon_step);
+      if(ri<0 || ri>=g.rows || ci<0 || ci>=g.cols){ tip.style.display='none'; return; }
+      var v = g.values[ri][ci];
+      tip.innerHTML = '交信チャンス <b>'+v.toFixed(0)+'</b> /100';
+      tip.style.left = x+'px'; tip.style.top = y+'px'; tip.style.display='block';
+    });
+    canvas.addEventListener('mouseleave', function(){ tip.style.display='none'; });
   }
 
   var BAND_LABELS = {"10m":"10mバンド", "6m":"6mバンド"};
@@ -763,6 +945,7 @@
 
     drawJapanHeatmap(data);
     renderPathPanel();
+    drawSelfChanceMap(data);
     renderContactsPanel(data);
   }
 
@@ -780,14 +963,19 @@
     tickClock();
     setInterval(tickClock, 1000);
     initMapTooltip();
+    initSelfChanceTooltip();
     populateQthSelect();
-    loadCoastline().then(function(){ if(lastHeatmapData) drawJapanHeatmap(lastHeatmapData); });
+    loadCoastline().then(function(){
+      if(lastHeatmapData){ drawJapanHeatmap(lastHeatmapData); drawSelfChanceMap(lastHeatmapData); }
+    });
     loadData();
     setInterval(loadData, 5 * 60 * 1000);
     var resizeTimer = null;
     window.addEventListener('resize', function(){
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(function(){ if(lastHeatmapData) drawJapanHeatmap(lastHeatmapData); }, 150);
+      resizeTimer = setTimeout(function(){
+        if(lastHeatmapData){ drawJapanHeatmap(lastHeatmapData); drawSelfChanceMap(lastHeatmapData); }
+      }, 150);
     });
   }
 
