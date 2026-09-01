@@ -194,6 +194,17 @@
     <div class="stations" id="station-grid"></div>
   </div>
 
+  <div class="path-panel" id="qth-panel">
+    <h3>自局(送信地点)を登録</h3>
+    <span class="sub">登録すると、下の「自局Es交信チャンスマップ」と「自局Es交信チャンス」に反映されます。この選択はお使いの端末・ブラウザごとに保存されるため、スマホとPCなど複数の端末で見る場合はそれぞれで一度選択してください。</span>
+    <div class="qth-row" style="margin-bottom:0;">
+      <label for="qth-select">自局(送信地点):</label>
+      <select class="qth-select" id="qth-select">
+        <option value="">選択してください</option>
+      </select>
+    </div>
+  </div>
+
   <div class="map-grid-2">
     <div class="map-panel">
       <h3>全国Es活動分布</h3>
@@ -214,7 +225,7 @@
     <div class="map-panel" id="self-chance-map-panel">
       <h3>自局Es交信チャンスマップ</h3>
       <span class="sub">自局から各地点までを結ぶ経路の中間地点(Esの反射点)の活動指数に、単発ホップの目安(概ね500〜2400km)から外れる距離ほど薄くなる補正をかけた地図。色が濃い場所ほど今この瞬間、自局から交信が届きやすい可能性が高いエリアです。</span>
-      <div class="path-empty" id="self-chance-empty">「自局(送信地点)」を選択すると、方角ごとの見込みが地図で表示されます(選択欄はこの下にあります)。</div>
+      <div class="path-empty" id="self-chance-empty">上の「自局(送信地点)を登録」で選択すると、方角ごとの見込みが地図で表示されます。</div>
       <div id="self-chance-wrap" style="display:none;">
         <div class="map-wrap">
           <canvas id="self-chance-map"></canvas>
@@ -233,12 +244,6 @@
   <div class="path-panel">
     <h3>自局Es交信チャンス</h3>
     <span class="sub">自局と主要都市を結ぶパスの中間地点(Esが実際に反射する場所)の活動指数から算出。単発ホップの目安は概ね500〜2400km。</span>
-    <div class="qth-row">
-      <label for="qth-select">自局(送信地点):</label>
-      <select class="qth-select" id="qth-select">
-        <option value="">選択してください</option>
-      </select>
-    </div>
     <div class="path-cards" id="path-cards"></div>
   </div>
 
@@ -651,7 +656,7 @@
     var sel = document.getElementById('qth-select');
     var qthName = sel ? sel.value : loadQth();
     if(!qthName){
-      wrap.innerHTML = '<div class="path-empty">自局(送信地点)を選択すると、主要都市方向ごとのEs伝搬見込みが表示されます。</div>';
+      wrap.innerHTML = '<div class="path-empty">上の「自局(送信地点)を登録」で選択すると、主要都市方向ごとのEs伝搬見込みが表示されます。</div>';
       return;
     }
     var qth = PREFECTURES.find(function(p){ return p[0] === qthName; });
