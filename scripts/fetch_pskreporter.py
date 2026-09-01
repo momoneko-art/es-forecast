@@ -7,7 +7,12 @@ import requests
 from stations import maidenhead_to_latlon, nearest_station_by_lat, STATIONS
 
 BASE = "https://retrieve.pskreporter.info/query"
-HEADERS = {"User-Agent": "es-forecast-dashboard/1.0 (personal amateur radio project)"}
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+    "Referer": "https://pskreporter.info/pskmap.html",
+    "Accept": "*/*",
+}
 
 BANDS = {
     "10m": (28070000, 28078000),
@@ -24,7 +29,8 @@ def fetch_band(lo, hi, window_seconds=-900):
     }
     try:
         resp = requests.get(BASE, params=params, headers=HEADERS, timeout=25)
-        resp.raise_for_status()
+        if resp.status_code != 200:
+            return {"ok": False, "error": f"HTTP {resp.status_code}: {resp.text[:500]}"}
         return {"ok": True, "text": resp.text, "status_code": resp.status_code}
     except Exception as exc:  # noqa: BLE001 - we want this pipeline step to degrade gracefully
         return {"ok": False, "error": str(exc)}
