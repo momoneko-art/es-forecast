@@ -136,7 +136,7 @@
   <div>
     <div class="section-title">
       <h2>観測4地点の Es 活動指数</h2>
-      <span class="sub">PSKReporter実伝播データ（15分毎更新）+ 季節・時刻統計 のハイブリッド指数</span>
+      <span class="sub">NICT実測foEs + PSKReporter実伝播データ（15分毎更新）+ 季節・時刻統計 のハイブリッド指数</span>
     </div>
     <div class="stations" id="station-grid"></div>
   </div>
@@ -154,7 +154,8 @@
     <div class="panel">
       <h3>一次情報へのリンク</h3>
       <div class="links">
-        <a class="link-item" href="https://swc.nict.go.jp/trend/es.html" target="_blank" rel="noopener"><span>NICT 電離圏擾乱リアルタイム(Es現況)</span><span class="go">開く →</span></a>
+        <a class="link-item" href="https://wdc.nict.go.jp/Ionosphere/realtime/ISDJ/ionospheric-signal-i.html" target="_blank" rel="noopener"><span>NICT 電離圏概況(foEs実測値・当サイトのデータ元)</span><span class="go">開く →</span></a>
+        <a class="link-item" href="https://swc.nict.go.jp/trend/es.html" target="_blank" rel="noopener"><span>NICT 電離圏擾乱リアルタイム(Esグラフ)</span><span class="go">開く →</span></a>
         <a class="link-item" href="https://wdc.nict.go.jp/Ionosphere/realtime/latest-fxEs.html" target="_blank" rel="noopener"><span>NICT イオノゾンデ 最新2時間</span><span class="go">開く →</span></a>
         <a class="link-item" href="https://pskreporter.info/pskmap.html" target="_blank" rel="noopener"><span>PSKReporter 実伝播マップ(FT8等)</span><span class="go">開く →</span></a>
         <a class="link-item" href="https://www.spaceweather.gov/products/planetary-k-index" target="_blank" rel="noopener"><span>NOAA SWPC 惑星間Kp指数</span><span class="go">開く →</span></a>
@@ -168,7 +169,7 @@
       <li>GitHub Actionsが15分ごとにPSKReporter(FT8実伝播データ・10m/6m帯)とNOAA宇宙天気(Kp指数)を実測取得し、このリポジトリに書き戻しています。</li>
       <li>各地点の指数は「季節・時刻の統計モデル(気候学的ベースライン)」に「実際のFT8伝播観測(=Esで短距離オープンした証拠)」を上乗せして算出しています。実伝播が観測できた時間帯ほど数値の信頼度が上がります。</li>
       <li>データが十分に蓄積されると(目安60サンプル=15時間分)、Ridge回帰モデルが自動学習され、統計的な「通常より多い/少ない」を判定に使うようになります。<span id="model-status"></span></li>
-      <li>NICTのイオノゾンデ生データはAPI非公開のため実験的スクレイピングを試みていますが確度は保証できません。最終確認は必ず上記リンクの公式データで行ってください。</li>
+      <li>NICTのイオノゾンデ実測値（各地点のfoEs＝E層臨界周波数、15分更新）が取得できた場合は最優先の証拠として扱い、PSKReporterの実伝播報告と合わせて指数を押し上げます。取得できない時間帯は統計モデルとPSKReporterのみで代替します。最終確認は必ず上記リンクの公式データで行ってください。</li>
     </ul>
   </div>
 
@@ -242,6 +243,15 @@
     (data.stations||[]).forEach(function(s){
       var st = statusOf(s.es_index);
       var hasEvidence = (s.live_evidence.ft8_6m_spots_15min + s.live_evidence.ft8_10m_spots_15min) > 0;
+      var nict = s.nict || {};
+      var nictLine = '';
+      if(nict.status === 'ok' && nict.foes_mhz != null){
+        nictLine = '<span>NICT実測foEs: <b>'+nict.foes_mhz.toFixed(1)+'</b> MHz</span>';
+      } else if(nict.status === 'quiet'){
+        nictLine = '<span>NICT実測: <b>静穏(Es無し)</b></span>';
+      } else {
+        nictLine = '<span>NICT実測: <b>取得待ち</b></span>';
+      }
       var card = document.createElement('div');
       card.className = 'station';
       card.innerHTML =
@@ -250,8 +260,10 @@
           '<span class="pill '+st.cls+'"><span class="dot"></span>'+st.label+'</span>' +
         '</div>' +
         '<div class="gauge-row"><span class="gauge-num mono">'+Math.round(s.es_index)+'<span class="unit">/100</span></span>'+
-          (hasEvidence ? '<span class="pill live">実伝播あり</span>' : '') + '</div>' +
+          (hasEvidence ? '<span class="pill live">実伝播あり</span>' : '') +
+          (nict.status === 'ok' ? '<span class="pill live">NICT実測</span>' : '') + '</div>' +
         '<div class="clima-note">統計ベースライン: '+Math.round(s.climatology_index)+'</div>' +
+        '<div class="evidence-row">' + nictLine + '</div>' +
         '<div class="evidence-row">' +
           '<span>6m FT8: <b>'+s.live_evidence.ft8_6m_spots_15min+'</b>局</span>' +
           '<span>10m FT8: <b>'+s.live_evidence.ft8_10m_spots_15min+'</b>局</span>' +

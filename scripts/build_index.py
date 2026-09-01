@@ -123,6 +123,8 @@ def run():
 
     models = try_train_models(history_rows)
 
+    nict_stations = nict_result.get("stations", {}) if nict_result.get("status") == "ok" else {}
+
     stations_out = []
     for s in STATIONS:
         clima = climatology_index(now_jst, s, kp)
@@ -141,7 +143,30 @@ def run():
                 surprise = min(2.0, count6 / expected)
                 evidence_boost = max(evidence_boost, min(1.0, (surprise - 0.5)))
 
-        es_index = clima * (1 + 0.6 * evidence_boost)
+        # NICT ionosonde reading (ground-truth measurement) - the strongest single
+        # signal when available. foEs (MHz) is normalized into a 0-1 boost; a
+        # confirmed "Qui." (no Es echo) is treated as confident zero, and "unknown"
+        # (site unreachable / '?' on the page) simply falls back to the PSKReporter
+        # evidence computed above.
+        nict_station = nict_stations.get(s["id"])
+        nict_boost = 0.0
+        foes_mhz = None
+        nict_status = "unavailable"
+        if nict_station:
+            nict_status = nict_station["esp_status"]
+            foes_mhz = nict_station["foes_mhz"]
+            if nict_status == "quiet":
+                nict_boost = 0.0
+            elif nict_status == "ok" and foes_mhz is not None:
+                nict_boost = max(0.0, min(1.0, (foes_mhz - 2.0) / 8.0))
+
+        # Combine PSKReporter-derived evidence and NICT evidence with a noisy-OR:
+        # either strong real propagation reports OR a strong measured foEs should
+        # independently be able to push the index up, without double-counting when
+        # both agree.
+        combined_boost = 1 - (1 - evidence_boost) * (1 - nict_boost)
+
+        es_index = clima * (1 + 0.6 * combined_boost)
         es_index = max(0.0, min(100.0, es_index))
 
         stations_out.append({
@@ -149,6 +174,12 @@ def run():
             "es_index": round(es_index, 1),
             "climatology_index": round(clima, 1),
             "live_evidence": {"ft8_6m_spots_15min": count6, "ft8_10m_spots_15min": count10},
+            "nict": {
+                "status": nict_status,
+                "foes_mhz": foes_mhz,
+                "storm": nict_station["storm"] if nict_station else None,
+                "dis": nict_station["dis"] if nict_station else None,
+            },
             "model": model_note,
         })
 
@@ -166,7 +197,7 @@ def run():
         "kp": {"status": noaa.get("status"), "value": kp, "time_tag": noaa.get("time_tag")},
         "kp_history": kp_history,
         "pskreporter": {k: {kk: vv for kk, vv in v.items() if kk != "region_counts_raw"} for k, v in psk_result.items()},
-        "nict": {"status": nict_result.get("status")},
+        "nict": {"status": nict_result.get("status"), "stations": nict_stations},
         "stations": stations_out,
         "history_rows": len(history_rows),
         "models_trained": sorted(models.keys()),
