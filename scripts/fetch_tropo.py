@@ -50,10 +50,18 @@ import requests
 
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
-# Near-surface layers most relevant to VHF/UHF tropo ducting (a few hundred
-# metres to a few km). 700hPa is included as an upper reference point so a
-# duct confined to the lowest few hundred metres still shows a gradient change.
-LEVELS_HPA = [1000, 925, 850, 700]
+# Near-surface layers most relevant to VHF/UHF tropo ducting. The real trapping
+# layers behind tropo openings (marine subsidence inversions, nocturnal radiation
+# inversions) are typically only a few hundred metres thick - with only the
+# coarse 1000/925/850/700hPa set (roughly 100m/750m/1500m/3000m, ~650-1500m
+# gaps) a thin duct gets averaged away into a much gentler mean gradient across
+# each big gap and essentially never registers as a real (dM/dh<0) duct. Using
+# every near-surface level Open-Meteo offers (roughly 100/320/540/760/990/1460m)
+# keeps each gap to ~200-500m, closer to the real layer thickness, so a genuine
+# duct is far more likely to show up as an actual negative gradient somewhere
+# in the profile instead of being smoothed out. 700hPa stays in as an upper
+# reference point for an elevated duct sitting higher than the near-surface set.
+LEVELS_HPA = [1000, 975, 950, 925, 900, 850, 700]
 
 GRID_LAT_MIN, GRID_LAT_MAX, GRID_LAT_STEP = 24.0, 46.0, 2.0
 GRID_LON_MIN, GRID_LON_MAX, GRID_LON_STEP = 123.0, 149.0, 2.0
@@ -62,8 +70,9 @@ FORECAST_DAYS = 7         # "about a week ahead" per user request; GFS itself su
 STEP_HOURS = 1            # hourly, per user request to match dxinfocentre.com's hour-by-hour display
 MODEL = "gfs_seamless"    # pin to GFS explicitly so pressure-level fields are populated for the full range
 
-BATCH_SIZE = 20           # a week of hourly pressure-level data per point is a much bigger payload than
-                          # the old "current conditions only" call, so batches are smaller than before
+BATCH_SIZE = 12           # a week of hourly data at 7 pressure levels per point is a much bigger payload
+                          # than the old single-level "current conditions only" call, so batches are
+                          # smaller than before (reduced further when LEVELS_HPA grew from 4 to 7 levels)
 FETCH_TIMEOUT_SECONDS = 60
 # GFS runs every 6h (00/06/12/18 UTC) and the user confirmed dxinfocentre.com itself
 # only refreshes on that same 6h cadence, so re-fetching every 15min build cycle (or
