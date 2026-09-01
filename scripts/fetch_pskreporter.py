@@ -6,7 +6,7 @@ import requests
 
 from stations import maidenhead_to_latlon, nearest_station_by_lat, STATIONS
 
-BASE = "https://retrievedata.pskreporter.info/query"
+BASE = "https://retrieve.pskreporter.info/query"
 HEADERS = {"User-Agent": "es-forecast-dashboard/1.0 (personal amateur radio project)"}
 
 BANDS = {
