@@ -202,7 +202,7 @@
       <div class="bar" id="map-legend-bar"></div>
       <span id="map-legend-max">100</span>
     </div>
-    <span class="sub" style="margin:6px 0 0;">色の範囲は今この瞬間の全国最低〜最高値に合わせて自動調整されます。数値そのものは各カードでご確認ください。</span>
+    <span class="sub" style="margin:6px 0 0;">色は0〜100の固定スケール(弱=緑 → やや強=黄 → 強=橙 → 非常に強=赤、30/50/80が色の変わり目)。現在の全国実測範囲: <strong id="map-legend-current">-</strong>。地図にマウスを合わせると地点ごとの数値も見られます。</span>
   </div>
 
   <div class="path-panel">
@@ -322,13 +322,19 @@
   var lastHeatmapData = null; // full data.json payload, kept for redraws (e.g. after coastline finishes loading)
   var mapProj = null;         // current projector info, used by the hover tooltip
 
+  // Es活動指数(0-100)は絶対値として意味を持つ(50を超えたら要注目、80を超えたら強い、
+  // というふうに閾値で判断するため)。よって色は「今この瞬間の全国最小〜最大」に合わせて
+  // 伸縮させず、常に0〜100の固定スケールで塗る。弱(緑)→やや強(黄)→強(橙)→非常に強(赤)の
+  // 4色相を、しきい値30/50/80で継ぎ目を作って配置。0〜30(平常時によく出る範囲)にも
+  // 独自の区間を割り当てているので、静かな時間帯でも地域差がきちんと色の濃淡で見える。
+  // 彩度を少し抑えた色にして、地図全体がケバケバしく/バラバラに見えないようにしている。
   var HEAT_STOPS_LIGHT = [
-    [0.00, [170,221,236]], [0.25, [134,223,239]], [0.50, [57,202,229]],
-    [0.75, [28,149,171]],  [1.00, [13,92,107]]
+    [0.00, [205,232,204]], [0.30, [143,199,140]], [0.50, [235,196,88]],
+    [0.80, [230,142,72]],  [1.00, [199,73,66]]
   ];
   var HEAT_STOPS_DARK = [
-    [0.00, [28,66,79]], [0.25, [31,79,92]], [0.50, [45,126,143]],
-    [0.75, [63,179,199]], [1.00, [111,227,242]]
+    [0.00, [40,68,48]], [0.30, [68,120,78]], [0.50, [176,148,72]],
+    [0.80, [193,113,62]], [1.00, [193,79,72]]
   ];
 
   function isDarkMode(){
@@ -354,18 +360,11 @@
     return 'rgb('+last[0]+','+last[1]+','+last[2]+')';
   }
 
-  // The index swings hugely over a day/season (roughly single digits on a quiet
-  // winter night up to 80+ at an active summer midday), so a FIXED color domain
-  // is either washed-out-flat during quiet spells or over-saturated during
-  // active ones. Instead the domain adapts to whatever this render's own grid
-  // actually contains, with a minimum span so a near-uniform quiet map doesn't
-  // get stretched into exaggerated-looking noise, and the ramp's palest stop is
-  // deliberately not near-white so the map always reads as "filled in", never
-  // as an empty outline, even at the very bottom of that range.
-  var HEAT_DOMAIN_MIN_SPAN = 20;
-  var heatDomain = {min: 15, max: 65}; // fallback until the first grid is drawn
+  // currentRange is informational only (shown next to the legend so you can see
+  // "today's actual span" at a glance) - it no longer drives the coloring itself.
+  var currentRange = {min: null, max: null};
 
-  function updateHeatDomain(hm){
+  function updateCurrentRange(hm){
     if(!hm || !hm.values || !hm.values.length){ return; }
     var lo = Infinity, hi = -Infinity;
     for(var r=0; r<hm.values.length; r++){
@@ -376,27 +375,27 @@
       }
     }
     if(!isFinite(lo) || !isFinite(hi)) return;
-    if(hi - lo < HEAT_DOMAIN_MIN_SPAN) hi = lo + HEAT_DOMAIN_MIN_SPAN;
-    heatDomain = {min: Math.max(0, lo), max: Math.min(100, hi)};
+    currentRange = {min: lo, max: hi};
   }
 
   function valueToColor(v){
-    var t = (Math.max(0, Math.min(100, v)) - heatDomain.min) / (heatDomain.max - heatDomain.min);
-    t = Math.max(0, Math.min(1, t));
+    var t = Math.max(0, Math.min(100, v)) / 100;
     return lerpColor(isDarkMode() ? HEAT_STOPS_DARK : HEAT_STOPS_LIGHT, t);
   }
 
   function setLegendGradient(){
     var samples = [];
     for(var i=0;i<=10;i++){
-      var v = heatDomain.min + (heatDomain.max - heatDomain.min) * (i/10);
-      samples.push(valueToColor(v) + ' ' + (i*10) + '%');
+      samples.push(valueToColor(i*10) + ' ' + (i*10) + '%');
     }
     var bar = document.getElementById('map-legend-bar');
     if(bar) bar.style.background = 'linear-gradient(90deg, '+samples.join(', ')+')';
-    var minEl = document.getElementById('map-legend-min'), maxEl = document.getElementById('map-legend-max');
-    if(minEl) minEl.textContent = Math.round(heatDomain.min);
-    if(maxEl) maxEl.textContent = Math.round(heatDomain.max);
+    var curEl = document.getElementById('map-legend-current');
+    if(curEl){
+      curEl.textContent = (currentRange.min != null)
+        ? Math.round(currentRange.min) + '〜' + Math.round(currentRange.max)
+        : '-';
+    }
   }
 
   function loadCoastline(){
@@ -465,7 +464,7 @@
     });
 
     var hm = data.heatmap;
-    updateHeatDomain(hm);
+    updateCurrentRange(hm);
     if(hm && hm.values && hm.values.length){
       ctx.save();
       ctx.clip(path);
