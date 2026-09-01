@@ -1,0 +1,12 @@
+{
+  "name": "CB'er専用異常伝搬予報システム",
+  "short_name": "CB'er異常伝搬予報",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "theme_color": "#0e1520",
+  "background_color": "#0e1520",
+  "display": "standalone",
+  "start_url": "./"
+}
