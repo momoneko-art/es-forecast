@@ -801,6 +801,28 @@
     }
   }
 
+  // 取得済みの粗い格子(緯度・経度ともgrid.lat_step/lon_step間隔)から、任意の緯度経度
+  // における値をbilinear補間で求める。値が無い(null)格子点は0として扱う。
+  function bilinearTropoValue(grid, lat, lon, stepIdx){
+    var fi = (lat - grid.lat_min) / grid.lat_step;
+    var fj = (lon - grid.lon_min) / grid.lon_step;
+    var i0 = Math.max(0, Math.min(grid.rows - 1, Math.floor(fi)));
+    var j0 = Math.max(0, Math.min(grid.cols - 1, Math.floor(fj)));
+    var i1 = Math.min(grid.rows - 1, i0 + 1);
+    var j1 = Math.min(grid.cols - 1, j0 + 1);
+    var ti = Math.max(0, Math.min(1, fi - i0));
+    var tj = Math.max(0, Math.min(1, fj - j0));
+    function cell(ri, ci){
+      var series = (grid.values[ri] && grid.values[ri][ci]) || [];
+      var v = series[stepIdx];
+      return (v == null) ? 0 : v;
+    }
+    var v00 = cell(i0, j0), v01 = cell(i0, j1), v10 = cell(i1, j0), v11 = cell(i1, j1);
+    var v0 = v00 + (v01 - v00) * tj;
+    var v1 = v10 + (v11 - v10) * tj;
+    return v0 + (v1 - v0) * ti;
+  }
+
   function renderTropoCanvas(data){
     var canvas = document.getElementById('tropo-map');
     if(!canvas || !coastline) return;
@@ -849,16 +871,25 @@
     });
 
     if(grid && grid.values && grid.values.length){
-      for(var ri=0; ri<grid.rows; ri++){
-        var lat0 = grid.lat_min + (ri-0.5)*grid.lat_step, lat1 = lat0 + grid.lat_step;
-        var row = grid.values[ri];
-        for(var ci=0; ci<grid.cols; ci++){
-          var lon0 = grid.lon_min + (ci-0.5)*grid.lon_step, lon1 = lon0 + grid.lon_step;
+      // 実際に取得している格子(約2度間隔)はEsマップ(0.5度)より粗いが、Open-Meteoへの
+      // 通信回数を増やさずに見た目だけ滑らかにするため、描画時にbilinear補間で
+      // SUBDIV倍(=0.5度相当、Esマップと同じ視覚解像度)まで細分化して塗る。
+      // 元データそのものの精度が上がるわけではない(あくまで表示上の補間)。
+      var SUBDIV = 4;
+      var subLatStep = grid.lat_step / SUBDIV, subLonStep = grid.lon_step / SUBDIV;
+      var latStart = grid.lat_min - grid.lat_step/2, lonStart = grid.lon_min - grid.lon_step/2;
+      var nSubRows = grid.rows * SUBDIV, nSubCols = grid.cols * SUBDIV;
+      for(var sri=0; sri<nSubRows; sri++){
+        var lat0 = latStart + sri*subLatStep, lat1 = lat0 + subLatStep;
+        var latC = (lat0+lat1)/2;
+        for(var sci=0; sci<nSubCols; sci++){
+          var lon0 = lonStart + sci*subLonStep, lon1 = lon0 + subLonStep;
+          var lonC = (lon0+lon1)/2;
           var p0 = proj.toXY(lat0, lon0), p1 = proj.toXY(lat1, lon1);
           var x = Math.min(p0[0], p1[0]), y = Math.min(p0[1], p1[1]);
           var cw = Math.abs(p1[0]-p0[0]) + 1, ch = Math.abs(p1[1]-p0[1]) + 1;
-          var v = (row[ci] || [])[stepIdx];
-          ctx.fillStyle = valueToTropoColor(v == null ? 0 : v);
+          var v = bilinearTropoValue(grid, latC, lonC, stepIdx);
+          ctx.fillStyle = valueToTropoColor(v);
           ctx.fillRect(x, y, cw, ch);
         }
       }
@@ -888,13 +919,14 @@
       var rect = canvas.getBoundingClientRect();
       var x = ev.clientX - rect.left, y = ev.clientY - rect.top;
       var ll = tropoProj.toLatLon(x, y);
-      var ri = Math.round((ll[0]-grid.lat_min)/grid.lat_step);
-      var ci = Math.round((ll[1]-grid.lon_min)/grid.lon_step);
-      if(ri<0 || ri>=grid.rows || ci<0 || ci>=grid.cols){ tip.style.display='none'; return; }
-      var v = (grid.values[ri][ci] || [])[tropoStepIndex || 0];
-      if(v == null){ tip.style.display='none'; return; }
+      if(ll[0] < grid.lat_min - grid.lat_step/2 || ll[0] > grid.lat_max + grid.lat_step/2
+         || ll[1] < grid.lon_min - grid.lon_step/2 || ll[1] > grid.lon_max + grid.lon_step/2){
+        tip.style.display='none'; return;
+      }
+      // 表示している色(bilinear補間後)と一致させるため、ツールチップの数値も同じ補間値を使う。
+      var v = bilinearTropoValue(grid, ll[0], ll[1], tropoStepIndex || 0);
       var st = tropoStatusOf(v);
-      tip.innerHTML = 'ダクト指数 <b>'+v.toFixed(0)+'</b> /100 ('+st.label+')';
+      tip.innerHTML = 'ダクト指数 <b>'+v.toFixed(0)+'</b> /100 ('+st.label+', 周辺格子からの補間値)';
       tip.style.left = x+'px'; tip.style.top = y+'px'; tip.style.display='block';
     });
     canvas.addEventListener('mouseleave', function(){ tip.style.display='none'; });
