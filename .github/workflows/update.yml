@@ -30,12 +30,36 @@ jobs:
 
       - name: Commit and push if changed
         run: |
+          set -e
           git config user.name "es-forecast-bot"
           git config user.email "actions@users.noreply.github.com"
           git add data.json debug.json history.csv
           if git diff --cached --quiet; then
             echo "No changes to commit"
-          else
-            git commit -m "Update Es forecast data [skip ci]"
-            git push
+            exit 0
           fi
+          git commit -m "Update Es forecast data [skip ci]"
+
+          # The user's own PC also runs an independent agent that pushes to this
+          # same branch roughly every 15 minutes, so a plain `git push` here can
+          # get rejected (non-fast-forward) if it lands on GitHub between our
+          # earlier checkout and this push. data.json/debug.json/history.csv are
+          # pure generated output (nothing hand-edited), so on a conflicting
+          # rebase there's nothing to merge line-by-line - our freshly rebuilt
+          # copy (just computed from live data this run) is simply kept.
+          for i in 1 2 3 4 5; do
+            if git push; then
+              echo "Pushed on attempt $i"
+              exit 0
+            fi
+            echo "Push rejected (attempt $i) - fetching + rebasing onto the newer remote commit and retrying"
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git checkout --ours -- data.json debug.json history.csv
+              git add data.json debug.json history.csv
+              git rebase --continue || git rebase --abort
+            fi
+            sleep $(( (RANDOM % 8) + 2 ))
+          done
+          echo "::error::Failed to push Es forecast data after 5 attempts"
+          exit 1
