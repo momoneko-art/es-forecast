@@ -3,6 +3,7 @@ import csv
 import json
 import os
 import sys
+import time
 from datetime import datetime
 
 from stations import STATIONS
@@ -104,18 +105,35 @@ def predict_expected_count(model_info, dt, kp):
 TREND_THRESHOLD = 3.0  # points; smaller deltas are shown as "flat" to avoid noisy flicker
 TREND_HISTORY_LEN = 4  # how many recent per-cycle trend steps to keep for the arrow-sequence UI
 
+# NICT's ionosonde scrape occasionally comes back "unknown" for a single station
+# for just one cycle (a transient sounding/parsing gap - confirmed 2026-09-02:
+# Wakkanai showed "unknown" for one cycle while foEs had just been 11-12MHz
+# moments earlier per NICT's own page, and a WebFetch of the live page seconds
+# later showed a perfectly normal row). Rather than discarding that still-fresh
+# evidence and reverting straight to climatology-only, carry the last known-good
+# "ok" reading forward for a bounded grace window so a single blip doesn't hide a
+# real, ongoing Es event from the dashboard.
+NICT_CARRY_FORWARD_MAX_SECONDS = 45 * 60
+
 
 def read_prev_stations():
-    """Best-effort read of each station's last cycle es_index and short
-    trend_history, from the data.json we are about to overwrite. Used to compute
-    the up/down/flat trend arrow and to carry forward the rolling 4-entry trend
-    history (see TREND_HISTORY_LEN); any failure (missing file, first run,
-    schema drift) degrades to no trend info rather than breaking the pipeline."""
+    """Best-effort read of each station's last cycle es_index, short
+    trend_history, and NICT reading (+ the timestamp that reading was actually
+    obtained), from the data.json we are about to overwrite. Used to compute the
+    up/down/flat trend arrow, to carry forward the rolling 4-entry trend history
+    (see TREND_HISTORY_LEN), and to bridge single-cycle NICT scrape gaps (see
+    NICT_CARRY_FORWARD_MAX_SECONDS); any failure (missing file, first run,
+    schema drift) degrades to no prior info rather than breaking the pipeline."""
     try:
         with open(DATA_JSON_PATH, encoding="utf-8") as f:
             prev = json.load(f)
         return {
-            s["id"]: {"es_index": s.get("es_index"), "trend_history": s.get("trend_history") or []}
+            s["id"]: {
+                "es_index": s.get("es_index"),
+                "trend_history": s.get("trend_history") or [],
+                "nict": s.get("nict"),
+                "nict_as_of_ts": s.get("nict_as_of_ts"),
+            }
             for s in prev.get("stations", []) if "id" in s
         }
     except Exception:  # noqa: BLE001 - degrade gracefully
@@ -138,6 +156,7 @@ def read_prev_tropo():
 def run():
     now_jst = jst_now()
     now_utc_iso = datetime.utcnow().isoformat()
+    now_ts = time.time()
 
     prev_stations = read_prev_stations()
     prev_tropo = read_prev_tropo()
@@ -188,6 +207,7 @@ def run():
 
     stations_out = []
     for s in STATIONS:
+        prev_station = prev_stations.get(s["id"]) or {}
         clima = climatology_index(now_jst, s, kp_for_modifier)
         # True only for an aurora-sensitive station where the FORECAST (not the
         # live Kp) is what's driving the boost - i.e. a disturbance is expected
@@ -219,13 +239,42 @@ def run():
         nict_boost = 0.0
         foes_mhz = None
         nict_status = "unavailable"
+        nict_storm = None
+        nict_dis = None
+        nict_as_of_ts = None
+        stale_minutes = None
         if nict_station:
             nict_status = nict_station["esp_status"]
             foes_mhz = nict_station["foes_mhz"]
-            if nict_status == "quiet":
-                nict_boost = 0.0
-            elif nict_status == "ok" and foes_mhz is not None:
-                nict_boost = max(0.0, min(1.0, (foes_mhz - 2.0) / 8.0))
+            nict_storm = nict_station["storm"]
+            nict_dis = nict_station["dis"]
+
+        if nict_status in ("ok", "quiet"):
+            # A genuinely fresh reading this cycle - reset the "as of" clock.
+            nict_as_of_ts = now_ts
+        else:
+            # This cycle's scrape didn't yield a usable reading for this station
+            # (e.g. a single-sounding parsing/data gap). Rather than throwing away
+            # a still-relevant recent measurement, carry the last known-good "ok"
+            # reading forward for a bounded grace window - keeping the ORIGINAL
+            # measurement timestamp (not resetting it to now) so staleness keeps
+            # accumulating across consecutive gap cycles and eventually expires.
+            prev_nict = prev_station.get("nict") or {}
+            prev_as_of = prev_station.get("nict_as_of_ts")
+            if prev_nict.get("status") == "ok" and prev_nict.get("foes_mhz") is not None and prev_as_of is not None:
+                age = now_ts - prev_as_of
+                if age <= NICT_CARRY_FORWARD_MAX_SECONDS:
+                    nict_status = "ok"
+                    foes_mhz = prev_nict.get("foes_mhz")
+                    nict_storm = prev_nict.get("storm")
+                    nict_dis = prev_nict.get("dis")
+                    nict_as_of_ts = prev_as_of
+                    stale_minutes = max(1, round(age / 60))
+
+        if nict_status == "quiet":
+            nict_boost = 0.0
+        elif nict_status == "ok" and foes_mhz is not None:
+            nict_boost = max(0.0, min(1.0, (foes_mhz - 2.0) / 8.0))
 
         # Combine PSKReporter-derived evidence and NICT evidence with a noisy-OR:
         # either strong real propagation reports OR a strong measured foEs should
@@ -245,7 +294,6 @@ def run():
 
         es_index = max(0.0, min(100.0, es_index))
 
-        prev_station = prev_stations.get(s["id"]) or {}
         prev_index = prev_station.get("es_index")
         trend = "unknown"
         trend_delta = None
@@ -277,9 +325,11 @@ def run():
             "nict": {
                 "status": nict_status,
                 "foes_mhz": foes_mhz,
-                "storm": nict_station["storm"] if nict_station else None,
-                "dis": nict_station["dis"] if nict_station else None,
+                "storm": nict_storm,
+                "dis": nict_dis,
+                "stale_minutes": stale_minutes,
             },
+            "nict_as_of_ts": nict_as_of_ts,
             "model": model_note,
         })
 

@@ -1298,7 +1298,8 @@
       var nict = s.nict || {};
       var nictLine = '';
       if(nict.status === 'ok' && nict.foes_mhz != null){
-        nictLine = '<span>NICT実測foEs: <b>'+nict.foes_mhz.toFixed(1)+'</b> MHz</span>';
+        var staleTxt = nict.stale_minutes ? ' <span style="opacity:.7">('+nict.stale_minutes+'分前の値)</span>' : '';
+        nictLine = '<span>NICT実測foEs: <b>'+nict.foes_mhz.toFixed(1)+'</b> MHz'+staleTxt+'</span>';
       } else if(nict.status === 'quiet'){
         nictLine = '<span>NICT実測: <b>静穏(Es無し)</b></span>';
       } else {
