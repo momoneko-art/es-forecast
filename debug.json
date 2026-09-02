@@ -1,33 +1,30 @@
 {
-  "pskreporter_debug": {
-    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"72329860389\"/>\n  <maxFlowStartSeconds value=\"1788359778\"/>\n  <receptionReport receiverCallsign=\"SX48JM\" receiverLocator=\"KM17TX\" senderCallsign=\"LU2EI\" senderLocator=\"FF94nn30\" frequency=\"28074879\" flowStartSeconds=\"1788359772\" mode=\"FT8\" senderDXCC=\"Argentina\" senderDXCCCode=\"LU\" senderDXCCLocator=\"FF87\" senderEqslAuthGuar=\"A\" sNR=\"-15\" />\n  <receptionReport receiverCallsign=\"SX48JM\" receiverLocator=\"KM17TX\" senderCallsign=\"9A2WA\" senderLocator=\"JN83FM\" frequency=\"28076635\" flowStartSeconds=\"1788359771\" mode=\"FT8\" senderDXCC=\"Croatia\" senderDXCCCode=\"9A\" senderDXCCLocator=\"JN75\" senderLotwUpload=\"2026-07-28\" sNR=\"1\" />\n  <receptionReport receiverCallsign=\"W2NAF-2\" receiverLocator=\"FN21ei\" senderCallsign=\"LU1EEP\" senderLocator=\"GF05TG\" frequency=\"28075615\" flowStartSeconds=\"1788359760\" mode=\"FT8\" senderDXCC=\"Argentina\" senderDXCCCode=\"LU\" senderDXCCLocator=\"FF87\" senderEqslAuthGuar=\"A\" />\n  <receptionReport receiverCallsign=\"K1RA-PI\" receiverLocator=\"FM18cr\" senderCallsign=\"PY4PTO\" senderLocator=\"GG78ls\" frequency=\"28075653\" flowStartSeconds=\"1788359745\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" senderLotwUpload=\"2026-05-17\" senderEqslAuthGuar=\"A\" sNR=\"-21\" />\n  <receptionReport receiverCallsign=\"PT2FHC\" receiverLocator=\"GH64cg\" senderCallsign=\"IZ6BZQ\" senderLocator=\"JN63PP\" frequency=\"28075561\" flowStartSeconds=\"1788359745\" mode=\"FT8\" senderDXCC=\"Italy\" senderDXCCCode=\"I\"",
-    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"72329862393\"/>\n  <maxFlowStartSeconds value=\"1788359785\"/>\n  <receptionReport receiverCallsign=\"K3GMQ\" receiverLocator=\"FN20LH\" senderCallsign=\"N3UO\" senderLocator=\"FN20hk93\" frequency=\"50313920\" flowStartSeconds=\"1788359730\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-08-24\" senderEqslAuthGuar=\"A\" sNR=\"-19\" />\n  <receptionReport receiverCallsign=\"NF3R\" receiverLocator=\"FN20DG\" senderCallsign=\"N3UO\" senderLocator=\"FN20hk93\" frequency=\"50314022\" flowStartSeconds=\"1788359730\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-08-24\" senderEqslAuthGuar=\"A\" sNR=\"-12\" />\n  <receptionReport receiverCallsign=\"SM7KOJ\" receiverLocator=\"JO66ND\" senderCallsign=\"OZ8ME\" senderLocator=\"JO65\" frequency=\"50314734\" flowStartSeconds=\"1788359715\" mode=\"FT8\" senderDXCC=\"Denmark\" senderDXCCCode=\"OZ\" senderDXCCLocator=\"JO56\" senderLotwUpload=\"2026-07-25\" sNR=\"-12\" />\n  <receptionReport receiverCallsign=\"OZ1ADL\" receiverLocator=\"JO46XC\" senderCallsign=\"OZ8ME\" senderLocator=\"JO65\" frequency=\"50314692\" flowStartSeconds=\"1788359715\" mode=\"FT8\" senderDXCC=\"Denmark\" senderDXCCCode=\"OZ\" senderDXCCLocator=\"JO56\" senderLotwUpload=\"2026-07-25\" sNR=\"-17\" />\n  <receptionReport receiverCallsign=\"PA0PVW\" receiverLocator=\"JO22VA\" senderCallsign=\"PA5DEK\" senderLocator=\"JO30AW\" frequency=\"50315800\" flowStartSeconds=\"1788359700\" mod"
-  },
+  "pskreporter_debug": {},
   "nict_findings": {
     "status": "ok",
     "stations": {
       "wakkanai": {
-        "storm": "Atn-",
+        "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 2.6,
+        "foes_mhz": 2.7,
         "esp_status": "ok"
       },
       "kokubunji": {
         "storm": "Atn-",
         "dis": "Qui.",
-        "foes_mhz": 2.8,
+        "foes_mhz": 2.7,
         "esp_status": "ok"
       },
       "yamagawa": {
-        "storm": "Qui.",
+        "storm": "Atn-",
         "dis": "Qui.",
-        "foes_mhz": 4.1,
+        "foes_mhz": 4.8,
         "esp_status": "ok"
       },
       "oogimi": {
         "storm": "Atn-",
         "dis": "Qui.",
-        "foes_mhz": 2.5,
+        "foes_mhz": 5.5,
         "esp_status": "ok"
       }
     }
