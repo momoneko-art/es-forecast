@@ -12,6 +12,7 @@ import fetch_pskreporter
 import fetch_nict
 import fetch_noaa
 import fetch_tropo
+import fetch_jetstream
 import heatmap
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -22,7 +23,13 @@ DEBUG_JSON_PATH = os.path.join(ROOT, "debug.json")
 MAX_HISTORY_ROWS = 3000
 MIN_ROWS_FOR_MODEL = 60
 
-HISTORY_FIELDS = ["timestamp_utc", "kp"] + [f"{s['id']}_6m" for s in STATIONS] + [f"{s['id']}_10m" for s in STATIONS]
+# jet250_kmh: EXPERIMENTAL shadow column (see fetch_jetstream.py) - appended
+# at the end so old rows (written before this column existed) stay readable;
+# csv.DictWriter fills missing keys in old rows with '' automatically.
+HISTORY_FIELDS = (
+    ["timestamp_utc", "kp"] + [f"{s['id']}_6m" for s in STATIONS] + [f"{s['id']}_10m" for s in STATIONS]
+    + ["jet250_kmh"]
+)
 
 
 def read_history():
@@ -153,6 +160,54 @@ def read_prev_tropo():
         return None
 
 
+def summarize_status(psk_result, nict_result, noaa, kp_forecast, tropo_result):
+    """Plain-language, non-technical summary of whether each upstream data
+    source came back OK this cycle - NOT a raw error log. The point isn't for
+    the user to "fix" anything (these are external services outside their
+    control) but so a glance at the dashboard explains an odd-looking number
+    ("ああ、今NICTが取れてないからだ") without needing to ask/investigate, and
+    so a screenshot of this panel tells us immediately which upstream source
+    to look at. level is one of "ok"/"warn"/"error" (mirrors the .pill
+    ok/watch/vhigh CSS classes already used elsewhere in the UI)."""
+    items = []
+
+    psk_statuses = [b.get("status") for b in psk_result.values()]
+    if psk_statuses and all(s == "ok" for s in psk_statuses):
+        items.append({"name": "実伝播データ(PSKReporter)", "level": "ok", "note": "正常"})
+    elif any(s == "ok" for s in psk_statuses):
+        items.append({"name": "実伝播データ(PSKReporter)", "level": "warn", "note": "一部帯域のみ取得成功"})
+    else:
+        items.append({"name": "実伝播データ(PSKReporter)", "level": "error",
+                       "note": "取得失敗(統計ベースラインのみで継続中)"})
+
+    if nict_result.get("status") == "ok":
+        items.append({"name": "NICT実測(電離層観測)", "level": "ok", "note": "正常"})
+    else:
+        items.append({"name": "NICT実測(電離層観測)", "level": "error",
+                       "note": "ページ取得失敗(各局は直近の実測値を最大45分引き継ぎ中)"})
+
+    if noaa.get("status") == "ok":
+        items.append({"name": "宇宙天気(NOAA Kp実測)", "level": "ok", "note": "正常"})
+    else:
+        items.append({"name": "宇宙天気(NOAA Kp実測)", "level": "error", "note": "取得失敗"})
+
+    if kp_forecast.get("status") == "ok":
+        items.append({"name": "宇宙天気(NOAA Kp予報)", "level": "ok", "note": "正常"})
+    else:
+        items.append({"name": "宇宙天気(NOAA Kp予報)", "level": "warn", "note": "取得失敗(予報なしで継続中)"})
+
+    ts = tropo_result.get("status")
+    if ts == "ok":
+        note = "正常(前回値を使用中、GFS更新待ち)" if tropo_result.get("reused") else "正常(再取得済み)"
+        items.append({"name": "ダクト予報(GFS)", "level": "ok", "note": note})
+    elif ts == "partial":
+        items.append({"name": "ダクト予報(GFS)", "level": "warn", "note": "一部地点のみ取得成功"})
+    else:
+        items.append({"name": "ダクト予報(GFS)", "level": "error", "note": "取得失敗"})
+
+    return items
+
+
 def run():
     now_jst = jst_now()
     now_utc_iso = datetime.utcnow().isoformat()
@@ -189,8 +244,18 @@ def run():
     except Exception as exc:  # noqa: BLE001 - never let a tropo fetch failure kill the whole pipeline
         tropo_result = {"status": "error", "error": str(exc)}
 
+    # EXPERIMENTAL shadow signal (see fetch_jetstream.py docstring) - logged to
+    # history.csv/data.json for a future backtest, NOT used in es_index/heatmap.
+    try:
+        jet_result = fetch_jetstream.run(now_ts=now_ts)
+    except Exception as exc:  # noqa: BLE001 - never let this experimental fetch kill the whole pipeline
+        jet_result = {"status": "error", "error": str(exc)}
+
     # --- append this sample to history ---
-    row = {"timestamp_utc": now_utc_iso, "kp": kp if kp is not None else ""}
+    row = {
+        "timestamp_utc": now_utc_iso, "kp": kp if kp is not None else "",
+        "jet250_kmh": jet_result.get("jet250_kmh", "") if jet_result.get("status") == "ok" else "",
+    }
     for s in STATIONS:
         band6 = psk_result.get("6m", {})
         band10 = psk_result.get("10m", {})
@@ -351,6 +416,8 @@ def run():
             all_psk_points.extend(band.get("heatmap_points", []))
     heatmap_grid = heatmap.compute(now_jst, kp_for_modifier, all_psk_points, nict_stations)
 
+    system_status = summarize_status(psk_result, nict_result, noaa, kp_forecast, tropo_result)
+
     EXCLUDE_KEYS = {"region_counts_raw", "heatmap_points"}
     data = {
         "generated_at": now_utc_iso + "Z",
@@ -363,6 +430,8 @@ def run():
         "stations": stations_out,
         "heatmap": heatmap_grid,
         "tropo": tropo_result,
+        "jet250": jet_result,
+        "system_status": system_status,
         "history_rows": len(history_rows),
         "models_trained": sorted(models.keys()),
     }

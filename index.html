@@ -220,6 +220,11 @@
     <div class="headline-text" id="headline-text">データを取得しています…</div>
   </div>
 
+  <div class="path-panel" id="status-panel" style="padding:10px 16px;">
+    <span class="sub" style="margin-right:8px;">データ取得状況:</span>
+    <span id="status-pills" style="display:inline-flex; gap:6px; flex-wrap:wrap; vertical-align:middle;"></span>
+  </div>
+
   <div>
     <div class="section-title">
       <h2>観測4地点の Es 活動指数</h2>
@@ -1262,6 +1267,19 @@
 
   function render(data){
     var accent = cssVar('--accent'), accentWarm = cssVar('--accent-warm');
+
+    // データ取得状況: 各上流データソースが今回取得できたかを、生のエラーではなく
+    // 平易な言葉で表示する。ユーザー側で対処できることは無いので「直す」ためではなく、
+    // 数値が控えめに見える理由がひと目で分かるようにするための表示。
+    var statusPillsEl = document.getElementById('status-pills');
+    var LEVEL_CLASS = {ok: 'ok', warn: 'watch', error: 'vhigh'};
+    var LEVEL_LABEL = {ok: '正常', warn: '注意', error: '失敗'};
+    if(statusPillsEl){
+      statusPillsEl.innerHTML = (data.system_status || []).map(function(it){
+        var cls = LEVEL_CLASS[it.level] || 'watch';
+        return '<span class="pill '+cls+'" title="'+it.note+'"><span class="dot"></span>'+it.name+'</span>';
+      }).join('');
+    }
 
     // Kp panel
     if(data.kp && data.kp.status === 'ok'){
