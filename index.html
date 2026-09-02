@@ -317,13 +317,14 @@
 
   <div class="grid-2">
     <div class="panel">
-      <h3>宇宙天気（NOAA SWPC 実測）</h3>
+      <h3>宇宙天気（NOAA SWPC 実測+予報）</h3>
       <div class="kp-current">
         <span class="num mono" id="kp-num">--</span>
         <span class="lbl">Kp指数</span>
       </div>
       <canvas id="kp-chart" style="width:100%;height:80px;display:block;"></canvas>
       <div class="updated" id="kp-updated">データ取得待ち</div>
+      <div class="updated" id="kp-forecast-note"></div>
     </div>
     <div class="panel">
       <h3>一次情報へのリンク</h3>
@@ -344,6 +345,7 @@
       <li>各地点の指数は「季節・時刻の統計モデル(気候学的ベースライン)」に「実際のFT8伝播観測(=Esで短距離オープンした証拠)」を上乗せして算出しています。実伝播が観測できた時間帯ほど数値の信頼度が上がります。</li>
       <li>データが十分に蓄積されると(目安60サンプル=15時間分)、Ridge回帰モデルが自動学習され、統計的な「通常より多い/少ない」を判定に使うようになります。<span id="model-status"></span></li>
       <li>NICTのイオノゾンデ実測値（各地点のfoEs＝E層臨界周波数、15分更新）が取得できた場合は最優先の証拠として扱い、PSKReporterの実伝播報告と合わせて指数を押し上げます。取得できない時間帯は統計モデルとPSKReporterのみで代替します。最終確認は必ず上記リンクの公式データで行ってください。</li>
+      <li>NOAAの3日先までのKp"予報"も取得しており、稚内(オーロラ帯に近い高緯度局)については、実測Kpがまだ上がっていなくても向こう24時間以内に地磁気嵐の到来が予報されていれば、それを見込んで指数を先行して押し上げます(カードに「地磁気嵐接近中(予報)」バッジが出ます)。中低緯度の3局はこの予報の影響をほぼ受けません(オーロラ性Esとの関連が薄いため)。</li>
     </ul>
   </div>
 
@@ -1273,6 +1275,20 @@
     }
     drawKpChart(document.getElementById('kp-chart'), (data.kp_history||[]).map(function(p){return {kp:p.kp};}), accentWarm);
 
+    // Kp forecast (NOAA's own 3-day predicted Kp, not just the live reading above) -
+    // used to flag an incoming geomagnetic disturbance before it actually arrives.
+    var kpf = data.kp_forecast;
+    var kpfNote = document.getElementById('kp-forecast-note');
+    if(kpf && kpf.status === 'ok' && kpf.peak != null){
+      var kpfd = new Date(kpf.peak_time);
+      var kpfJp = new Intl.DateTimeFormat('ja-JP', {timeZone:'Asia/Tokyo', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}).format(kpfd);
+      var hoursAhead = Math.round((kpfd.getTime() - Date.now()) / 3600000);
+      var whenTxt = hoursAhead <= 0 ? 'まもなく' : ('約'+hoursAhead+'時間後');
+      kpfNote.innerHTML = '今後24時間の予報ピーク: <b>Kp '+kpf.peak.toFixed(1)+'</b>（'+whenTxt+' '+kpfJp+' JST、稚内のオーロラ性Es見込みに反映済み）';
+    } else {
+      kpfNote.textContent = '';
+    }
+
     // stations
     var grid = document.getElementById('station-grid');
     grid.innerHTML = '';
@@ -1298,7 +1314,8 @@
         '<div class="gauge-row"><span class="gauge-num mono">'+Math.round(s.es_index)+'<span class="unit">/100</span></span>'+
           trendHtml(s) +
           (hasEvidence ? '<span class="pill live">実伝播あり</span>' : '') +
-          (nict.status === 'ok' ? '<span class="pill live">NICT実測</span>' : '') + '</div>' +
+          (nict.status === 'ok' ? '<span class="pill live">NICT実測</span>' : '') +
+          (s.aurora_forecast_active ? '<span class="pill watch" title="NOAAのKp予報で地磁気嵐の接近を検知。実測Kpが上がる前から見込みに反映しています">地磁気嵐接近中(予報)</span>' : '') + '</div>' +
         '<div class="clima-note">統計ベースライン: '+Math.round(s.climatology_index)+'</div>' +
         '<div class="evidence-row">' + nictLine + '</div>' +
         '<div class="evidence-row">' +

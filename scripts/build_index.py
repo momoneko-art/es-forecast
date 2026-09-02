@@ -145,6 +145,20 @@ def run():
     noaa = fetch_noaa.run()
     kp = noaa.get("kp") if noaa.get("status") == "ok" else None
 
+    # NOAA's own 3-day Kp forecast (not just the live reading above). Used to let
+    # aurora-sensitive stations react to an incoming geomagnetic disturbance
+    # before Kp has actually risen, instead of only catching up afterwards - see
+    # kp_forecast.py's docstring... actually see fetch_noaa.run_forecast().
+    kp_forecast = fetch_noaa.run_forecast()
+    kp_forecast_peak = kp_forecast.get("peak") if kp_forecast.get("status") == "ok" else None
+    # Whichever is higher - the live reading or a forecast disturbance arriving
+    # within the next FORECAST_HORIZON_HOURS - drives the aurora-sensitivity
+    # boost in climatology_index()/kp_modifier(). Falls back to plain `kp` when
+    # no forecast is available.
+    kp_for_modifier = kp
+    if kp_forecast_peak is not None:
+        kp_for_modifier = max(kp or 0.0, kp_forecast_peak)
+
     psk_result, psk_debug = fetch_pskreporter.run()
     nict_result = fetch_nict.run()
 
@@ -174,7 +188,13 @@ def run():
 
     stations_out = []
     for s in STATIONS:
-        clima = climatology_index(now_jst, s, kp)
+        clima = climatology_index(now_jst, s, kp_for_modifier)
+        # True only for an aurora-sensitive station where the FORECAST (not the
+        # live Kp) is what's driving the boost - i.e. a disturbance is expected
+        # but hasn't arrived yet. Purely informational for the UI badge.
+        aurora_forecast_active = bool(
+            s.get("aurora_sensitive") and kp_forecast_peak is not None and kp_forecast_peak > (kp or 0.0) + 0.5
+        )
         count6 = int(row[f"{s['id']}_6m"])
         count10 = int(row[f"{s['id']}_10m"])
         evidence = count6 + 0.5 * count10
@@ -252,6 +272,7 @@ def run():
             "es_index": round(es_index, 1),
             "trend": trend, "trend_delta": trend_delta, "trend_history": trend_history,
             "climatology_index": round(clima, 1),
+            "aurora_forecast_active": aurora_forecast_active,
             "live_evidence": {"ft8_6m_spots_15min": count6, "ft8_10m_spots_15min": count10},
             "nict": {
                 "status": nict_status,
@@ -278,13 +299,14 @@ def run():
     for band in psk_result.values():
         if band.get("status") == "ok":
             all_psk_points.extend(band.get("heatmap_points", []))
-    heatmap_grid = heatmap.compute(now_jst, kp, all_psk_points, nict_stations)
+    heatmap_grid = heatmap.compute(now_jst, kp_for_modifier, all_psk_points, nict_stations)
 
     EXCLUDE_KEYS = {"region_counts_raw", "heatmap_points"}
     data = {
         "generated_at": now_utc_iso + "Z",
         "generated_at_jst": now_jst.strftime("%Y-%m-%dT%H:%M:%S+09:00"),
         "kp": {"status": noaa.get("status"), "value": kp, "time_tag": noaa.get("time_tag")},
+        "kp_forecast": kp_forecast,
         "kp_history": kp_history,
         "pskreporter": {k: {kk: vv for kk, vv in v.items() if kk not in EXCLUDE_KEYS} for k, v in psk_result.items()},
         "nict": {"status": nict_result.get("status"), "stations": nict_stations},
