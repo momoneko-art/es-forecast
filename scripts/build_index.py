@@ -4,7 +4,7 @@ import json
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from stations import STATIONS
 from climatology import jst_now, day_of_year, climatology_index, nict_floor_from_foes
@@ -52,9 +52,70 @@ def write_history(rows):
             w.writerow(r)
 
 
+# 予報ロジックの高度化(2026-09-04追加): EDFS(https://ameblo.jp/jl7khn/entry-12976221040.html)
+# を参考に、(1)時間ラグ特徴量(直近15/30/45/60分の自局6mスポット数)で「今まさに
+# 増えている/減っている」という短期モメンタムをモデルに持たせる、(2)ホールドアウト
+# 検証でモデルの予測誤差(MSE)を「1サイクル前の値をそのまま使う」というPersistence
+# (何もしない)ベースラインと比較し、Skill Score = 1 - MSE_model/MSE_persistence を
+# 局ごとに自己診断する、の2点を追加した。Skill Scoreが0以下(=素朴なpersistenceにも
+# 勝てていない)局はモデルの予測を信用せず、既存の「climatology_only」経路にフォール
+# バックする(モデルが学習できても、それが実際に役立っているとは限らないため)。
+# EDFS記事にある更に高度な要素(Es状態遷移フェーズ、F層マスキング、Permutation
+# Importance/VIF、ドリフト検出による条件付き再学習)は今回のスコープ外 - 毎サイクル
+# 素朴に再学習し直す既存方式のままにして、複雑さとバグの入る余地を増やさないように
+# している。
+LAG_MINUTES = [15, 30, 45, 60]
+LAG_TOLERANCE_MINUTES = 7  # 履歴のサイクル間隔(通常15分)のブレを吸収する許容誤差
+HOLDOUT_FRACTION = 0.2
+MIN_HOLDOUT_ROWS = 15  # これ未満ならSkill Scoreは「判定不能」として扱い、モデルは使わない
+
+
+def _parse_row_ts(row):
+    try:
+        return datetime.fromisoformat(row["timestamp_utc"])
+    except (KeyError, ValueError, TypeError):
+        return None
+
+
+def _lagged_targets_for_row(ts_list, target_list, idx, current_value):
+    """history_rows[idx]の各LAG_MINUTES分だけ過去に一番近い(許容誤差
+    LAG_TOLERANCE_MINUTES以内の)実測値を、それより古い行(j<idx)だけを見て探す
+    (自分自身の値が紛れ込まない=リーク防止)。history_rowsは常に時系列の追記順な
+    ので、idxから遡って最初にLAG_TOLERANCE_MINUTESを超えて外れた時点で打ち切って
+    良い。一致が見つからないラグは`current_value`(=「直近で変化なしと仮定」)に
+    フォールバックする - 0とかにすると、データが疎な期間だけ不自然な急落があった
+    ことにされてモデルを歪めてしまうため。"""
+    this_ts = ts_list[idx]
+    result = list([current_value] * len(LAG_MINUTES))
+    if this_ts is None:
+        return result
+    best_diff = [None] * len(LAG_MINUTES)
+    max_lag = max(LAG_MINUTES)
+    cutoff = this_ts - timedelta(minutes=max_lag + LAG_TOLERANCE_MINUTES)
+    j = idx - 1
+    while j >= 0:
+        tj = ts_list[j]
+        if tj is None:
+            j -= 1
+            continue
+        if tj < cutoff:
+            break
+        for k, lag_m in enumerate(LAG_MINUTES):
+            want = this_ts - timedelta(minutes=lag_m)
+            diff = abs((tj - want).total_seconds())
+            if diff <= LAG_TOLERANCE_MINUTES * 60 and (best_diff[k] is None or diff < best_diff[k]):
+                best_diff[k] = diff
+                result[k] = target_list[j]
+        j -= 1
+    return result
+
+
 def try_train_models(history_rows):
-    """Train a tiny Ridge regressor per station predicting 6m spot count from time/kp features.
-    Returns dict station_id -> {"model": fitted_estimator, "n_samples": int} or {} if unavailable."""
+    """局ごとに、時刻/Kp/直近ラグ特徴量から6mスポット数を予測するRidge回帰を学習する。
+    ホールドアウト検証でPersistenceベースラインとのSkill Scoreも算出する。
+    Returns dict station_id -> {"model", "n_samples", "skill_score"(float|None),
+    "n_holdout", "last_features"(そのまま予測に使える「現在時刻」の特徴ベクトル)}
+    または利用不可の場合は{}。"""
     if len(history_rows) < MIN_ROWS_FOR_MODEL:
         return {}
     try:
@@ -63,53 +124,83 @@ def try_train_models(history_rows):
     except ImportError:
         return {}
 
-    X = []
-    targets = {s["id"]: [] for s in STATIONS}
-    for row in history_rows:
-        try:
-            ts = datetime.fromisoformat(row["timestamp_utc"])
-        except (KeyError, ValueError):
+    import math
+
+    ts_list = [_parse_row_ts(row) for row in history_rows]
+    base_feat = []  # 全局共通の5特徴量(季節/時刻/Kp)
+    valid_idx = []  # ts_listがパース成功した行のインデックス(historyの元の順序を保つ)
+    for i, row in enumerate(history_rows):
+        ts = ts_list[i]
+        if ts is None:
             continue
         doy = day_of_year(ts)
         hour = ts.hour + ts.minute / 60
-        import math
-        feat = [
+        base_feat.append([
             math.sin(2 * math.pi * doy / 365), math.cos(2 * math.pi * doy / 365),
             math.sin(2 * math.pi * hour / 24), math.cos(2 * math.pi * hour / 24),
             float(row.get("kp") or 0),
-        ]
-        X.append(feat)
-        for s in STATIONS:
-            try:
-                targets[s["id"]].append(float(row.get(f"{s['id']}_6m") or 0))
-            except ValueError:
-                targets[s["id"]].append(0.0)
+        ])
+        valid_idx.append(i)
 
-    if len(X) < MIN_ROWS_FOR_MODEL:
+    if len(valid_idx) < MIN_ROWS_FOR_MODEL:
         return {}
 
-    X = np.array(X)
     models = {}
     for s in STATIONS:
-        y = np.array(targets[s["id"]])
+        target_list = []
+        for row in history_rows:
+            try:
+                target_list.append(float(row.get(f"{s['id']}_6m") or 0))
+            except (TypeError, ValueError):
+                target_list.append(0.0)
+
+        X_rows = []
+        y_rows = []
+        for pos, i in enumerate(valid_idx):
+            lag_vals = _lagged_targets_for_row(ts_list, target_list, i, target_list[i])
+            X_rows.append(base_feat[pos] + lag_vals)
+            y_rows.append(target_list[i])
+
+        X = np.array(X_rows)
+        y = np.array(y_rows)
         if y.std() < 1e-6:
             continue
+
+        n = len(X)
+        n_holdout = min(max(0, n - MIN_ROWS_FOR_MODEL), int(n * HOLDOUT_FRACTION))
+        split = n - n_holdout
+        skill_score = None
+        if n_holdout >= MIN_HOLDOUT_ROWS and split >= MIN_ROWS_FOR_MODEL:
+            try:
+                probe = Ridge(alpha=2.0)
+                probe.fit(X[:split], y[:split])
+                pred_hold = probe.predict(X[split:])
+                y_hold = y[split:]
+                # Persistence(何もしない)ベースライン = 「15分前の実測値をそのまま
+                # 使う」予測。lag_15はbase_feat(5列)の直後、0番目のラグ特徴量。
+                persistence_pred = X[split:, 5]
+                mse_model = float(np.mean((pred_hold - y_hold) ** 2))
+                mse_persist = float(np.mean((persistence_pred - y_hold) ** 2))
+                if mse_persist > 1e-9:
+                    skill_score = round(1.0 - mse_model / mse_persist, 3)
+            except Exception:  # noqa: BLE001 - 自己診断の失敗で学習自体を止めない
+                skill_score = None
+
         model = Ridge(alpha=2.0)
-        model.fit(X, y)
-        models[s["id"]] = {"model": model, "n_samples": len(X)}
+        model.fit(X, y)  # 実運用の予測には全データで学習し直したモデルを使う
+        models[s["id"]] = {
+            "model": model, "n_samples": n,
+            "skill_score": skill_score, "n_holdout": n_holdout,
+            "last_features": X[-1].tolist(),
+        }
     return models
 
 
-def predict_expected_count(model_info, dt, kp):
-    import math
-    doy = day_of_year(dt)
-    hour = dt.hour + dt.minute / 60
-    feat = [[
-        math.sin(2 * math.pi * doy / 365), math.cos(2 * math.pi * doy / 365),
-        math.sin(2 * math.pi * hour / 24), math.cos(2 * math.pi * hour / 24),
-        float(kp or 0),
-    ]]
-    pred = model_info["model"].predict(feat)[0]
+def predict_expected_count(model_info):
+    """try_train_models()がその局の「現在時刻」用に既に計算済みの特徴ベクトル
+    (last_features、季節/時刻/Kp/直近ラグを含む)でそのまま予測する。学習時と
+    推論時で特徴量を二重に計算し直さないことで、両者がズレるバグを避けている。"""
+    pred = model_info["model"].predict([model_info["last_features"]])[0]
     return max(0.0, float(pred))
 
 
@@ -319,7 +410,12 @@ def run():
     history_rows.append(row)
     write_history(history_rows)
 
-    models = try_train_models(history_rows)
+    try:
+        models = try_train_models(history_rows)
+    except Exception:  # noqa: BLE001 - a bug in the (2026-09-04) lag/skill-score
+        # upgrade must never take down the whole build; degrade to no models,
+        # i.e. every station falls back to climatology_only for this cycle.
+        models = {}
 
     nict_stations = nict_result.get("stations", {}) if nict_result.get("status") == "ok" else {}
 
@@ -341,12 +437,22 @@ def run():
         model_used = False
         model_note = "climatology_only"
         if s["id"] in models:
-            expected = predict_expected_count(models[s["id"]], now_jst, kp)
-            model_used = True
-            model_note = f"ridge(n={models[s['id']]['n_samples']})"
-            if expected > 0.5:
-                surprise = min(2.0, count6 / expected)
-                evidence_boost = max(evidence_boost, min(1.0, (surprise - 0.5)))
+            info = models[s["id"]]
+            skill = info.get("skill_score")
+            # Skill Score(自己診断) <= 0 は「1サイクル前の値をそのまま使うだけの
+            # Persistenceベースラインにも勝てていない」ということなので、その局の
+            # モデルは信用せず既存のclimatology_only経路にフォールバックする。
+            # skillがNone(ホールドアウト行数不足で自己診断できていない)場合は、
+            # 判定材料が無いだけなので保守的にモデルは使わない(2026-09-04追加)。
+            if skill is not None and skill > 0:
+                expected = predict_expected_count(info)
+                model_used = True
+                model_note = f"ridge(n={info['n_samples']}, skill{skill:+.2f})"
+                if expected > 0.5:
+                    surprise = min(2.0, count6 / expected)
+                    evidence_boost = max(evidence_boost, min(1.0, (surprise - 0.5)))
+            elif skill is not None:
+                model_note = f"climatology_only(ridge skill{skill:+.2f}<=0)"
 
         # NICT ionosonde reading (ground-truth measurement) - the strongest single
         # signal when available. foEs (MHz) is normalized into a 0-1 boost; a
