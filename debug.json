@@ -1,47 +1,47 @@
 {
-  "pskreporter_debug": {},
+  "pskreporter_debug": {
+    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"72374231071\"/>\n  <maxFlowStartSeconds value=\"1788469543\"/>\n  <receptionReport receiverCallsign=\"HB9RYZ\" receiverLocator=\"JN47GA\" senderCallsign=\"EB1FE\" senderLocator=\"IN73bi\" frequency=\"28075047\" flowStartSeconds=\"1788469530\" mode=\"FT8\" senderDXCC=\"Spain\" senderDXCCCode=\"EA\" senderDXCCLocator=\"IN80\" senderLotwUpload=\"2026-08-30\" senderEqslAuthGuar=\"A\" sNR=\"-15\" />\n  <receptionReport receiverCallsign=\"HB9RYZ\" receiverLocator=\"JN47GA\" senderCallsign=\"SM6EHY\" senderLocator=\"JO67CL\" frequency=\"28075385\" flowStartSeconds=\"1788469515\" mode=\"FT8\" senderDXCC=\"Sweden\" senderDXCCCode=\"SM\" senderDXCCLocator=\"JO78\" sNR=\"-16\" />\n  <receptionReport receiverCallsign=\"K3GMQ\" receiverLocator=\"FN20LH\" senderCallsign=\"W3ATO\" senderLocator=\"FN20IE\" frequency=\"28075438\" flowStartSeconds=\"1788469515\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-08-03\" senderEqslAuthGuar=\"A\" sNR=\"-3\" />\n  <receptionReport receiverCallsign=\"K1RA-4\" receiverLocator=\"FM18CR\" senderCallsign=\"PU5FLP\" senderLocator=\"GG52FQ\" frequency=\"28074955\" flowStartSeconds=\"1788469515\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" senderLotwUpload=\"2026-08-30\" senderEqslAuthGuar=\"A\" sNR=\"-9\" />\n  <receptionReport receiverCallsign=\"N3MK\" receiverLocator=\"FM27HV\" senderCallsign=\"PY2PIC\" senderLocator=\"GG66\" frequency=\"28075471\" flowStartSeconds=\"1788469515\" mode=\"FT8\" senderDX",
+    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"72374232071\"/>\n  <maxFlowStartSeconds value=\"1788469545\"/>\n  <receptionReport receiverCallsign=\"N8HRZ\" receiverLocator=\"EN91pe03\" senderCallsign=\"N8LRG\" senderLocator=\"EN80VI\" frequency=\"50313803\" flowStartSeconds=\"1788469500\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-08-29\" sNR=\"2\" />\n  <receptionReport receiverCallsign=\"W6KAP\" receiverLocator=\"CM98QL\" senderCallsign=\"VA7GEM\" senderLocator=\"CN89li04\" frequency=\"50313947\" flowStartSeconds=\"1788469455\" mode=\"FT8\" senderDXCC=\"Canada\" senderDXCCCode=\"VE\" senderDXCCLocator=\"FN04\" senderLotwUpload=\"2026-08-01\" senderEqslAuthGuar=\"A\" sNR=\"-18\" />\n  <receptionReport receiverCallsign=\"W3FAY\" receiverLocator=\"FM18OX\" senderCallsign=\"N3ALN\" senderLocator=\"FM19ld14jl\" frequency=\"50314049\" flowStartSeconds=\"1788469410\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-08-28\" senderEqslAuthGuar=\"A\" sNR=\"-12\" />\n  <receptionReport receiverCallsign=\"JM8CQU\" receiverLocator=\"QN02TS\" senderCallsign=\"JA8CAR\" senderLocator=\"QN13cq08sf\" frequency=\"50314799\" flowStartSeconds=\"1788469395\" mode=\"FT8\" senderDXCC=\"Japan\" senderDXCCCode=\"JA\" senderDXCCLocator=\"PM96\" sNR=\"-25\" />\n  <receptionReport receiverCallsign=\"JL8GFB\" receiverLocator=\"QN03qg86\" senderCallsign=\"JA8CAR\" senderLocator=\"QN13cq08sf\" frequency=\"50315840\" flowStartSeconds=\"1788469349\" mode=\"FT8\" sende"
+  },
   "nict_findings": {
     "status": "ok",
     "stations": {
       "wakkanai": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.4,
+        "foes_mhz": 3.2,
         "esp_status": "ok"
       },
       "kokubunji": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 2.7,
+        "foes_mhz": 3.0,
         "esp_status": "ok"
       },
       "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": null,
-        "esp_status": "quiet"
+        "foes_mhz": 2.5,
+        "esp_status": "ok"
       },
       "oogimi": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 2.7,
-        "esp_status": "ok"
+        "foes_mhz": null,
+        "esp_status": "quiet"
       }
     }
   },
   "tropo_status": {
-    "status": "partial",
-    "errors": [
-      "batch@(40.0, 139.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)",
-      "batch@(42.0, 135.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)"
-    ],
-    "fetched_at": 1788469411.8115067,
+    "status": "ok",
+    "errors": [],
+    "fetched_at": 1788469552.4280136,
     "index_version": 3,
     "ecmwf": {
       "used": true,
       "error": null,
-      "blended_points": 144,
-      "blended_hours": 24192
+      "blended_points": 168,
+      "blended_hours": 28224
     }
   }
 }
