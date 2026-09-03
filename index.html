@@ -724,6 +724,11 @@
   var tropoStepIndex = null; // selected index into grid.times; null = not yet initialized for this grid
   var tropoPlayTimer = null; // setInterval handle while auto-play is running; null = paused
   var TROPO_PLAY_INTERVAL_MS = 650;
+  var tropoMarkerLatLon = null; // [lat,lon] of the last tapped/clicked point; null = nothing selected yet.
+  // 読み取りバーが常に固定位置に出るようになった代わりに「どこをタップしたか
+  // 分かりにくい」というフィードバックを受け、タップした地点に地図上へ目印
+  // (マーカー)を描画するようにした(2026-09-03追加)。マーカーは緯度経度で
+  // 保持しているので、時間を進めても・再描画しても同じ地点に残り続ける。
 
   function drawTropoMap(data){
     lastTropoData = data;
@@ -981,6 +986,33 @@
       ctx.fillText('データ取得待ちです', w/2, h/2);
     }
 
+    // タップ/クリックで選んだ地点の目印を描画し、読み取りバーもその地点の
+    // 現在のstepIdxでの値に同期させる(スライダーや自動再生で時間を変えても
+    // 選んだ地点に印が残り、その地点の値が追従して更新される)。
+    if(grid && grid.values && grid.values.length && tropoMarkerLatLon){
+      var mxy = proj.toXY(tropoMarkerLatLon[0], tropoMarkerLatLon[1]);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(mxy[0], mxy[1], 8, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(20,20,20,0.85)';
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(mxy[0], mxy[1], 3.2, 0, Math.PI*2);
+      ctx.fillStyle = cssVar('--tropo-high') || '#e5533d';
+      ctx.fill();
+      ctx.restore();
+
+      var readout = document.getElementById('tropo-readout');
+      if(readout){
+        var mv = bilinearTropoValue(grid, tropoMarkerLatLon[0], tropoMarkerLatLon[1], stepIdx);
+        var mst = tropoStatusOf(mv);
+        readout.innerHTML = '選択した地点: ダクト指数 <b>'+mv.toFixed(0)+'</b> /100 ('+mst.label+', 周辺格子からの補間値)';
+      }
+    }
+
     setTropoLegendGradient();
   }
 
@@ -1010,23 +1042,42 @@
       return true;
     }
 
+    // マウスホバー(デスクトップ)は「一時的なプレビュー」で、選択済みマーカーは
+    // 動かさない。マウスがどこにあるか自体が見えるデスクトップでは目印は不要。
     canvas.addEventListener('mousemove', function(ev){
       var rect = canvas.getBoundingClientRect();
       showValueAt(ev.clientX - rect.left, ev.clientY - rect.top);
     });
-    canvas.addEventListener('mouseleave', function(){ readout.textContent = TROPO_READOUT_DEFAULT; });
+    // マウスが離れたら、選択中のマーカーがあればその値の表示に戻し(消さない)、
+    // 何も選んでいなければ初期のガイド文に戻す。
+    canvas.addEventListener('mouseleave', function(){
+      if(!tropoMarkerLatLon){ readout.textContent = TROPO_READOUT_DEFAULT; }
+      else if(lastTropoData) { renderTropoCanvas(lastTropoData); }
+    });
 
-    // 地図をタップ/クリックすると、その地点の数値を読み取りバーに表示しつつ、
-    // 自動再生中なら「停止」もする(2026-09-03、開始専用トグル→停止専用に
-    // 変更)。再生中に別の場所の数値を確認しようと地図を触ると、そこで止まって
-    // 値が読み取れるようにしたい - 逆に停止中にタップすると再生が始まって
-    // しまうと、複数の場所を触って見比べる操作のたびに勝手に再生が始まって
-    // 数値が読みづらくなってしまうため、地図タップは「止める」専用とし、
-    // 「始める」操作は必ず再生ボタン側から行う。
+    // 地図をタップ/クリックすると、その地点に目印(マーカー)を置いて選択状態に
+    // する。マーカーは緯度経度で保持するため、時間を進めても同じ地点に残り、
+    // 読み取りバーの数値もその地点のものに追従する(2026-09-03追加、「どこを
+    // タップしたか分かりにくい」というフィードバックを受けて対応)。あわせて
+    // 自動再生中なら「停止」もする(再生中に別の場所を確認しようとした操作を
+    // 妨げないため。逆に停止中のタップで再生が始まると、複数の場所を見比べる
+    // たびに再生が始まってしまうので、地図タップは「止める」専用とし「始める」
+    // 操作は必ず再生ボタン側から行う)。
     canvas.addEventListener('click', function(ev){
       if(tropoPlayTimer) stopTropoPlay();
       var rect = canvas.getBoundingClientRect();
-      showValueAt(ev.clientX - rect.left, ev.clientY - rect.top);
+      var x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+      var grid = lastTropoData && lastTropoData.tropo && lastTropoData.tropo.grid;
+      if(tropoProj && grid){
+        var ll = tropoProj.toLatLon(x, y);
+        if(ll[0] >= grid.lat_min - grid.lat_step/2 && ll[0] <= grid.lat_max + grid.lat_step/2
+           && ll[1] >= grid.lon_min - grid.lon_step/2 && ll[1] <= grid.lon_max + grid.lon_step/2){
+          tropoMarkerLatLon = ll;
+          renderTropoCanvas(lastTropoData); // 目印を描画し、読み取りバーもこの地点の値に同期させる
+          return;
+        }
+      }
+      showValueAt(x, y);
     });
   }
 
