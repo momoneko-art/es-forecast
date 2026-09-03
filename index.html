@@ -72,7 +72,9 @@
     display:flex; gap:20px; align-items:center; flex-wrap:wrap;
   }
   .headline-index{ display:flex; flex-direction:column; align-items:flex-start; gap:2px; min-width:140px; }
+  .headline-num-row{ display:flex; align-items:baseline; gap:8px; }
   .headline-index .num{ font-size:44px; font-weight:800; line-height:1; }
+  .headline-index .place{ font-size:17px; font-weight:700; color:var(--ink-dim); }
   .headline-index .label{ font-size:12px; color:var(--ink-dim); }
   .headline-text{ flex:1; min-width:220px; font-size:14.5px; color:var(--ink-dim); }
   .headline-text b{ color:var(--ink); font-weight:700; }
@@ -212,7 +214,10 @@
 
   <div class="headline" id="headline-card">
     <div class="headline-index">
-      <span class="num mono" id="headline-num">--</span>
+      <div class="headline-num-row">
+        <span class="num mono" id="headline-num">--</span>
+        <span class="place" id="headline-place"></span>
+      </div>
       <span class="label">全国最高値エリアの活動指数</span>
       <span class="pill ok" id="headline-pill"><span class="dot"></span>読込中</span>
       <span id="headline-trend"></span>
@@ -1393,6 +1398,7 @@
     if(top){
       var st2 = statusOf(top.es_index);
       document.getElementById('headline-num').textContent = Math.round(top.es_index);
+      document.getElementById('headline-place').textContent = top.name || '';
       var pillEl = document.getElementById('headline-pill');
       pillEl.className = 'pill '+st2.cls;
       pillEl.innerHTML = '<span class="dot"></span>'+st2.label;
