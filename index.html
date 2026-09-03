@@ -308,7 +308,7 @@
         <button type="button" class="time-btn" data-jump="3">+3日</button>
         <button type="button" class="time-btn" data-jump="5">+5日</button>
         <button type="button" class="time-btn" data-jump="7">+7日</button>
-        <button type="button" class="time-btn play-btn" id="tropo-play-btn" aria-label="自動再生" title="時間を自動で進める(地図をタップしても切り替えられます)">▶</button>
+        <button type="button" class="time-btn play-btn" id="tropo-play-btn" aria-label="自動再生" title="時間を自動で進める(地図をタップすると一時停止して数値を確認できます)">▶</button>
       </div>
     </div>
     <div class="map-wrap">
@@ -996,9 +996,14 @@
       tip.style.left = x+'px'; tip.style.top = y+'px'; tip.style.display='block';
     });
     canvas.addEventListener('mouseleave', function(){ tip.style.display='none'; });
-    // 地図をタップ/クリックすると自動再生の開始・停止をトグル(2026-09-03追加)。
-    // ホバーのツールチップ表示とは独立した操作なので競合しない。
-    canvas.addEventListener('click', function(){ toggleTropoPlay(); });
+    // 地図をタップ/クリックすると自動再生を「停止」する(2026-09-03追加、
+    // 2026-09-03に開始専用トグルから停止専用へ変更)。再生中に別の場所の
+    // 数値を確認しようと地図を触ると、そこで止まって値が読み取れるように
+    // したい - 逆に停止中にタップすると再生が始まってしまうと、複数の
+    // 場所を触って見比べる操作のたびに勝手に再生が始まって数値が読み
+    // づらくなってしまうため、地図タップは「止める」専用とし、「始める」
+    // 操作は必ず再生ボタン側から行う。
+    canvas.addEventListener('click', function(){ if(tropoPlayTimer) stopTropoPlay(); });
   }
 
   function initTropoTimeControls(){
