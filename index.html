@@ -299,6 +299,7 @@
         <button type="button" class="time-btn" data-jump="now">現在</button>
         <button type="button" class="time-btn" data-jump="1">+1日</button>
         <button type="button" class="time-btn" data-jump="3">+3日</button>
+        <button type="button" class="time-btn" data-jump="5">+5日</button>
         <button type="button" class="time-btn" data-jump="7">+7日</button>
       </div>
     </div>
@@ -339,6 +340,7 @@
         <a class="link-item" href="https://wdc.nict.go.jp/Ionosphere/realtime/latest-fxEs.html" target="_blank" rel="noopener"><span>NICT イオノゾンデ 最新2時間</span><span class="go">開く →</span></a>
         <a class="link-item" href="https://pskreporter.info/pskmap.html" target="_blank" rel="noopener"><span>PSKReporter 実伝播マップ(FT8等)</span><span class="go">開く →</span></a>
         <a class="link-item" href="https://www.spaceweather.gov/products/planetary-k-index" target="_blank" rel="noopener"><span>NOAA SWPC 惑星間Kp指数</span><span class="go">開く →</span></a>
+        <a class="link-item" href="https://www.dxinfocentre.com/tropo_eas.html" target="_blank" rel="noopener"><span>DX Info Centre トロポダクト予報(Far East、比較用)</span><span class="go">開く →</span></a>
       </div>
     </div>
   </div>
@@ -706,9 +708,14 @@
   function formatTropoTime(iso){
     var ms = parseTropoTimeMs(iso);
     if(isNaN(ms)) return iso || '--';
-    var p = jstParts(new Date(ms));
+    var d = new Date(ms);
+    var p = jstParts(d);
     var wk = ['日','月','火','水','木','金','土'][new Date(Date.UTC(p.y,p.mo-1,p.d)).getUTCDay()];
-    return p.mo+'/'+p.d+'('+wk+') '+String(p.h).padStart(2,'0')+':'+String(p.mi).padStart(2,'0')+' JST';
+    var jstStr = p.mo+'/'+p.d+'('+wk+') '+String(p.h).padStart(2,'0')+':'+String(p.mi).padStart(2,'0')+' JST';
+    // GMT(UTC)も併記(2026-09-03追加)。日付が変わる場合もあるので月/日から出す。
+    var uwk = ['日','月','火','水','木','金','土'][d.getUTCDay()];
+    var gmtStr = (d.getUTCMonth()+1)+'/'+d.getUTCDate()+'('+uwk+') '+String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')+' GMT';
+    return jstStr + ' ／ ' + gmtStr;
   }
 
   function nearestTropoStepIndex(times, targetMs){
