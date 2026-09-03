@@ -43,12 +43,57 @@ Open-Meteo is reachable from GitHub Actions runners as expected (this could
 not be tested directly from within the development session itself - both the
 cloud sandbox and the device-bridge shell on the user's own PC sit behind an
 organisation-controlled egress allowlist that blocks api.open-meteo.com).
+
+ECMWF ensemble (2026-09-03 addition): Open-Meteo also serves ECMWF's IFS
+model for free (no API key) through this same endpoint via models=ecmwf_ifs.
+Multi-model ensembling (averaging two independent forecast models) is a
+standard, well-established way to reduce single-model bias/error - so each
+grid point's duct index is now a weighted blend of a GFS-only index and an
+ECMWF-only index, NOT a 50/50 average of raw values. Two reasons this is
+deliberately NOT a naive average:
+  1. ECMWF's pressure-level product only exposes 1000/925/850/700hPa (missing
+     the 975/950/900hPa levels GFS provides) - the exact fine-grained levels
+     that the 2026-09-01 "thin duct averaged away" bug fix (see
+     DEVELOPMENT_LOG.md) added specifically to stop thin ducts from
+     disappearing. Blending raw per-level values would silently reintroduce
+     that bug for the ECMWF side. Instead each model's OWN index is computed
+     from its OWN available levels (via the same duct_index_from_profile()),
+     and only the two resulting 0-100 index numbers are blended - GFS
+     weighted higher (ECMWF_BLEND_WEIGHT below) so ECMWF's coarser vertical
+     resolution can't wash out a thin duct GFS alone would have caught.
+  2. ECMWF's hourly time array only stays 1-hourly for the first ~90 hours,
+     then drops to 3-hourly/6-hourly further out, so it does NOT share GFS's
+     flat "every hour, 7 days" timeline. Blending is done by matching on the
+     ISO timestamp STRING itself (both request timezone=UTC), never by array
+     index - any GFS hour with no matching ECMWF timestamp just keeps its
+     pure-GFS value untouched (this is the normal, expected case beyond ~4
+     days out, not a fallback path signalling something is broken).
+The whole ECMWF side is additive and best-effort: if the ECMWF fetch fails
+outright (network, HTTP, unexpected shape, wrong parameter - anything), the
+grid silently falls back to pure GFS, exactly as before this feature existed.
+An "ecmwf_ok"/"ecmwf_error" pair is carried on the returned dict so
+summarize_status() can surface a fetch failure to the status panel without
+ever making it look like the whole duct forecast is down (the same
+"external service hiccup, not user-actionable" framing used elsewhere).
+NOT YET LIVE-VERIFIED as of writing this comment - like the original GFS
+integration, api.open-meteo.com is blocked from every environment available
+during development (cloud sandbox, the PC device-bridge shell, and even the
+WebFetch tool via robots.txt), so this can only be confirmed once GitHub
+Actions runs it for real. Check debug.json's tropo section after the next
+live cycle before trusting this note.
 """
 import math
 
 import requests
 
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
+ECMWF_MODEL = "ecmwf_ifs"
+# Intersection of our LEVELS_HPA with what Open-Meteo's ECMWF product exposes
+# (1000/925/850/700/600/500/...50hPa) - see the module docstring for why the
+# missing 975/950/900hPa levels are handled by index-level blending rather
+# than per-level blending.
+ECMWF_LEVELS_HPA = [1000, 925, 850, 700]
+ECMWF_BLEND_WEIGHT = 0.35  # GFS keeps 0.65 - see docstring point 1
 
 # Near-surface layers most relevant to VHF/UHF tropo ducting. The real trapping
 # layers behind tropo openings (marine subsidence inversions, nocturnal radiation
@@ -90,7 +135,10 @@ MIN_REFETCH_SECONDS = int(5.5 * 60 * 60)
 # instead of silently reusing pre-fix numbers for up to MIN_REFETCH_SECONDS.
 # v2: added 975/950/925/900/850hPa (was only 1000/925/850/700hPa) so thin
 # near-surface ducts stop getting averaged away to ~0.
-INDEX_VERSION = 2
+# v3: blended in an ECMWF-based index (see module docstring) - old cached
+# values are pure-GFS and should be replaced promptly rather than reused for
+# up to MIN_REFETCH_SECONDS.
+INDEX_VERSION = 3
 
 
 def _frange(lo, hi, step):
@@ -221,12 +269,102 @@ def _entry_to_series(entry, step_hours=STEP_HOURS):
     return series, times_out
 
 
-def fetch_grid(session=None, fetch_batch=_fetch_batch, step_hours=STEP_HOURS):
+def _ecmwf_hourly_params():
+    vars_ = []
+    for lv in ECMWF_LEVELS_HPA:
+        vars_ += [f"temperature_{lv}hPa", f"relative_humidity_{lv}hPa", f"geopotential_height_{lv}hPa"]
+    return ",".join(vars_)
+
+
+def _fetch_ecmwf_batch(points, session=None):
+    """Same shape/contract as _fetch_batch, just pointed at the ECMWF model
+    and its smaller available level set - kept as a separate function (rather
+    than parameterising _fetch_batch) so a mistake here can never accidentally
+    affect the GFS path this module already relies on."""
+    lats = ",".join(str(p[0]) for p in points)
+    lons = ",".join(str(p[1]) for p in points)
+    params = {
+        "latitude": lats,
+        "longitude": lons,
+        "hourly": _ecmwf_hourly_params(),
+        "forecast_days": FORECAST_DAYS,
+        "models": ECMWF_MODEL,
+        "timezone": "UTC",
+    }
+    getter = session.get if session else requests.get
+    resp = getter(OPEN_METEO_URL, params=params, timeout=FETCH_TIMEOUT_SECONDS)
+    if resp.status_code != 200:
+        raise RuntimeError(f"HTTP {resp.status_code}: {resp.text[:300]}")
+    data = resp.json()
+    entries = data if isinstance(data, list) else [data]
+    if len(entries) != len(points):
+        raise RuntimeError(f"expected {len(points)} entries, got {len(entries)}")
+    return entries
+
+
+def _entry_to_ecmwf_index_by_time(entry):
+    """Returns {iso_time_str: duct_index} for one point, using ONLY ECMWF's
+    own available levels (ECMWF_LEVELS_HPA) - every timestamp Open-Meteo
+    returned for this model, not just the hourly-sampled subset, since ECMWF's
+    own cadence thins out beyond ~90h and we want whatever it actually has to
+    match against GFS's timestamps later."""
+    hourly = entry.get("hourly", {}) or {}
+    times = hourly.get("time") or []
+    level_arrays = {}
+    for lv in ECMWF_LEVELS_HPA:
+        level_arrays[lv] = (
+            hourly.get(f"temperature_{lv}hPa") or [],
+            hourly.get(f"relative_humidity_{lv}hPa") or [],
+            hourly.get(f"geopotential_height_{lv}hPa") or [],
+        )
+    out = {}
+    for i, t in enumerate(times):
+        levels = []
+        for lv in ECMWF_LEVELS_HPA:
+            t_arr, rh_arr, h_arr = level_arrays[lv]
+            levels.append({
+                "pressure": lv,
+                "temp_c": t_arr[i] if i < len(t_arr) else None,
+                "rh": rh_arr[i] if i < len(rh_arr) else None,
+                "height_m": h_arr[i] if i < len(h_arr) else None,
+            })
+        idx, _grad = duct_index_from_profile(levels)
+        out[t] = idx
+    return out
+
+
+def fetch_ecmwf_grid(session=None, fetch_ecmwf_batch=_fetch_ecmwf_batch):
+    """Best-effort ECMWF index-by-time per point. Returns (values dict[(lat,lon)]
+    -> {iso_time: index}, errors list[str]). Deliberately has NO effect on the
+    caller if it fails - fetch_grid() below treats a totally-empty result (or
+    an exception escaping this function, which it also catches) as "no ECMWF
+    this cycle", not as a tropo-wide failure."""
+    lats, lons = grid_points()
+    points = [(la, lo) for la in lats for lo in lons]
+    values = {}
+    errors = []
+    for i in range(0, len(points), BATCH_SIZE):
+        batch = points[i:i + BATCH_SIZE]
+        try:
+            entries = fetch_ecmwf_batch(batch, session=session)
+            for (lat, lon), entry in zip(batch, entries):
+                values[(lat, lon)] = _entry_to_ecmwf_index_by_time(entry)
+        except Exception as exc:  # noqa: BLE001 - one bad ECMWF batch must never take down the GFS-based grid
+            errors.append(f"ecmwf batch@{batch[0]}: {exc}")
+    return values, errors
+
+
+def fetch_grid(session=None, fetch_batch=_fetch_batch, step_hours=STEP_HOURS,
+                fetch_ecmwf_batch=_fetch_ecmwf_batch, use_ecmwf=True):
     """Returns (values_by_point dict[(lat,lon)] -> list[index] one per sampled
     hour, times list[str] ISO8601 UTC shared across all points, errors
-    list[str]). times is taken from the first point that returned data since
-    every point is fetched with the same forecast_days/model/timezone and
-    should therefore share an identical timeline."""
+    list[str], ecmwf_info dict). times is taken from the first point that
+    returned data since every point is fetched with the same
+    forecast_days/model/timezone and should therefore share an identical
+    timeline. GFS values are blended with ECMWF's independent index at any
+    timestamp both models cover (see module docstring); ECMWF failing
+    entirely just means every hour keeps its pure-GFS value, so callers never
+    need to treat ecmwf_info specially to stay correct."""
     lats, lons = grid_points()
     points = [(la, lo) for la in lats for lo in lons]
 
@@ -244,7 +382,38 @@ def fetch_grid(session=None, fetch_batch=_fetch_batch, step_hours=STEP_HOURS):
                     times_out = times
         except Exception as exc:  # noqa: BLE001 - degrade gracefully, one bad batch shouldn't kill the rest
             errors.append(f"batch@{batch[0]}: {exc}")
-    return values, times_out, errors
+
+    ecmwf_info = {"used": False, "error": None, "blended_points": 0, "blended_hours": 0}
+    if use_ecmwf and values and times_out:
+        try:
+            ecmwf_values, ecmwf_errors = fetch_ecmwf_grid(session=session, fetch_ecmwf_batch=fetch_ecmwf_batch)
+            if ecmwf_values:
+                blended_points = 0
+                blended_hours = 0
+                for (lat, lon), gfs_series in values.items():
+                    by_time = ecmwf_values.get((lat, lon))
+                    if not by_time:
+                        continue
+                    touched = False
+                    for i, t in enumerate(times_out):
+                        ecmwf_idx = by_time.get(t)
+                        if ecmwf_idx is None:
+                            continue
+                        gfs_series[i] = round(
+                            (1 - ECMWF_BLEND_WEIGHT) * gfs_series[i] + ECMWF_BLEND_WEIGHT * ecmwf_idx, 1)
+                        touched = True
+                        blended_hours += 1
+                    if touched:
+                        blended_points += 1
+                ecmwf_info["used"] = blended_points > 0
+                ecmwf_info["blended_points"] = blended_points
+                ecmwf_info["blended_hours"] = blended_hours
+            if ecmwf_errors and not ecmwf_values:
+                ecmwf_info["error"] = "; ".join(ecmwf_errors[:2])
+        except Exception as exc:  # noqa: BLE001 - ECMWF is purely additive; any failure here must never break GFS
+            ecmwf_info["error"] = str(exc)
+
+    return values, times_out, errors, ecmwf_info
 
 
 def run(prev_tropo=None, now_ts=None):
@@ -275,7 +444,7 @@ def run(prev_tropo=None, now_ts=None):
             return out
 
     lats, lons = grid_points()
-    values, times_out, errors = fetch_grid()
+    values, times_out, errors, ecmwf_info = fetch_grid()
 
     if not values or not times_out:
         return {
@@ -283,6 +452,7 @@ def run(prev_tropo=None, now_ts=None):
             "error": "; ".join(errors[:3]) if errors else "no data",
             "fetched_at": now_ts,
             "index_version": INDEX_VERSION,
+            "ecmwf": ecmwf_info,
         }
 
     n_steps = len(times_out)
@@ -301,6 +471,7 @@ def run(prev_tropo=None, now_ts=None):
         "errors": errors[:5],
         "fetched_at": now_ts,
         "index_version": INDEX_VERSION,
+        "ecmwf": ecmwf_info,
         "grid": {
             "lat_min": GRID_LAT_MIN, "lat_max": GRID_LAT_MAX, "lat_step": GRID_LAT_STEP,
             "lon_min": GRID_LON_MIN, "lon_max": GRID_LON_MAX, "lon_step": GRID_LON_STEP,

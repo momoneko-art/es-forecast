@@ -296,7 +296,7 @@
       <h3>VHF/UHFトロポダクト予報(今後7日間)</h3>
       <span class="pill" id="tropo-badge"><span class="dot"></span>読込中</span>
     </div>
-    <span class="sub">気象庁GFSモデル由来の気温・湿度・高度データから大気の屈折率(M値)の高度勾配を計算し、電波が上空に逃げずに地表付近を伝わる「ラジオダクト」が起きやすい場所を推定した地図。140MHz帯・351MHz帯・420MHz帯など市民ラジオのVHF/UHF機で通常より遠距離が入感しやすいエリアの目安です(周波数が高いほどダクトの影響を受けやすい傾向)。海上でもダクトは発生する(むしろ海上のほうが起きやすいことも多い)ため、地図は日本列島の輪郭で切り取らず、海上を含む格子全体を着色しています。下のスライダーで1時間刻み・最大7日先まで予報を切り替えられます。</span>
+    <span class="sub">GFSモデル(気象庁も採用する主要モデルの一つ)由来の気温・湿度・高度データから大気の屈折率(M値)の高度勾配を計算し、電波が上空に逃げずに地表付近を伝わる「ラジオダクト」が起きやすい場所を推定した地図(2026-09-03からECMWF(欧州中期予報センター)モデルも併用し、2モデルの平均で精度を高めています)。140MHz帯・351MHz帯・420MHz帯など市民ラジオのVHF/UHF機で通常より遠距離が入感しやすいエリアの目安です(周波数が高いほどダクトの影響を受けやすい傾向)。海上でもダクトは発生する(むしろ海上のほうが起きやすいことも多い)ため、地図は日本列島の輪郭で切り取らず、海上を含む格子全体を着色しています。下のスライダーで1時間刻み・最大7日先まで予報を切り替えられます。</span>
     <div class="tropo-time-row">
       <div class="tropo-time-label" id="tropo-time-label">読込中…</div>
       <input type="range" class="tropo-time-slider" id="tropo-time-slider" min="0" max="0" value="0" step="1" disabled>
@@ -345,6 +345,15 @@
         <a class="link-item" href="https://wdc.nict.go.jp/Ionosphere/realtime/ISDJ/ionospheric-signal-i.html" target="_blank" rel="noopener"><span>NICT 電離圏概況(foEs実測値・当サイトのデータ元)</span><span class="go">開く →</span></a>
         <a class="link-item" href="https://pskreporter.info/pskmap.html" target="_blank" rel="noopener"><span>PSKReporter 実伝播マップ(FT8等)</span><span class="go">開く →</span></a>
         <a class="link-item" href="https://www.spaceweather.gov/products/planetary-k-index" target="_blank" rel="noopener"><span>NOAA SWPC 惑星間Kp指数</span><span class="go">開く →</span></a>
+        <a class="link-item" href="https://open-meteo.com/" target="_blank" rel="noopener"><span>Open-Meteo(GFS+ECMWF、ダクト予報のデータ元)</span><span class="go">開く →</span></a>
+      </div>
+      <div class="sub" style="font-size:11.5px; font-weight:700; color:var(--ink-dim); margin:14px 0 6px;">▸ 予備データ元(NICT取得失敗時のみ使用)</div>
+      <div class="links">
+        <a class="link-item" href="https://prop.kc2g.com/" target="_blank" rel="noopener"><span>kc2g.com 電離層観測(GIRO/DIDBase集約)</span><span class="go">開く →</span></a>
+      </div>
+      <div class="sub" style="font-size:11.5px; font-weight:700; color:var(--ink-dim); margin:14px 0 6px;">▸ 記録のみ・まだ予報には未反映(実験中)</div>
+      <div class="links">
+        <a class="link-item" href="https://www.swpc.noaa.gov/phenomena/f107-cm-radio-emissions" target="_blank" rel="noopener"><span>NOAA SWPC 太陽電波束F10.7</span><span class="go">開く →</span></a>
       </div>
       <div class="sub" style="font-size:11.5px; font-weight:700; color:var(--ink-dim); margin:14px 0 6px;">▸ 参考リンク(当サイトのデータには未使用)</div>
       <div class="links">
@@ -775,7 +784,8 @@
         peakTxt = ' 今後約7日間の全国ピークは推定 '+Math.round(peak.v)+'('+formatTropoTime(tropo.grid.times[peak.stepIdx])+'頃)です。';
       }
     }
-    return ' '+ageTxt+'GFSモデルデータに基づく推定です(GFSの更新は約6時間毎)'+extra+'。あくまで気象モデルによる推定であり、精度は数日先になるほど下がります。NICT実測のようなEsの証拠とは性質が異なります。'+peakTxt;
+    var modelTxt = (tropo.ecmwf && tropo.ecmwf.used) ? 'GFS+ECMWF併用の' : 'GFSモデルの';
+    return ' '+ageTxt+modelTxt+'データに基づく推定です(更新は約6時間毎)'+extra+'。あくまで気象モデルによる推定であり、精度は数日先になるほど下がります。NICT実測のようなEsの証拠とは性質が異なります。'+peakTxt;
   }
 
   function updateTropoBadgeAndNote(data, grid, stepIdx){

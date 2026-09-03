@@ -13,6 +13,8 @@ import fetch_nict
 import fetch_noaa
 import fetch_tropo
 import fetch_jetstream
+import fetch_kc2g
+import fetch_f107
 import heatmap
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -23,12 +25,14 @@ DEBUG_JSON_PATH = os.path.join(ROOT, "debug.json")
 MAX_HISTORY_ROWS = 3000
 MIN_ROWS_FOR_MODEL = 60
 
-# jet250_kmh: EXPERIMENTAL shadow column (see fetch_jetstream.py) - appended
-# at the end so old rows (written before this column existed) stay readable;
+# jet250_kmh / f107 / kc2g_*_foes: EXPERIMENTAL shadow columns (see
+# fetch_jetstream.py, fetch_f107.py, fetch_kc2g.py) - appended at the end so
+# old rows (written before these columns existed) stay readable;
 # csv.DictWriter fills missing keys in old rows with '' automatically.
 HISTORY_FIELDS = (
     ["timestamp_utc", "kp"] + [f"{s['id']}_6m" for s in STATIONS] + [f"{s['id']}_10m" for s in STATIONS]
-    + ["jet250_kmh"]
+    + ["jet250_kmh", "f107"]
+    + [f"kc2g_{code.lower()}_foes" for code in fetch_kc2g.NEIGHBOR_CODES]
 )
 
 
@@ -160,7 +164,8 @@ def read_prev_tropo():
         return None
 
 
-def summarize_status(psk_result, nict_result, noaa, kp_forecast, tropo_result):
+def summarize_status(psk_result, nict_result, noaa, kp_forecast, tropo_result,
+                      kc2g_result=None, f107_result=None):
     """Plain-language, non-technical summary of whether each upstream data
     source came back OK this cycle - NOT a raw error log. The point isn't for
     the user to "fix" anything (these are external services outside their
@@ -169,6 +174,8 @@ def summarize_status(psk_result, nict_result, noaa, kp_forecast, tropo_result):
     so a screenshot of this panel tells us immediately which upstream source
     to look at. level is one of "ok"/"warn"/"error" (mirrors the .pill
     ok/watch/vhigh CSS classes already used elsewhere in the UI)."""
+    kc2g_result = kc2g_result or {}
+    f107_result = f107_result or {}
     items = []
 
     psk_statuses = [b.get("status") for b in psk_result.values()]
@@ -184,7 +191,17 @@ def summarize_status(psk_result, nict_result, noaa, kp_forecast, tropo_result):
         items.append({"name": "NICT実測(電離層観測)", "level": "ok", "note": "正常"})
     else:
         items.append({"name": "NICT実測(電離層観測)", "level": "error",
-                       "note": "ページ取得失敗(各局は直近の実測値を最大45分引き継ぎ中)"})
+                       "note": "ページ取得失敗(各局は直近の実測値を最大45分引き継ぎ、"
+                               "それも切れた局はkc2g経由の代替値で継続中)"})
+
+    # kc2g/GIRO (2026-09-03追加) - a fallback for NICT, not a primary source, so
+    # its own failure is "warn" not "error": it just means the fallback door is
+    # unavailable this cycle, not that anything currently displayed is wrong.
+    if kc2g_result.get("status") == "ok":
+        items.append({"name": "電離層観測 予備経路(kc2g.com)", "level": "ok", "note": "正常"})
+    else:
+        items.append({"name": "電離層観測 予備経路(kc2g.com)", "level": "warn",
+                       "note": "取得失敗(NICTのフォールバック先が今は使えないだけ、通常は影響なし)"})
 
     if noaa.get("status") == "ok":
         items.append({"name": "宇宙天気(NOAA Kp実測)", "level": "ok", "note": "正常"})
@@ -196,14 +213,29 @@ def summarize_status(psk_result, nict_result, noaa, kp_forecast, tropo_result):
     else:
         items.append({"name": "宇宙天気(NOAA Kp予報)", "level": "warn", "note": "取得失敗(予報なしで継続中)"})
 
-    ts = tropo_result.get("status")
-    if ts == "ok":
-        note = "正常(前回値を使用中、GFS更新待ち)" if tropo_result.get("reused") else "正常(再取得済み)"
-        items.append({"name": "ダクト予報(GFS)", "level": "ok", "note": note})
-    elif ts == "partial":
-        items.append({"name": "ダクト予報(GFS)", "level": "warn", "note": "一部地点のみ取得成功"})
+    # F10.7太陽電波束(2026-09-03追加、記録のみ・es_index未反映) - 落ちていても
+    # 何も表示に影響しないので"warn"止まり。
+    if f107_result.get("status") == "ok":
+        items.append({"name": "太陽電波束F10.7(記録のみ)", "level": "ok", "note": "正常"})
     else:
-        items.append({"name": "ダクト予報(GFS)", "level": "error", "note": "取得失敗"})
+        items.append({"name": "太陽電波束F10.7(記録のみ)", "level": "warn", "note": "取得失敗(記録をスキップ)"})
+
+    ts = tropo_result.get("status")
+    ecmwf_info = tropo_result.get("ecmwf") or {}
+    if ts == "ok":
+        if tropo_result.get("reused"):
+            note = "正常(前回値を使用中、GFS更新待ち)"
+        elif ecmwf_info.get("used"):
+            note = "正常(GFS+ECMWFの併用で再取得済み)"
+        elif ecmwf_info.get("error"):
+            note = "正常(GFSのみで再取得済み、ECMWFは今回取得失敗)"
+        else:
+            note = "正常(再取得済み)"
+        items.append({"name": "ダクト予報(GFS+ECMWF)", "level": "ok", "note": note})
+    elif ts == "partial":
+        items.append({"name": "ダクト予報(GFS+ECMWF)", "level": "warn", "note": "一部地点のみ取得成功"})
+    else:
+        items.append({"name": "ダクト予報(GFS+ECMWF)", "level": "error", "note": "取得失敗"})
 
     return items
 
@@ -236,6 +268,15 @@ def run():
     psk_result, psk_debug = fetch_pskreporter.run()
     nict_result = fetch_nict.run()
 
+    # kc2g/GIRO ionosonde aggregator (see fetch_kc2g.py docstring) - used below
+    # ONLY as a fallback when NICT's own scrape AND its carry-forward window
+    # both fail for a given station this cycle, plus shadow-logs a few nearby
+    # non-Japan stations for a future early-warning backtest.
+    try:
+        kc2g_result = fetch_kc2g.run(STATIONS, now_ts=now_ts)
+    except Exception as exc:  # noqa: BLE001 - never let this fallback source kill the whole pipeline
+        kc2g_result = {"status": "error", "error": str(exc), "by_station_id": {}, "neighbors": []}
+
     # Tropospheric ducting (UHF/VHF) index grid - a completely separate
     # NOAA-GFS-derived signal from the Es (sporadic-E) machinery above. Throttled
     # internally (fetch_tropo.MIN_REFETCH_SECONDS) since GFS only updates ~every 6h.
@@ -251,11 +292,23 @@ def run():
     except Exception as exc:  # noqa: BLE001 - never let this experimental fetch kill the whole pipeline
         jet_result = {"status": "error", "error": str(exc)}
 
+    # EXPERIMENTAL shadow signal (see fetch_f107.py docstring) - logged only,
+    # NOT used in es_index yet.
+    try:
+        f107_result = fetch_f107.run(now_ts=now_ts)
+    except Exception as exc:  # noqa: BLE001 - never let this experimental fetch kill the whole pipeline
+        f107_result = {"status": "error", "error": str(exc), "f107": None}
+
     # --- append this sample to history ---
+    kc2g_neighbors_by_code = {n["code"]: n for n in (kc2g_result.get("neighbors") or [])}
     row = {
         "timestamp_utc": now_utc_iso, "kp": kp if kp is not None else "",
         "jet250_kmh": jet_result.get("jet250_kmh", "") if jet_result.get("status") == "ok" else "",
+        "f107": f107_result.get("f107", "") if f107_result.get("status") == "ok" else "",
     }
+    for code in fetch_kc2g.NEIGHBOR_CODES:
+        n = kc2g_neighbors_by_code.get(code)
+        row[f"kc2g_{code.lower()}_foes"] = n["foes_mhz"] if n else ""
     for s in STATIONS:
         band6 = psk_result.get("6m", {})
         band10 = psk_result.get("10m", {})
@@ -308,6 +361,7 @@ def run():
         nict_dis = None
         nict_as_of_ts = None
         stale_minutes = None
+        nict_source = "nict"
         if nict_station:
             nict_status = nict_station["esp_status"]
             foes_mhz = nict_station["foes_mhz"]
@@ -335,6 +389,26 @@ def run():
                     nict_dis = prev_nict.get("dis")
                     nict_as_of_ts = prev_as_of
                     stale_minutes = max(1, round(age / 60))
+                    nict_source = "nict_carry_forward"
+
+            # kc2g/GIRO fallback (2026-09-03, see fetch_kc2g.py docstring): NICT's
+            # own scrape failed THIS cycle and the carry-forward window above
+            # either doesn't apply or has expired. kc2g very likely relays the
+            # same underlying NICT measurement through a different, more
+            # structured door, so try it before giving up on real data entirely
+            # and falling all the way back to pure climatology. Always tagged
+            # with nict_source="kc2g_fallback" so the UI/status panel can be
+            # honest about where the number actually came from.
+            if nict_status not in ("ok", "quiet"):
+                kc2g_station = (kc2g_result.get("by_station_id") or {}).get(s["id"])
+                if kc2g_station and kc2g_station.get("foes_mhz") is not None:
+                    nict_status = "ok"
+                    foes_mhz = kc2g_station["foes_mhz"]
+                    nict_storm = None
+                    nict_dis = None
+                    nict_as_of_ts = now_ts
+                    stale_minutes = None
+                    nict_source = "kc2g_fallback"
 
         if nict_status == "quiet":
             nict_boost = 0.0
@@ -393,6 +467,7 @@ def run():
                 "storm": nict_storm,
                 "dis": nict_dis,
                 "stale_minutes": stale_minutes,
+                "source": nict_source,
             },
             "nict_as_of_ts": nict_as_of_ts,
             "model": model_note,
@@ -416,7 +491,8 @@ def run():
             all_psk_points.extend(band.get("heatmap_points", []))
     heatmap_grid = heatmap.compute(now_jst, kp_for_modifier, all_psk_points, nict_stations)
 
-    system_status = summarize_status(psk_result, nict_result, noaa, kp_forecast, tropo_result)
+    system_status = summarize_status(psk_result, nict_result, noaa, kp_forecast, tropo_result,
+                                      kc2g_result=kc2g_result, f107_result=f107_result)
 
     EXCLUDE_KEYS = {"region_counts_raw", "heatmap_points"}
     data = {
@@ -431,6 +507,8 @@ def run():
         "heatmap": heatmap_grid,
         "tropo": tropo_result,
         "jet250": jet_result,
+        "f107": f107_result,
+        "kc2g": {"status": kc2g_result.get("status"), "neighbors": kc2g_result.get("neighbors", [])},
         "system_status": system_status,
         "history_rows": len(history_rows),
         "models_trained": sorted(models.keys()),
