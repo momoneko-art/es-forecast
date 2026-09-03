@@ -128,7 +128,7 @@
      square - so an aspect-ratio box (instead of a fixed height) lets the map fill its
      column edge-to-edge with no wasted side padding, at any column width. */
   #japan-heatmap, #self-chance-map, #tropo-map{ width:100%; height:auto; aspect-ratio:207/213; display:block; cursor:crosshair; max-height:640px; }
-  .map-panel .panel-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:2px; }
+  .map-panel .panel-head{ display:flex; flex-direction:column; align-items:flex-start; gap:6px; margin-bottom:2px; }
   .map-panel .panel-head h3{ margin:0; }
   .tropo-time-row{ display:flex; flex-direction:column; gap:6px; margin:10px 0 12px; }
   .tropo-time-label{ font-size:13px; font-weight:700; color:var(--ink); }
