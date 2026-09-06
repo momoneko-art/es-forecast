@@ -1,24 +1,27 @@
 {
-  "pskreporter_debug": {},
+  "pskreporter_debug": {
+    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"72460761298\"/>\n  <maxFlowStartSeconds value=\"1788692937\"/>\n  <receptionReport receiverCallsign=\"IW9GDC\" receiverLocator=\"JM78sd27ub\" senderCallsign=\"JR1JUR\" senderLocator=\"QM05ep\" frequency=\"28075533\" flowStartSeconds=\"1788692928\" mode=\"FT8\" senderDXCC=\"Japan\" senderDXCCCode=\"JA\" senderDXCCLocator=\"PM96\" senderLotwUpload=\"2026-08-29\" senderEqslAuthGuar=\"A\" sNR=\"-17\" />\n  <receptionReport receiverCallsign=\"IW9GDC\" receiverLocator=\"JM78sd27ub\" senderCallsign=\"UA9QFF\" senderLocator=\"MO25pl52\" frequency=\"28075595\" flowStartSeconds=\"1788692928\" mode=\"FT8\" senderDXCC=\"Asiatic Russia\" senderDXCCCode=\"UA9\" senderDXCCLocator=\"NO25\" senderLotwUpload=\"2026-08-02\" sNR=\"-17\" />\n  <receptionReport receiverCallsign=\"DL1PAB\" receiverLocator=\"JO62qn\" senderCallsign=\"LZ1NB\" senderLocator=\"KN22db77ap\" frequency=\"28075719\" flowStartSeconds=\"1788692924\" mode=\"FT8\" senderDXCC=\"Bulgaria\" senderDXCCCode=\"LZ\" senderDXCCLocator=\"KN22\" sNR=\"-18\" />\n  <receptionReport receiverCallsign=\"EX0DX\" receiverLocator=\"MN72FU\" senderCallsign=\"LZ1NB\" senderLocator=\"KN22db77ap\" frequency=\"28075822\" flowStartSeconds=\"1788692910\" mode=\"FT8\" senderDXCC=\"Bulgaria\" senderDXCCCode=\"LZ\" senderDXCCLocator=\"KN22\" sNR=\"-25\" />\n  <receptionReport receiverCallsign=\"DG1ELE\" receiverLocator=\"JO30fk\" senderCallsign=\"JR1JUR\" senderLocator=\"QM05ep\" frequency=\"28075837\" flowStartSeconds=\"1788692910\" mode=\"FT8\" senderDXCC=\"Japan\" senderDXCCCode=\"JA\" senderDXCCLoca",
+    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"72460762314\"/>\n  <maxFlowStartSeconds value=\"1788692938\"/>\n  <receptionReport receiverCallsign=\"K4YT\" receiverLocator=\"FM19ia62\" senderCallsign=\"N9EP\" senderLocator=\"EN52WE\" frequency=\"50314610\" flowStartSeconds=\"1788692876\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-08-31\" senderEqslAuthGuar=\"A\" sNR=\"-2\" />\n  <receptionReport receiverCallsign=\"K4RCA\" receiverLocator=\"FM06bq63\" senderCallsign=\"N9EP\" senderLocator=\"EN52WE\" frequency=\"50314582\" flowStartSeconds=\"1788692876\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-08-31\" senderEqslAuthGuar=\"A\" sNR=\"9\" />\n  <receptionReport receiverCallsign=\"N8XS\" receiverLocator=\"EM79SI\" senderCallsign=\"N9EP\" senderLocator=\"EN52WE\" frequency=\"50314625\" flowStartSeconds=\"1788692865\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-08-31\" senderEqslAuthGuar=\"A\" sNR=\"7\" />\n  <receptionReport receiverCallsign=\"K1RZ\" receiverLocator=\"FM19JH\" senderCallsign=\"N9EP\" senderLocator=\"EN52WE\" frequency=\"50314621\" flowStartSeconds=\"1788692865\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-08-31\" senderEqslAuthGuar=\"A\" sNR=\"-15\" />\n  <receptionReport receiverCallsign=\"WA4CQG\" receiverLocator=\"EM72FO\" senderCallsign=\"N9EP\" senderLocator=\"EN52WE\" frequen"
+  },
   "nict_findings": {
     "status": "ok",
     "stations": {
       "wakkanai": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.9,
+        "foes_mhz": 9.0,
         "esp_status": "ok"
       },
       "kokubunji": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.5,
+        "foes_mhz": 3.7,
         "esp_status": "ok"
       },
       "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 2.6,
+        "foes_mhz": 2.8,
         "esp_status": "ok"
       },
       "oogimi": {
@@ -32,14 +35,13 @@
   "tropo_status": {
     "status": "ok",
     "errors": [],
-    "fetched_at": 1788672649.4546137,
+    "fetched_at": 1788692943.5010648,
     "index_version": 3,
     "ecmwf": {
       "used": true,
       "error": null,
       "blended_points": 168,
       "blended_hours": 28224
-    },
-    "reused": true
+    }
   }
 }
