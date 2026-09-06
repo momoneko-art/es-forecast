@@ -1,34 +1,31 @@
 {
-  "pskreporter_debug": {
-    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"72478325778\"/>\n  <maxFlowStartSeconds value=\"1788728931\"/>\n  <receptionReport receiverCallsign=\"LU5AEA\" receiverLocator=\"GF05SI\" senderCallsign=\"K1UHF\" senderLocator=\"EM80QD\" frequency=\"28075904\" flowStartSeconds=\"1788728921\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-08-20\" sNR=\"-18\" />\n  <receptionReport receiverCallsign=\"K6CWK\" receiverLocator=\"DM13IF\" senderCallsign=\"K1UHF\" senderLocator=\"EM80QD\" frequency=\"28075828\" flowStartSeconds=\"1788728910\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-08-20\" sNR=\"10\" />\n  <receptionReport receiverCallsign=\"PP2TS\" receiverLocator=\"GH54UB\" senderCallsign=\"KN4MKX\" senderLocator=\"EM97RE\" frequency=\"28076193\" flowStartSeconds=\"1788728895\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-02-18\" senderEqslAuthGuar=\"A\" sNR=\"-11\" />\n  <receptionReport receiverCallsign=\"NB3A\" receiverLocator=\"FM18CR\" senderCallsign=\"PY5LZ\" senderLocator=\"GG55IN\" frequency=\"28074637\" flowStartSeconds=\"1788728895\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" senderEqslAuthGuar=\"A\" sNR=\"-20\" />\n  <receptionReport receiverCallsign=\"LW2HBT\" receiverLocator=\"FF86QT\" senderCallsign=\"W1ROB\" senderLocator=\"DM25\" frequency=\"28075460\" flowStartSeconds=\"1788728894\" mode=\"FT8\" senderDXCC=\"United S",
-    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"72478325778\"/>\n  <maxFlowStartSeconds value=\"1788728931\"/>\n  <receptionReport receiverCallsign=\"KE5HDE\" receiverLocator=\"FN13sb34\" senderCallsign=\"VE3ELL\" senderLocator=\"FN04BH\" frequency=\"50313995\" flowStartSeconds=\"1788728773\" mode=\"FT8\" senderDXCC=\"Canada\" senderDXCCCode=\"VE\" senderDXCCLocator=\"FN04\" senderLotwUpload=\"2026-08-30\" senderEqslAuthGuar=\"A\" sNR=\"-20\" />\n  <receptionReport receiverCallsign=\"K2TER\" receiverLocator=\"FN13GE\" senderCallsign=\"VE3ELL\" senderLocator=\"FN04BH\" frequency=\"50314025\" flowStartSeconds=\"1788728760\" mode=\"FT8\" senderDXCC=\"Canada\" senderDXCCCode=\"VE\" senderDXCCLocator=\"FN04\" senderLotwUpload=\"2026-08-30\" senderEqslAuthGuar=\"A\" sNR=\"-10\" />\n  <receptionReport receiverCallsign=\"VE3NSV\" receiverLocator=\"EN93sj\" senderCallsign=\"VE3ELL\" senderLocator=\"FN04BH\" frequency=\"50314006\" flowStartSeconds=\"1788728760\" mode=\"FT8\" senderDXCC=\"Canada\" senderDXCCCode=\"VE\" senderDXCCLocator=\"FN04\" senderLotwUpload=\"2026-08-30\" senderEqslAuthGuar=\"A\" sNR=\"-15\" />\n  <receptionReport receiverCallsign=\"N8XQM\" receiverLocator=\"EN80XV\" senderCallsign=\"VE3ELL\" senderLocator=\"FN04BH\" frequency=\"50313996\" flowStartSeconds=\"1788728760\" mode=\"FT8\" senderDXCC=\"Canada\" senderDXCCCode=\"VE\" senderDXCCLocator=\"FN04\" senderLotwUpload=\"2026-08-30\" senderEqslAuthGuar=\"A\" sNR=\"-15\" />\n  <receptionReport receiverCallsign=\"K2TER\" receiverLocator=\"FN13GE\" senderCallsign=\"VE3UJK\" senderLocator=\"FN04BP00\" frequency=\"5"
-  },
+  "pskreporter_debug": {},
   "nict_findings": {
     "status": "ok",
     "stations": {
       "wakkanai": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.9,
+        "foes_mhz": 4.7,
         "esp_status": "ok"
       },
       "kokubunji": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 2.6,
+        "foes_mhz": 3.3,
         "esp_status": "ok"
       },
       "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 2.7,
+        "foes_mhz": 3.3,
         "esp_status": "ok"
       },
       "oogimi": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": null,
-        "esp_status": "quiet"
+        "foes_mhz": 3.4,
+        "esp_status": "ok"
       }
     }
   },
