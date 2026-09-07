@@ -4,35 +4,38 @@
     "status": "ok",
     "stations": {
       "wakkanai": {
-        "storm": "Qui.",
+        "storm": "Atn-",
         "dis": "Qui.",
-        "foes_mhz": 4.2,
+        "foes_mhz": 3.9,
         "esp_status": "ok"
       },
       "kokubunji": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 5.6,
+        "foes_mhz": 4.1,
         "esp_status": "ok"
       },
       "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.5,
+        "foes_mhz": 4.6,
         "esp_status": "ok"
       },
       "oogimi": {
         "storm": "Atn-",
         "dis": "Qui.",
-        "foes_mhz": 3.0,
+        "foes_mhz": 4.7,
         "esp_status": "ok"
       }
     }
   },
   "tropo_status": {
-    "status": "ok",
-    "errors": [],
-    "fetched_at": 1788781923.971995,
+    "status": "partial",
+    "errors": [
+      "batch@(42.0, 135.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)",
+      "batch@(44.0, 131.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)"
+    ],
+    "fetched_at": 1788802107.9427922,
     "index_version": 3,
     "ecmwf": {
       "used": true,
