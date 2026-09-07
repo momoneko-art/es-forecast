@@ -1,33 +1,30 @@
 {
-  "pskreporter_debug": {
-    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"72490052323\"/>\n  <maxFlowStartSeconds value=\"1788763082\"/>\n  <receptionReport receiverCallsign=\"HG6WF\" receiverLocator=\"JN97XS\" senderCallsign=\"SV2JAO\" senderLocator=\"KN10dn\" frequency=\"28076274\" flowStartSeconds=\"1788763065\" mode=\"FT8\" senderDXCC=\"Greece\" senderDXCCCode=\"SV\" senderDXCCLocator=\"KM09\" senderLotwUpload=\"2026-09-02\" senderEqslAuthGuar=\"A\" sNR=\"-13\" />\n  <receptionReport receiverCallsign=\"HG6WF\" receiverLocator=\"JN97XS\" senderCallsign=\"S51DD\" senderLocator=\"JN76VL\" frequency=\"28075910\" flowStartSeconds=\"1788763065\" mode=\"FT8\" senderDXCC=\"Slovenia\" senderDXCCCode=\"S5\" senderDXCCLocator=\"JN76\" senderLotwUpload=\"2026-08-27\" senderEqslAuthGuar=\"A\" sNR=\"-13\" />\n  <receptionReport receiverCallsign=\"VK5UW\" receiverLocator=\"PF94GX\" senderCallsign=\"S59MA\" senderLocator=\"JN76FD\" frequency=\"28075273\" flowStartSeconds=\"1788763050\" mode=\"FT8\" senderDXCC=\"Slovenia\" senderDXCCCode=\"S5\" senderDXCCLocator=\"JN76\" senderLotwUpload=\"2026-07-24\" sNR=\"-22\" />\n  <receptionReport receiverCallsign=\"IV3DXW\" receiverLocator=\"JN65qq\" senderCallsign=\"9A8A\" senderLocator=\"JN86dh\" frequency=\"28076498\" flowStartSeconds=\"1788763049\" mode=\"FT8\" senderDXCC=\"Croatia\" senderDXCCCode=\"9A\" senderDXCCLocator=\"JN75\" senderLotwUpload=\"2026-09-04\" senderEqslAuthGuar=\"A\" sNR=\"-18\" />\n  <receptionReport receiverCallsign=\"HB9CQK\" receiverLocator=\"JN47GA\" senderCallsign=\"9A8A\" senderLocator=\"JN86dh\" frequency=\"28076478\" flowStartSeconds=\"1",
-    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"72490053323\"/>\n  <maxFlowStartSeconds value=\"1788763092\"/>\n  <receptionReport receiverCallsign=\"VK2ZPN\" receiverLocator=\"QF55KK\" senderCallsign=\"VK2BIT\" senderLocator=\"QF55HK\" frequency=\"50313966\" flowStartSeconds=\"1788763062\" mode=\"FT8\" senderDXCC=\"Australia\" senderDXCCCode=\"VK\" senderDXCCLocator=\"PG66\" sNR=\"-3\" />\n  <receptionReport receiverCallsign=\"BA7NQ\" receiverLocator=\"OL63na\" senderCallsign=\"BD7IS\" senderLocator=\"OL63pg\" frequency=\"50314344\" flowStartSeconds=\"1788763018\" mode=\"FT8\" senderDXCC=\"China\" senderDXCCCode=\"BY\" senderDXCCLocator=\"OM16\" senderLotwUpload=\"2026-07-30\" sNR=\"-9\" />\n  <receptionReport receiverCallsign=\"JO1WUL\" receiverLocator=\"QM05DT\" senderCallsign=\"JR2UYA\" senderLocator=\"PM95LD\" frequency=\"50314351\" flowStartSeconds=\"1788762975\" mode=\"FT8\" senderDXCC=\"Japan\" senderDXCCCode=\"JA\" senderDXCCLocator=\"PM96\" senderLotwUpload=\"2026-02-18\" senderEqslAuthGuar=\"A\" sNR=\"-17\" />\n  <receptionReport receiverCallsign=\"JH3BUM\" receiverLocator=\"PM75ua\" senderCallsign=\"JR2UYA\" senderLocator=\"PM95LD\" frequency=\"50314360\" flowStartSeconds=\"1788762959\" mode=\"FT8\" senderDXCC=\"Japan\" senderDXCCCode=\"JA\" senderDXCCLocator=\"PM96\" senderLotwUpload=\"2026-02-18\" senderEqslAuthGuar=\"A\" sNR=\"-19\" />\n  <receptionReport receiverCallsign=\"JI1CUL\" receiverLocator=\"PM95ri24\" senderCallsign=\"JR2UYA\" senderLocator=\"PM95LD\" frequency=\"50314375\" flowStartSeconds=\"1788762959\" mode=\"FT8\" senderDXCC=\"Japan\" senderDXCC"
-  },
+  "pskreporter_debug": {},
   "nict_findings": {
     "status": "ok",
     "stations": {
       "wakkanai": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 4.3,
+        "foes_mhz": 4.2,
         "esp_status": "ok"
       },
       "kokubunji": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.0,
+        "foes_mhz": 5.6,
         "esp_status": "ok"
       },
       "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 5.7,
+        "foes_mhz": 3.5,
         "esp_status": "ok"
       },
       "oogimi": {
-        "storm": "Qui.",
+        "storm": "Atn-",
         "dis": "Qui.",
-        "foes_mhz": 5.5,
+        "foes_mhz": 3.0,
         "esp_status": "ok"
       }
     }
@@ -35,14 +32,13 @@
   "tropo_status": {
     "status": "ok",
     "errors": [],
-    "fetched_at": 1788753849.52643,
+    "fetched_at": 1788781923.971995,
     "index_version": 3,
     "ecmwf": {
       "used": true,
       "error": null,
-      "blended_points": 168,
-      "blended_hours": 28224
-    },
-    "reused": true
+      "blended_points": 144,
+      "blended_hours": 24192
+    }
   }
 }
