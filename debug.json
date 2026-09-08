@@ -6,25 +6,25 @@
       "wakkanai": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.8,
+        "foes_mhz": 9.4,
         "esp_status": "ok"
       },
       "kokubunji": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.6,
+        "foes_mhz": 3.0,
         "esp_status": "ok"
       },
       "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 4.1,
+        "foes_mhz": 3.9,
         "esp_status": "ok"
       },
       "oogimi": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 4.5,
+        "foes_mhz": 3.5,
         "esp_status": "ok"
       }
     }
@@ -32,16 +32,16 @@
   "tropo_status": {
     "status": "partial",
     "errors": [
-      "batch@(40.0, 139.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)",
-      "batch@(42.0, 135.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)"
+      "batch@(36.0, 123.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)",
+      "batch@(36.0, 147.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)"
     ],
-    "fetched_at": 1788830364.292916,
+    "fetched_at": 1788848478.350992,
     "index_version": 3,
     "ecmwf": {
       "used": true,
       "error": null,
-      "blended_points": 132,
-      "blended_hours": 22176
+      "blended_points": 120,
+      "blended_hours": 20160
     }
   }
 }
