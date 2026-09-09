@@ -3,28 +3,22 @@
   "nict_findings": {
     "status": "ok",
     "stations": {
-      "wakkanai": {
-        "storm": "Atn-",
-        "dis": "Qui.",
-        "foes_mhz": 4.9,
-        "esp_status": "ok"
-      },
       "kokubunji": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 5.8,
+        "foes_mhz": 9.0,
         "esp_status": "ok"
       },
       "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 6.0,
+        "foes_mhz": 5.3,
         "esp_status": "ok"
       },
       "oogimi": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 4.7,
+        "foes_mhz": 5.0,
         "esp_status": "ok"
       }
     }
@@ -32,19 +26,16 @@
   "tropo_status": {
     "status": "partial",
     "errors": [
-      "batch@(24.0, 123.0): Expecting value: line 1 column 1 (char 0)",
-      "batch@(24.0, 147.0): Expecting value: line 1 column 1 (char 0)",
-      "batch@(26.0, 143.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)",
-      "batch@(28.0, 139.0): Expecting value: line 1 column 1 (char 0)",
-      "batch@(30.0, 135.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)"
+      "batch@(36.0, 147.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)",
+      "batch@(38.0, 143.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)"
     ],
-    "fetched_at": 1788910823.3507469,
+    "fetched_at": 1788917679.1545951,
     "index_version": 3,
     "ecmwf": {
       "used": true,
       "error": null,
-      "blended_points": 72,
-      "blended_hours": 12096
+      "blended_points": 144,
+      "blended_hours": 24192
     }
   }
 }
