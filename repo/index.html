@@ -1,0 +1,1626 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CB'er専用異常伝搬予報システム</title>
+<link rel="icon" type="image/x-icon" href="./favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="./favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+<link rel="manifest" href="./site.webmanifest">
+<meta name="theme-color" content="#0e1520">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CB'er異常伝搬予報">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+  :root{
+    --ink:#182430; --ink-dim:#4c5c6b;
+    --paper:#eef1f4; --panel:#ffffff; --panel-2:#f6f8fa; --line:#d7dde3;
+    --accent:#157d90; --accent-strong:#0f6577; --accent-warm:#c96a12;
+    /* 強い/弱いバッジの色は、全国Es活動分布の配色(緑→黄→橙→赤、0/30/50/80/100)と
+       色相を揃えてある(明度・彩度はバッジとして読みやすい値を維持)。 */
+    --ok:#338f2f; --watch:#a3b31c; --high:#c9892e; --vhigh:#c25d38;
+    /* トロポダクト(UHF)マップは全国Es活動分布とは別の物理現象(電波ダクト)なので、
+       あえて別の色相(青→紫→マゼンタ)にして地図もバッジも一目でEsと区別できるようにしている。 */
+    --tropo-ok:#3a6fa8; --tropo-watch:#5a5fc4; --tropo-high:#8a3fa8; --tropo-vhigh:#b8306f;
+    --shadow: 0 1px 2px rgba(24,36,48,.06), 0 8px 24px -12px rgba(24,36,48,.18);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#e7edf2; --ink-dim:#9fb0bd;
+      --paper:#0e1520; --panel:#161f2a; --panel-2:#1c2733; --line:#293848;
+      --accent:#4fd3e6; --accent-strong:#7fe3f1; --accent-warm:#f0a545;
+      --ok:#4bc366; --watch:#c7e35a; --high:#e3a45a; --vhigh:#f07e5c;
+      --tropo-ok:#7fb2e8; --tropo-watch:#9a9ff0; --tropo-high:#c98ae8; --tropo-vhigh:#e879a8;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.6);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#e7edf2; --ink-dim:#9fb0bd;
+    --paper:#0e1520; --panel:#161f2a; --panel-2:#1c2733; --line:#293848;
+    --accent:#4fd3e6; --accent-strong:#7fe3f1; --accent-warm:#f0a545;
+    --ok:#4bc366; --watch:#c7e35a; --high:#e3a45a; --vhigh:#f07e5c;
+    --tropo-ok:#7fb2e8; --tropo-watch:#9a9ff0; --tropo-high:#c98ae8; --tropo-vhigh:#e879a8;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.6);
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:'Zen Kaku Gothic New', "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:1040px; margin:0 auto; padding:20px 16px 64px; display:flex; flex-direction:column; gap:20px; }
+  .mono{ font-family:'JetBrains Mono', ui-monospace, monospace; font-variant-numeric:tabular-nums; }
+
+  .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .brand{ display:flex; flex-direction:column; gap:2px; }
+  .brand .eyebrow{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-strong); font-weight:700; }
+  .brand h1{ margin:0; font-size:22px; font-weight:900; letter-spacing:.01em; text-wrap:balance; }
+  .clock{ text-align:right; color:var(--ink-dim); font-size:13px; }
+  .clock .time{ font-size:20px; color:var(--ink); font-weight:600; }
+
+  .headline{
+    background:linear-gradient(160deg, var(--panel), var(--panel-2));
+    border:1px solid var(--line); border-radius:16px; padding:20px 22px; box-shadow:var(--shadow);
+    display:flex; gap:20px; align-items:center; flex-wrap:wrap;
+  }
+  .headline-index{ display:flex; flex-direction:column; align-items:flex-start; gap:2px; min-width:140px; }
+  .headline-num-row{ display:flex; align-items:baseline; gap:8px; }
+  .headline-index .num{ font-size:44px; font-weight:800; line-height:1; }
+  .headline-index .place{ font-size:17px; font-weight:700; color:var(--ink-dim); }
+  .headline-index .label{ font-size:12px; color:var(--ink-dim); }
+  .headline-text{ flex:1; min-width:220px; font-size:14.5px; color:var(--ink-dim); }
+  .headline-text b{ color:var(--ink); font-weight:700; }
+
+  .pill{ display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:.02em; border:1px solid transparent; }
+  .pill .dot{ width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .pill.ok{ color:var(--ok); background:color-mix(in srgb, var(--ok) 14%, transparent); }
+  .pill.watch{ color:var(--watch); background:color-mix(in srgb, var(--watch) 16%, transparent); }
+  .pill.high{ color:var(--high); background:color-mix(in srgb, var(--high) 16%, transparent); }
+  .pill.vhigh{ color:var(--vhigh); background:color-mix(in srgb, var(--vhigh) 16%, transparent); }
+  .pill.live{ color:var(--accent-strong); background:color-mix(in srgb, var(--accent) 16%, transparent); }
+  .pill.tropo-ok{ color:var(--tropo-ok); background:color-mix(in srgb, var(--tropo-ok) 14%, transparent); }
+  .pill.tropo-watch{ color:var(--tropo-watch); background:color-mix(in srgb, var(--tropo-watch) 16%, transparent); }
+  .pill.tropo-high{ color:var(--tropo-high); background:color-mix(in srgb, var(--tropo-high) 16%, transparent); }
+  .pill.tropo-vhigh{ color:var(--tropo-vhigh); background:color-mix(in srgb, var(--tropo-vhigh) 16%, transparent); }
+
+  .section-title{ display:flex; align-items:baseline; gap:8px; margin:4px 2px 0; }
+  .section-title h2{ font-size:15px; margin:0; font-weight:700; }
+  .section-title .sub{ font-size:12px; color:var(--ink-dim); }
+
+  .stations{ display:grid; grid-template-columns:repeat(auto-fit, minmax(230px,1fr)); gap:14px; }
+  .station{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px; }
+  .station-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .station-head .name{ font-weight:700; font-size:15px; }
+  .station-head .loc{ font-size:11.5px; color:var(--ink-dim); }
+  .gauge-row{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; row-gap:6px; }
+  .gauge-num{ font-size:30px; font-weight:800; }
+  .gauge-num .unit{ font-size:12px; font-weight:600; color:var(--ink-dim); margin-left:2px; }
+  .trend{ font-size:12.5px; font-weight:700; white-space:nowrap; flex-shrink:0; }
+  .trend.up{ color:var(--accent-warm); }
+  .trend.down{ color:var(--ink-dim); }
+  .trend.flat{ color:var(--ink-dim); }
+  .trend.hot{ color:var(--vhigh); }
+  /* 直近4サイクル分の推移矢印(過去3+現在)。連続で上昇中の時だけ赤(--vhigh)で強調する。 */
+  .trend-hist{ display:inline-flex; gap:1px; font-size:12.5px; font-weight:700; flex-shrink:0; letter-spacing:-1px; }
+  .trend-step{ color:var(--ink-dim); }
+  .trend-step.up{ color:var(--accent-warm); }
+  .trend-step.hot{ color:var(--vhigh); }
+  .clima-note{ font-size:11px; color:var(--ink-dim); }
+  .evidence-row{ display:flex; gap:10px; font-size:11.5px; color:var(--ink-dim); flex-wrap:wrap; }
+  .evidence-row b{ color:var(--ink); font-family:'JetBrains Mono',monospace; }
+  .model-tag{ font-size:10.5px; color:var(--ink-dim); font-family:'JetBrains Mono',monospace; }
+
+  .map-grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; }
+  @media (max-width:860px){ .map-grid-2{ grid-template-columns:1fr; } }
+  .map-panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); }
+  .map-panel h3{ margin:0 0 2px; font-size:14px; font-weight:700; }
+  .map-panel .sub{ font-size:12px; color:var(--ink-dim); margin-bottom:10px; display:block; }
+  .map-wrap{ position:relative; }
+  /* Japan's coastline bbox is roughly 20.7deg(lon,cos-adjusted) x 21.3deg(lat) - close to
+     square - so an aspect-ratio box (instead of a fixed height) lets the map fill its
+     column edge-to-edge with no wasted side padding, at any column width. */
+  #japan-heatmap, #self-chance-map, #tropo-map{ width:100%; height:auto; aspect-ratio:207/213; display:block; cursor:crosshair; max-height:640px; }
+  .map-panel .panel-head{ display:flex; flex-direction:column; align-items:flex-start; gap:6px; margin-bottom:2px; }
+  .map-panel .panel-head h3{ margin:0; }
+  .tropo-time-row{ display:flex; flex-direction:column; gap:6px; margin:10px 0 12px; }
+  .tropo-time-label{ font-size:13px; font-weight:700; color:var(--ink); }
+  .tropo-time-slider{ width:100%; accent-color: var(--tropo-high); }
+  .tropo-time-quick{ display:flex; gap:6px; flex-wrap:wrap; }
+  .time-btn{ font:inherit; font-size:11.5px; padding:5px 10px; border-radius:999px; border:1px solid var(--line); background:var(--panel-2); color:var(--ink-dim); cursor:pointer; transition:border-color .15s ease, color .15s ease; }
+  .time-btn:hover{ border-color:var(--tropo-high); color:var(--tropo-high); }
+  .time-btn.active{ border-color:var(--tropo-high); color:var(--tropo-high); background:color-mix(in srgb, var(--tropo-high) 12%, transparent); font-weight:700; }
+  .time-btn.play-btn{ width:30px; height:30px; padding:0; display:inline-flex; align-items:center; justify-content:center; font-size:13px; margin-left:2px; }
+  .time-btn.play-btn.active{ border-color:var(--tropo-high); color:var(--tropo-high); background:color-mix(in srgb, var(--tropo-high) 12%, transparent); }
+  .map-tooltip{
+    position:absolute; pointer-events:none; display:none; z-index:2;
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:6px 9px; font-size:11.5px; color:var(--ink); box-shadow:var(--shadow);
+    transform:translate(-50%,-115%); white-space:nowrap;
+  }
+  .map-tooltip b{ font-family:'JetBrains Mono',monospace; }
+  /* スマホだと浮動ツールチップ(タップ位置に追従)が画面外にはみ出て見づらく
+     なるため、トロポマップだけは地図の上に常に同じ位置で表示する固定の
+     読み取りバーにしている(2026-09-03、ユーザーからのフィードバックで変更)。 */
+  .tropo-readout{
+    margin:0 0 8px; padding:8px 10px; border-radius:8px;
+    background:var(--panel-2); border:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-dim); text-align:center;
+  }
+  .tropo-readout b{ color:var(--ink); font-family:'JetBrains Mono',monospace; }
+  .map-legend{ display:flex; align-items:center; gap:8px; margin-top:10px; font-size:11px; color:var(--ink-dim); }
+  .map-legend .bar{ flex:1; height:10px; border-radius:5px; }
+  .map-loading{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12.5px; color:var(--ink-dim); }
+
+  .path-panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); }
+  .path-panel h3{ margin:0 0 2px; font-size:14px; font-weight:700; }
+  .path-panel .sub{ font-size:12px; color:var(--ink-dim); margin-bottom:10px; display:block; }
+  .qth-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  .qth-row label{ font-size:12.5px; color:var(--ink-dim); }
+  .qth-select{ font:inherit; font-size:13.5px; padding:7px 10px; border-radius:9px; border:1px solid var(--line); background:var(--panel-2); color:var(--ink); }
+  .path-cards{ display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:10px; }
+  .path-card{ background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:11px 12px; display:flex; flex-direction:column; gap:6px; }
+  .path-card .city{ font-weight:700; font-size:13.5px; }
+  .path-card .dir{ font-size:11.5px; color:var(--ink-dim); font-family:'JetBrains Mono',monospace; }
+  .path-card .val{ font-size:22px; font-weight:800; }
+  .path-card .val .unit{ font-size:11px; font-weight:600; color:var(--ink-dim); margin-left:2px; }
+  .path-card .note{ font-size:10.5px; color:var(--ink-dim); }
+  .path-empty{ font-size:12.5px; color:var(--ink-dim); padding:6px 2px; }
+
+  .contacts-panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); }
+  .contacts-panel h3{ margin:0 0 2px; font-size:14px; font-weight:700; }
+  .contacts-panel .sub{ font-size:12px; color:var(--ink-dim); margin-bottom:10px; display:block; }
+  .contacts-cols{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:640px){ .contacts-cols{ grid-template-columns:1fr; } }
+  .contacts-col h4{ margin:0 0 8px; font-size:12.5px; font-weight:700; color:var(--ink-dim); }
+  .contacts-stat{ font-size:11.5px; color:var(--ink-dim); margin-bottom:8px; }
+  .contacts-stat b{ color:var(--ink); font-family:'JetBrains Mono',monospace; }
+  .contact-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 9px; border:1px solid var(--line); border-radius:9px; background:var(--panel-2); font-size:12px; margin-bottom:6px; }
+  .contact-row .calls{ font-family:'JetBrains Mono',monospace; font-weight:600; }
+  .contact-row .dist{ font-family:'JetBrains Mono',monospace; color:var(--accent-strong); font-weight:700; white-space:nowrap; }
+
+  .grid-2{ display:grid; grid-template-columns:1.3fr 1fr; gap:14px; }
+  @media (max-width:720px){ .grid-2{ grid-template-columns:1fr; } }
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:var(--shadow); }
+  .panel h3{ margin:0 0 4px; font-size:14px; font-weight:700; }
+  .kp-current{ display:flex; align-items:baseline; gap:8px; margin:8px 0 4px; }
+  .kp-current .num{ font-size:32px; font-weight:800; }
+  .kp-current .lbl{ font-size:12px; color:var(--ink-dim); }
+  .updated{ font-size:11.5px; color:var(--ink-dim); margin-top:6px; }
+
+  .links{ display:flex; flex-direction:column; gap:8px; }
+  .link-item{ display:flex; align-items:center; justify-content:space-between; padding:9px 11px; border:1px solid var(--line); border-radius:10px; text-decoration:none; color:var(--ink); background:var(--panel-2); font-size:13px; transition:border-color .15s ease; }
+  .link-item:hover{ border-color:var(--accent); }
+  .link-item .go{ color:var(--accent-strong); font-family:'JetBrains Mono',monospace; font-size:12px; }
+
+  .method{ background:var(--panel-2); border:1px dashed var(--line); border-radius:12px; padding:14px 16px; font-size:12.5px; color:var(--ink-dim); }
+  .method h3{ margin:0 0 6px; font-size:12.5px; color:var(--ink); font-weight:700; letter-spacing:.02em; }
+  .method ul{ margin:6px 0 0; padding-left:18px; }
+  .method li{ margin:3px 0; }
+  footer{ text-align:center; font-size:11.5px; color:var(--ink-dim); padding-top:8px; }
+  a{ color:var(--accent-strong); }
+  .err{ font-size:12.5px; color:var(--vhigh); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="eyebrow">Es Forecast &middot; GitHub Actions実データ版</span>
+      <h1>CB'er専用異常伝搬予報システム</h1>
+    </div>
+    <div class="clock">
+      <div><span id="clock-date"></span></div>
+      <div class="time mono" id="clock-time">--:--:--</div>
+    </div>
+  </div>
+
+  <div class="headline" id="headline-card">
+    <div class="headline-index">
+      <div class="headline-num-row">
+        <span class="num mono" id="headline-num">--</span>
+        <span class="place" id="headline-place"></span>
+      </div>
+      <span class="label">全国最高値エリアの活動指数</span>
+      <span class="pill ok" id="headline-pill"><span class="dot"></span>読込中</span>
+      <span id="headline-trend"></span>
+    </div>
+    <div class="headline-text" id="headline-text">データを取得しています…</div>
+  </div>
+
+  <div class="path-panel" id="status-panel" style="padding:10px 16px;">
+    <span class="sub" style="margin-right:8px;">データ取得状況:</span>
+    <span id="status-pills" style="display:inline-flex; gap:6px; flex-wrap:wrap; vertical-align:middle;"></span>
+  </div>
+
+  <div>
+    <div class="section-title">
+      <h2>観測4地点の Es 活動指数</h2>
+      <span class="sub">NICT実測foEs + PSKReporter実伝播データ（15分毎更新）+ 季節・時刻統計 のハイブリッド指数</span>
+    </div>
+    <div class="stations" id="station-grid"></div>
+  </div>
+
+  <div class="path-panel" id="qth-panel">
+    <h3>自局(送信地点)を登録</h3>
+    <span class="sub">登録すると、下の「自局Es交信チャンスマップ」と「自局Es交信チャンス」に反映されます。この選択はお使いの端末・ブラウザごとに保存されるため、スマホとPCなど複数の端末で見る場合はそれぞれで一度選択してください。</span>
+    <div class="qth-row" style="margin-bottom:0;">
+      <label for="qth-select">自局(送信地点):</label>
+      <select class="qth-select" id="qth-select">
+        <option value="">選択してください</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="path-panel">
+    <h3>自局Es交信チャンス</h3>
+    <span class="sub">自局と主要都市を結ぶパスの中間地点(Esが実際に反射する場所)の活動指数から算出。単発ホップの目安は概ね500〜2400km。</span>
+    <div class="path-cards" id="path-cards"></div>
+  </div>
+
+  <div class="map-grid-2">
+    <div class="map-panel">
+      <h3>全国Es活動分布</h3>
+      <span class="sub">気候学モデルを緯度方向に空間補間し、PSKReporter全受信局の位置とNICT実測foEsをガウスカーネルで重ね合わせた全国推定分布</span>
+      <div class="map-wrap">
+        <canvas id="japan-heatmap"></canvas>
+        <div class="map-tooltip" id="map-tooltip"></div>
+        <div class="map-loading" id="map-loading">地図データを読み込んでいます…</div>
+      </div>
+      <div class="map-legend">
+        <span id="map-legend-min">0</span>
+        <div class="bar" id="map-legend-bar"></div>
+        <span id="map-legend-max">100</span>
+      </div>
+      <span class="sub" style="margin:6px 0 0;">色は0〜100の固定スケール(弱=緑 → やや強=黄 → 強=橙 → 非常に強=赤、30/50/80が色の変わり目)。現在の全国実測範囲: <strong id="map-legend-current">-</strong>。地図にマウスを合わせると地点ごとの数値も見られます。<br><strong>数値の目安:</strong> 30超で11m/CBが開け始めるかも、<strong>50超で交信の可能性が高まる本命ゾーン</strong>、80超は非常に強い開け(foEs実測との対応関係あり、詳しくは開発メモ参照)。</span>
+    </div>
+
+    <div class="map-panel" id="self-chance-map-panel">
+      <h3>自局Es交信チャンスマップ</h3>
+      <span class="sub">自局から各地点までを結ぶ経路の中間地点(Esの反射点)の活動指数に、単発ホップの目安(概ね500〜2400km)から外れる距離ほど薄くなる補正をかけた地図。色が濃い場所ほど今この瞬間、自局から交信が届きやすい可能性が高いエリアです。</span>
+      <div class="path-empty" id="self-chance-empty">上の「自局(送信地点)を登録」で選択すると、方角ごとの見込みが地図で表示されます。</div>
+      <div id="self-chance-wrap" style="display:none;">
+        <div class="map-wrap">
+          <canvas id="self-chance-map"></canvas>
+          <div class="map-tooltip" id="self-chance-tooltip"></div>
+        </div>
+        <div class="map-legend">
+          <span>0</span>
+          <div class="bar" id="self-chance-legend-bar"></div>
+          <span>100</span>
+        </div>
+        <span class="sub" style="margin:6px 0 0;">配色は全国Es活動分布と同じ0〜100固定スケール。現在の自局から見た範囲: <strong id="self-chance-legend-current">-</strong>。白丸=主要都市の位置、大きな丸=自局。</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="map-panel" id="tropo-map-panel">
+    <div class="panel-head">
+      <h3>VHF/UHFトロポダクト予報(今後7日間)</h3>
+      <span class="pill" id="tropo-badge"><span class="dot"></span>読込中</span>
+    </div>
+    <span class="sub">GFSモデル(気象庁も採用する主要モデルの一つ)由来の気温・湿度・高度データから大気の屈折率(M値)の高度勾配を計算し、電波が上空に逃げずに地表付近を伝わる「ラジオダクト」が起きやすい場所を推定した地図(2026-09-03からECMWF(欧州中期予報センター)モデルも併用し、2モデルの平均で精度を高めています)。140MHz帯・351MHz帯・420MHz帯など市民ラジオのVHF/UHF機で通常より遠距離が入感しやすいエリアの目安です(周波数が高いほどダクトの影響を受けやすい傾向)。海上でもダクトは発生する(むしろ海上のほうが起きやすいことも多い)ため、地図は日本列島の輪郭で切り取らず、海上を含む格子全体を着色しています。下のスライダーで1時間刻み・最大7日先まで予報を切り替えられます。</span>
+    <div class="tropo-time-row">
+      <div class="tropo-time-label" id="tropo-time-label">読込中…</div>
+      <input type="range" class="tropo-time-slider" id="tropo-time-slider" min="0" max="0" value="0" step="1" disabled>
+      <div class="tropo-time-quick">
+        <button type="button" class="time-btn" data-jump="now">現在</button>
+        <button type="button" class="time-btn" data-jump="1">+1日</button>
+        <button type="button" class="time-btn" data-jump="3">+3日</button>
+        <button type="button" class="time-btn" data-jump="5">+5日</button>
+        <button type="button" class="time-btn" data-jump="7">+7日</button>
+        <button type="button" class="time-btn play-btn" id="tropo-play-rev-btn" aria-label="逆再生" title="時間を自動で戻す(良いタイミングを行き過ぎた時に押すと戻せます)">◀</button>
+        <button type="button" class="time-btn play-btn" id="tropo-play-btn" aria-label="自動再生" title="時間を自動で進める(地図をタップすると一時停止して数値を確認できます)">▶</button>
+      </div>
+    </div>
+    <div class="tropo-readout" id="tropo-readout">地図をタップ/クリックすると、その地点のダクト指数がここに表示されます</div>
+    <div class="map-wrap">
+      <canvas id="tropo-map"></canvas>
+    </div>
+    <div class="map-legend">
+      <span>0</span>
+      <div class="bar" id="tropo-legend-bar"></div>
+      <span>100</span>
+    </div>
+    <span class="sub" style="margin:6px 0 0;">色は0(標準的な大気=ダクトなし)〜100(強いダクト発生の可能性)の固定スケール。Esのヒートマップと同じ配色(緑→黄→橙→赤)にしています。格子は約2度間隔とEsの地図より粗めです。<span id="tropo-status-note"></span><br><strong>数値の目安:</strong> 15未満はダクトなし、15〜35はやや増強(まだ本物のダクトではない)、<strong>35超で実際のダクト(トラッピング層)が発生し始め</strong>、60超は強い開けが期待できるレベル(あくまで簡易的な工学スケールで、正確な伝搬損失予測ではありません)。</span>
+  </div>
+
+  <div class="contacts-panel">
+    <h3>直近の遠距離伝搬レポート(FT8)</h3>
+    <span class="sub">受信局・送信局の両方のグリッドロケーターが分かる報告だけを距離順に表示。数百km以上ならEs等のスカイウェーブが実際に効いている証拠です。</span>
+    <div class="contacts-cols" id="contacts-cols"></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h3>宇宙天気（NOAA SWPC 実測+予報）</h3>
+      <div class="kp-current">
+        <span class="num mono" id="kp-num">--</span>
+        <span class="lbl">Kp指数</span>
+      </div>
+      <canvas id="kp-chart" style="width:100%;height:80px;display:block;"></canvas>
+      <div class="updated" id="kp-updated">データ取得待ち</div>
+      <div class="updated" id="kp-forecast-note"></div>
+    </div>
+    <div class="panel">
+      <h3>一次情報へのリンク</h3>
+      <div class="sub" style="font-size:11.5px; color:var(--ink-dim); margin:2px 0 10px; display:block;">当サイトの計算に実際に使っているデータ元と、見比べ用の参考リンクを分けて表示しています。</div>
+      <div class="sub" style="font-size:11.5px; font-weight:700; color:var(--ink-dim); margin:0 0 6px;">▸ 実際に使用しているデータ元</div>
+      <div class="links">
+        <a class="link-item" href="https://wdc.nict.go.jp/Ionosphere/realtime/ISDJ/ionospheric-signal-i.html" target="_blank" rel="noopener"><span>NICT 電離圏概況(foEs実測値・当サイトのデータ元)</span><span class="go">開く →</span></a>
+        <a class="link-item" href="https://pskreporter.info/pskmap.html" target="_blank" rel="noopener"><span>PSKReporter 実伝播マップ(FT8等)</span><span class="go">開く →</span></a>
+        <a class="link-item" href="https://www.spaceweather.gov/products/planetary-k-index" target="_blank" rel="noopener"><span>NOAA SWPC 惑星間Kp指数</span><span class="go">開く →</span></a>
+        <a class="link-item" href="https://open-meteo.com/" target="_blank" rel="noopener"><span>Open-Meteo(GFS+ECMWF、ダクト予報のデータ元)</span><span class="go">開く →</span></a>
+      </div>
+      <div class="sub" style="font-size:11.5px; font-weight:700; color:var(--ink-dim); margin:14px 0 6px;">▸ 予備データ元(NICT取得失敗時のみ使用)</div>
+      <div class="links">
+        <a class="link-item" href="https://prop.kc2g.com/" target="_blank" rel="noopener"><span>kc2g.com 電離層観測(GIRO/DIDBase集約)</span><span class="go">開く →</span></a>
+      </div>
+      <div class="sub" style="font-size:11.5px; font-weight:700; color:var(--ink-dim); margin:14px 0 6px;">▸ 記録のみ・まだ予報には未反映(実験中)</div>
+      <div class="links">
+        <a class="link-item" href="https://www.swpc.noaa.gov/phenomena/f107-cm-radio-emissions" target="_blank" rel="noopener"><span>NOAA SWPC 太陽電波束F10.7</span><span class="go">開く →</span></a>
+      </div>
+      <div class="sub" style="font-size:11.5px; font-weight:700; color:var(--ink-dim); margin:14px 0 6px;">▸ 参考リンク(当サイトのデータには未使用)</div>
+      <div class="links">
+        <a class="link-item" href="https://swc.nict.go.jp/trend/es.html" target="_blank" rel="noopener"><span>NICT 電離圏擾乱リアルタイム(Esグラフ)</span><span class="go">開く →</span></a>
+        <a class="link-item" href="https://wdc.nict.go.jp/Ionosphere/realtime/latest-fxEs.html" target="_blank" rel="noopener"><span>NICT イオノゾンデ 最新2時間</span><span class="go">開く →</span></a>
+        <a class="link-item" href="https://www.dxinfocentre.com/tropo_eas.html" target="_blank" rel="noopener"><span>DX Info Centre トロポダクト予報(Far East、比較用)</span><span class="go">開く →</span></a>
+      </div>
+    </div>
+  </div>
+
+  <div class="method" id="method-box">
+    <h3>このシステムの仕組み</h3>
+    <ul>
+      <li>GitHub Actionsが15分ごとにPSKReporter(FT8実伝播データ・10m/6m帯)とNOAA宇宙天気(Kp指数)を実測取得し、このリポジトリに書き戻しています。</li>
+      <li>各地点の指数は「季節・時刻の統計モデル(気候学的ベースライン)」に「実際のFT8伝播観測(=Esで短距離オープンした証拠)」を上乗せして算出しています。実伝播が観測できた時間帯ほど数値の信頼度が上がります。</li>
+      <li>データが十分に蓄積されると(目安60サンプル=15時間分)、Ridge回帰モデルが自動学習され、統計的な「通常より多い/少ない」を判定に使うようになります。<span id="model-status"></span></li>
+      <li>NICTのイオノゾンデ実測値（各地点のfoEs＝E層臨界周波数、15分更新）が取得できた場合は最優先の証拠として扱い、PSKReporterの実伝播報告と合わせて指数を押し上げます。取得できない時間帯は統計モデルとPSKReporterのみで代替します。最終確認は必ず上記リンクの公式データで行ってください。</li>
+      <li>NOAAの3日先までのKp"予報"も取得しており、稚内(オーロラ帯に近い高緯度局)については、実測Kpがまだ上がっていなくても向こう24時間以内に地磁気嵐の到来が予報されていれば、それを見込んで指数を先行して押し上げます(カードに「地磁気嵐接近中(予報)」バッジが出ます)。中低緯度の3局はこの予報の影響をほぼ受けません(オーロラ性Esとの関連が薄いため)。</li>
+    </ul>
+  </div>
+
+  <footer>CB'er専用異常伝搬予報システム &middot; EDFSの構成を参考にした個人プロジェクト &middot; <span id="footer-updated"></span></footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  function jstParts(date){
+    var fmt = new Intl.DateTimeFormat('en-US', { timeZone:'Asia/Tokyo', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
+    var parts = {}; fmt.formatToParts(date).forEach(function(p){ parts[p.type] = p.value; });
+    return { y:+parts.year, mo:+parts.month, d:+parts.day, h:+parts.hour%24, mi:+parts.minute, s:+parts.second };
+  }
+
+  function tickClock(){
+    var p = jstParts(new Date());
+    var wk = ['日','月','火','水','木','金','土'][new Date(Date.UTC(p.y,p.mo-1,p.d)).getUTCDay()];
+    document.getElementById('clock-date').textContent = p.y+'年'+p.mo+'月'+p.d+'日（'+wk+'）JST';
+    document.getElementById('clock-time').textContent = String(p.h).padStart(2,'0')+':'+String(p.mi).padStart(2,'0')+':'+String(p.s).padStart(2,'0');
+  }
+
+  var TREND_ARROWS = {up:'&#8593;', down:'&#8595;', flat:'&#8594;'};
+  var TREND_LABELS = {up:'上昇中', down:'下降中', flat:'横ばい'};
+
+  // 直近(最大4サイクル=約1時間分)の推移を「過去3つ→現在」の矢印で並べて表示。
+  // 直近2ステップが連続で上昇なら「上昇中」を赤(--vhigh)で強調する。
+  function trendHtml(s){
+    if(!s) return '';
+    var hist = s.trend_history || [];
+    var sustainedUp = hist.length >= 2 && hist[hist.length-1] === 'up' && hist[hist.length-2] === 'up';
+
+    var histHtml = '';
+    if(hist.length){
+      histHtml = '<span class="trend-hist" title="直近'+hist.length+'サイクル(約15分毎)の推移: 過去'+(hist.length-1)+'つ→現在">' +
+        hist.map(function(t){
+          var hot = sustainedUp && t === 'up';
+          return '<span class="trend-step '+t+(hot?' hot':'')+'">'+(TREND_ARROWS[t]||'?')+'</span>';
+        }).join('') + '</span> ';
+    }
+
+    if(s.trend == null || s.trend === 'unknown') return histHtml;
+    var arrow = TREND_ARROWS[s.trend]; var label = TREND_LABELS[s.trend];
+    if(!arrow) return histHtml;
+    var deltaTxt = (s.trend_delta != null) ? ' ('+(s.trend_delta>0?'+':'')+s.trend_delta+')' : '';
+    var curCls = 'trend '+s.trend+(sustainedUp ? ' hot' : '');
+    return histHtml + '<span class="'+curCls+'" title="前回(約15分前)比'+deltaTxt+'">'+arrow+' '+label+'</span>';
+  }
+
+  // しきい値(30/50/80)は全国Es活動分布ヒートマップの色の変わり目と揃えている。
+  function statusOf(v){
+    if(v>=80) return {cls:'vhigh', label:'非常に高い'};
+    if(v>=50) return {cls:'high',  label:'高い'};
+    if(v>=30) return {cls:'watch', label:'中程度'};
+    return {cls:'ok', label:'低い'};
+  }
+
+  function drawKpChart(canvas, points, accentColor){
+    var dpr = window.devicePixelRatio || 1;
+    var w = canvas.clientWidth, h = canvas.clientHeight || 80;
+    canvas.width = w*dpr; canvas.height = h*dpr;
+    var ctx = canvas.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,w,h);
+    if(!points.length) return;
+    var max=9, min=0, n=points.length, pad=6;
+    function X(i){ return n<=1 ? w/2 : pad + (w-2*pad)*(i/(n-1)); }
+    function Y(v){ return h-6 - (h-16)*((v-min)/(max-min)); }
+    ctx.strokeStyle = cssVar('--line'); ctx.lineWidth=1;
+    [0,3,5,7,9].forEach(function(v){ var gy=Y(v); ctx.beginPath(); ctx.moveTo(pad,gy); ctx.lineTo(w-pad,gy); ctx.stroke(); });
+    if(n>1){
+      ctx.beginPath(); ctx.moveTo(X(0), Y(points[0].kp));
+      for(var i=1;i<n;i++) ctx.lineTo(X(i), Y(points[i].kp));
+      ctx.strokeStyle = accentColor; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.stroke();
+    }
+    var last = points[n-1];
+    ctx.beginPath(); ctx.arc(X(n-1), Y(last.kp), 3.4, 0, Math.PI*2); ctx.fillStyle = accentColor; ctx.fill();
+  }
+
+  // ---------------------------------------------------------------------
+  // Nationwide heatmap (spatial interpolation of climatology + evidence)
+  // ---------------------------------------------------------------------
+
+  var coastline = null;      // {rings, lonMin, lonMax, latMin, latMax}
+  var lastHeatmapData = null; // full data.json payload, kept for redraws (e.g. after coastline finishes loading)
+  var mapProj = null;         // current projector info, used by the hover tooltip
+
+  // Es活動指数(0-100)は絶対値として意味を持つ(50を超えたら要注目、80を超えたら強い、
+  // というふうに閾値で判断するため)。よって色は「今この瞬間の全国最小〜最大」に合わせて
+  // 伸縮させず、常に0〜100の固定スケールで塗る。弱(緑)→やや強(黄)→強(橙)→非常に強(赤)の
+  // 4色相を、しきい値30/50/80で継ぎ目を作って配置。0〜30(平常時によく出る範囲)にも
+  // 独自の区間を割り当てているので、静かな時間帯でも地域差がきちんと色の濃淡で見える。
+  // 彩度を少し抑えた色にして、地図全体がケバケバしく/バラバラに見えないようにしている。
+  // 2026-09-10: ユーザー希望により「交信の可能性が出始める強度=黄色(50%)、
+  // その先はオレンジを経て、確実に交信できると思われる強度=赤(70%以上)」という
+  // 運用上の目安に合わせてしきい値を50(黄)/60(橙)/70(赤)に再設定。
+  var HEAT_STOPS_LIGHT = [
+    [0.00, [205,232,204]], [0.30, [143,199,140]], [0.50, [235,196,88]],
+    [0.60, [240,150,50]],  [0.70, [250,20,15]],   [1.00, [255,0,4]]
+  ];
+  // ダークモードの0(平常値なし)は、以前は暗い緑([40,68,48])で塗っていたため
+  // マップパネルの紺色の背景(--panel:#161f2a)から独立した色面として浮いて見えていた。
+  // 2026-09-02: ユーザー指摘によりパネル背景色そのものに揃え、活動が無い/弱い区域が
+  // 背景に自然に溶け込むようにした(値が上がるほど緑→黄→橙→赤へ変化するのは変更なし)。
+  var HEAT_STOPS_DARK = [
+    [0.00, [22,31,42]], [0.30, [68,120,78]], [0.50, [176,148,72]],
+    [0.60, [215,120,55]], [0.70, [252,45,35]], [1.00, [255,20,15]]
+  ];
+
+  // トロポダクト指数(0-100)も、ユーザーの希望によりEsヒートマップと同じ緑→黄→橙→赤の
+  // 配色に統一(2026-09-02)。以前は青→紫→マゼンタでEsマップと見分けやすくしていたが、
+  // 「同じ色使いの方が分かりやすい」とのフィードバックを受けて変更。両マップの区別は
+  // パネルの見出し(「全国Es活動分布」/「ダクト予報」)で付く。
+  var TROPO_STOPS_LIGHT = HEAT_STOPS_LIGHT;
+  var TROPO_STOPS_DARK = HEAT_STOPS_DARK;
+
+  function isDarkMode(){
+    var root = document.documentElement;
+    var t = root.getAttribute('data-theme');
+    if(t === 'dark') return true;
+    if(t === 'light') return false;
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+
+  function lerpColor(stops, t){
+    t = Math.max(0, Math.min(1, t));
+    for(var i=1;i<stops.length;i++){
+      if(t <= stops[i][0]){
+        var a = stops[i-1], b = stops[i];
+        var span = b[0]-a[0];
+        var k = span ? (t-a[0])/span : 0;
+        var c = [0,1,2].map(function(ch){ return Math.round(a[1][ch] + (b[1][ch]-a[1][ch])*k); });
+        return 'rgb('+c[0]+','+c[1]+','+c[2]+')';
+      }
+    }
+    var last = stops[stops.length-1][1];
+    return 'rgb('+last[0]+','+last[1]+','+last[2]+')';
+  }
+
+  // currentRange is informational only (shown next to the legend so you can see
+  // "today's actual span" at a glance) - it no longer drives the coloring itself.
+  var currentRange = {min: null, max: null};
+
+  function updateCurrentRange(hm){
+    if(!hm || !hm.values || !hm.values.length){ return; }
+    var lo = Infinity, hi = -Infinity;
+    for(var r=0; r<hm.values.length; r++){
+      for(var c=0; c<hm.values[r].length; c++){
+        var v = hm.values[r][c];
+        if(v < lo) lo = v;
+        if(v > hi) hi = v;
+      }
+    }
+    if(!isFinite(lo) || !isFinite(hi)) return;
+    currentRange = {min: lo, max: hi};
+  }
+
+  function valueToColor(v){
+    var t = Math.max(0, Math.min(100, v)) / 100;
+    return lerpColor(isDarkMode() ? HEAT_STOPS_DARK : HEAT_STOPS_LIGHT, t);
+  }
+
+  function setLegendGradient(){
+    var samples = [];
+    for(var i=0;i<=10;i++){
+      samples.push(valueToColor(i*10) + ' ' + (i*10) + '%');
+    }
+    var bar = document.getElementById('map-legend-bar');
+    if(bar) bar.style.background = 'linear-gradient(90deg, '+samples.join(', ')+')';
+    var curEl = document.getElementById('map-legend-current');
+    if(curEl){
+      curEl.textContent = (currentRange.min != null)
+        ? Math.round(currentRange.min) + '〜' + Math.round(currentRange.max)
+        : '-';
+    }
+  }
+
+  function valueToTropoColor(v){
+    var t = Math.max(0, Math.min(100, v)) / 100;
+    return lerpColor(isDarkMode() ? TROPO_STOPS_DARK : TROPO_STOPS_LIGHT, t);
+  }
+
+  function setTropoLegendGradient(){
+    var samples = [];
+    for(var i=0;i<=10;i++){ samples.push(valueToTropoColor(i*10) + ' ' + (i*10) + '%'); }
+    var bar = document.getElementById('tropo-legend-bar');
+    if(bar) bar.style.background = 'linear-gradient(90deg, '+samples.join(', ')+')';
+  }
+
+  // fetch_tropo.pyのidxスケール(0=標準大気, 20〜40=境界域, 40〜100=真のダクト)に合わせた
+  // しきい値。Esのバッジ(30/50/80)とは意味が異なるので数値・ラベルとも別建てにしている。
+  function tropoStatusOf(v){
+    if(v>=60) return {cls:'tropo-vhigh', label:'ダクト発生中'};
+    if(v>=35) return {cls:'tropo-high',  label:'ダクト発生の可能性'};
+    if(v>=15) return {cls:'tropo-watch', label:'やや増強'};
+    return {cls:'tropo-ok', label:'標準大気'};
+  }
+
+  function loadCoastline(){
+    return fetch('./japan_coastline.json', {cache:'force-cache'})
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(d){
+        var lonMin=Infinity, lonMax=-Infinity, latMin=Infinity, latMax=-Infinity;
+        d.rings.forEach(function(ring){
+          ring.forEach(function(p){
+            if(p[0]<lonMin) lonMin=p[0]; if(p[0]>lonMax) lonMax=p[0];
+            if(p[1]<latMin) latMin=p[1]; if(p[1]>latMax) latMax=p[1];
+          });
+        });
+        coastline = {rings:d.rings, lonMin:lonMin, lonMax:lonMax, latMin:latMin, latMax:latMax};
+        var loading = document.getElementById('map-loading');
+        if(loading) loading.style.display = 'none';
+      })
+      .catch(function(){
+        var loading = document.getElementById('map-loading');
+        if(loading) loading.textContent = '地図データの読み込みに失敗しました';
+      });
+  }
+
+  function makeProjector(bbox, w, h, pad){
+    var latMid = (bbox.latMin+bbox.latMax)/2;
+    var cosLat = Math.cos(latMid*Math.PI/180);
+    var lonSpan = (bbox.lonMax-bbox.lonMin)*cosLat;
+    var latSpan = (bbox.latMax-bbox.latMin);
+    var innerW = w-2*pad, innerH = h-2*pad;
+    var scale = Math.min(innerW/lonSpan, innerH/latSpan);
+    var usedW = lonSpan*scale, usedH = latSpan*scale;
+    var offX = pad + (innerW-usedW)/2;
+    var offY = pad + (innerH-usedH)/2;
+    return {
+      cosLat:cosLat, scale:scale, offX:offX, offY:offY, bbox:bbox,
+      toXY: function(lat, lon){
+        return [offX + (lon-bbox.lonMin)*cosLat*scale, offY + (bbox.latMax-lat)*scale];
+      },
+      toLatLon: function(x, y){
+        return [bbox.latMax - (y-offY)/scale, bbox.lonMin + (x-offX)/(cosLat*scale)];
+      }
+    };
+  }
+
+  function drawJapanHeatmap(data){
+    lastHeatmapData = data;
+    // Deferring two animation frames guarantees a full layout pass has
+    // completed before we measure the canvas - matters most right after a
+    // viewport-width change (e.g. iOS Safari's "Request Desktop Website"),
+    // where clientWidth/clientHeight can otherwise be briefly stale and draw
+    // the map at the wrong size/position.
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ renderJapanHeatmapCanvas(data); }); });
+  }
+
+  function renderJapanHeatmapCanvas(data){
+    var canvas = document.getElementById('japan-heatmap');
+    if(!canvas || !coastline) return;
+    var dpr = window.devicePixelRatio || 1;
+    var w = canvas.clientWidth, h = canvas.clientHeight || 440;
+    canvas.width = w*dpr; canvas.height = h*dpr;
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+
+    var proj = makeProjector(coastline, w, h, 14);
+    mapProj = proj;
+
+    var path = new Path2D();
+    coastline.rings.forEach(function(ring){
+      ring.forEach(function(p, i){
+        var xy = proj.toXY(p[1], p[0]);
+        if(i===0) path.moveTo(xy[0], xy[1]); else path.lineTo(xy[0], xy[1]);
+      });
+      path.closePath();
+    });
+
+    var hm = data.heatmap;
+    updateCurrentRange(hm);
+    if(hm && hm.values && hm.values.length){
+      ctx.save();
+      ctx.clip(path);
+      for(var ri=0; ri<hm.rows; ri++){
+        var lat0 = hm.lat_min + ri*hm.lat_step, lat1 = lat0 + hm.lat_step;
+        var row = hm.values[ri];
+        for(var ci=0; ci<hm.cols; ci++){
+          var lon0 = hm.lon_min + ci*hm.lon_step, lon1 = lon0 + hm.lon_step;
+          var p0 = proj.toXY(lat0, lon0), p1 = proj.toXY(lat1, lon1);
+          var x = Math.min(p0[0], p1[0]), y = Math.min(p0[1], p1[1]);
+          var cw = Math.abs(p1[0]-p0[0]) + 1, ch = Math.abs(p1[1]-p0[1]) + 1;
+          ctx.fillStyle = valueToColor(row[ci]);
+          ctx.fillRect(x, y, cw, ch);
+        }
+      }
+      ctx.restore();
+    }
+
+    ctx.strokeStyle = cssVar('--ink-dim'); ctx.lineWidth = 1; ctx.globalAlpha = 0.55;
+    ctx.stroke(path);
+    ctx.globalAlpha = 1;
+
+    (data.stations||[]).forEach(function(s){
+      if(s.lat == null || s.lon == null) return;
+      var xy = proj.toXY(s.lat, s.lon);
+      ctx.beginPath(); ctx.arc(xy[0], xy[1], 4.5, 0, Math.PI*2);
+      ctx.fillStyle = cssVar('--panel'); ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = cssVar('--ink'); ctx.stroke();
+      ctx.font = "11px 'Zen Kaku Gothic New', sans-serif";
+      ctx.fillStyle = cssVar('--ink');
+      ctx.textAlign = xy[0] > w-60 ? 'right' : 'left';
+      ctx.fillText(s.name, xy[0] + (xy[0] > w-60 ? -8 : 8), xy[1]+4);
+    });
+
+    setLegendGradient();
+  }
+
+  function initMapTooltip(){
+    var canvas = document.getElementById('japan-heatmap');
+    var tip = document.getElementById('map-tooltip');
+    if(!canvas || !tip) return;
+    canvas.addEventListener('mousemove', function(ev){
+      if(!mapProj || !lastHeatmapData || !lastHeatmapData.heatmap){ tip.style.display='none'; return; }
+      var rect = canvas.getBoundingClientRect();
+      var x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+      var ll = mapProj.toLatLon(x, y);
+      var hm = lastHeatmapData.heatmap;
+      var ri = Math.floor((ll[0]-hm.lat_min)/hm.lat_step);
+      var ci = Math.floor((ll[1]-hm.lon_min)/hm.lon_step);
+      if(ri<0 || ri>=hm.rows || ci<0 || ci>=hm.cols){ tip.style.display='none'; return; }
+      var v = hm.values[ri][ci];
+      tip.innerHTML = 'Es活動指数 <b>'+v.toFixed(0)+'</b> /100';
+      tip.style.left = x+'px'; tip.style.top = y+'px'; tip.style.display='block';
+    });
+    canvas.addEventListener('mouseleave', function(){ tip.style.display='none'; });
+  }
+
+  // ---------------------------------------------------------------------
+  // Tropospheric ducting (UHF) map: same coastline/projector machinery as the
+  // Es heatmap above, but reads data.tropo.grid (a much coarser ~2deg grid
+  // from GFS via Open-Meteo) and its own color ramp/status thresholds.
+  // ---------------------------------------------------------------------
+
+  var lastTropoData = null;
+  var tropoProj = null;
+  var tropoStepIndex = null; // selected index into grid.times; null = not yet initialized for this grid
+  var tropoPlayTimer = null; // setInterval handle while auto-play (forward or reverse) is running; null = paused
+  var tropoPlayDir = 1; // +1=順再生 / -1=逆再生。tropoPlayTimerが動いている間だけ意味を持つ
+  var TROPO_PLAY_INTERVAL_MS = 650;
+  var tropoMarkerLatLon = null; // [lat,lon] of the last tapped/clicked point; null = nothing selected yet.
+  // 読み取りバーが常に固定位置に出るようになった代わりに「どこをタップしたか
+  // 分かりにくい」というフィードバックを受け、タップした地点に地図上へ目印
+  // (マーカー)を描画するようにした(2026-09-03追加)。マーカーは緯度経度で
+  // 保持しているので、時間を進めても・再描画しても同じ地点に残り続ける。
+
+  function drawTropoMap(data){
+    lastTropoData = data;
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ renderTropoCanvas(data); }); });
+  }
+
+  // Open-Meteo's hourly.time strings are plain "YYYY-MM-DDTHH:MM" with no
+  // offset (we request timezone=UTC) - append 'Z' so Date.parse treats them
+  // as UTC rather than the browser's local time.
+  function parseTropoTimeMs(iso){
+    if(!iso) return NaN;
+    return Date.parse(iso.length<=16 ? iso+':00Z' : iso+'Z');
+  }
+
+  function formatTropoTime(iso){
+    var ms = parseTropoTimeMs(iso);
+    if(isNaN(ms)) return iso || '--';
+    var d = new Date(ms);
+    var p = jstParts(d);
+    var wk = ['日','月','火','水','木','金','土'][new Date(Date.UTC(p.y,p.mo-1,p.d)).getUTCDay()];
+    var jstStr = p.mo+'/'+p.d+'('+wk+') '+String(p.h).padStart(2,'0')+':'+String(p.mi).padStart(2,'0')+' JST';
+    // GMT(UTC)も併記(2026-09-03追加)。日付が変わる場合もあるので月/日から出す。
+    var uwk = ['日','月','火','水','木','金','土'][d.getUTCDay()];
+    var gmtStr = (d.getUTCMonth()+1)+'/'+d.getUTCDate()+'('+uwk+') '+String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')+' GMT';
+    return jstStr + ' ／ ' + gmtStr;
+  }
+
+  function nearestTropoStepIndex(times, targetMs){
+    var best = 0, bestDiff = Infinity;
+    for(var i=0;i<times.length;i++){
+      var ms = parseTropoTimeMs(times[i]);
+      if(isNaN(ms)) continue;
+      var diff = Math.abs(ms - targetMs);
+      if(diff < bestDiff){ bestDiff = diff; best = i; }
+    }
+    return best;
+  }
+
+  function jumpTropoTo(target){
+    var grid = lastTropoData && lastTropoData.tropo && lastTropoData.tropo.grid;
+    if(!grid || !grid.times || !grid.times.length) return;
+    var targetMs = (target === 'now') ? Date.now() : (Date.now() + target*24*3600*1000);
+    tropoStepIndex = nearestTropoStepIndex(grid.times, targetMs);
+    renderTropoCanvas(lastTropoData);
+  }
+
+  // 「+7日」の隣の再生ボタン、または地図タップで、時間スライダーを自動で
+  // 1コマずつ進めるアニメーション再生(2026-09-03追加)。7日分の最後まで
+  // 進んだら先頭(現在)へループする。手動でスライダー/クイックジャンプを
+  // 操作した際は自動的に一時停止する(ユーザー操作と競合しないように)。
+  // 2026-09-10追加: 「良いタイミングで止めたいのに行き過ぎる」というフィードバックを
+  // 受け、逆方向に1コマずつ戻す「◀ 逆再生」ボタンを追加。仕組みは共通で、
+  // tropoPlayDir(+1=順再生/-1=逆再生)の符号だけを変えてstepIndexを進めている。
+  function stopTropoPlay(){
+    if(tropoPlayTimer){ clearInterval(tropoPlayTimer); tropoPlayTimer = null; }
+    var btn = document.getElementById('tropo-play-btn');
+    if(btn){ btn.textContent = '▶'; btn.classList.remove('active'); btn.setAttribute('aria-label', '自動再生'); }
+    var revBtn = document.getElementById('tropo-play-rev-btn');
+    if(revBtn){ revBtn.textContent = '◀'; revBtn.classList.remove('active'); revBtn.setAttribute('aria-label', '逆再生'); }
+  }
+
+  function startTropoPlay(dir){
+    var grid = lastTropoData && lastTropoData.tropo && lastTropoData.tropo.grid;
+    if(!grid || !grid.times || !grid.times.length) return;
+    if(tropoPlayTimer){ clearInterval(tropoPlayTimer); tropoPlayTimer = null; }
+    tropoPlayDir = dir;
+    var btn = document.getElementById('tropo-play-btn');
+    var revBtn = document.getElementById('tropo-play-rev-btn');
+    if(dir < 0){
+      if(revBtn){ revBtn.textContent = '⏸'; revBtn.classList.add('active'); revBtn.setAttribute('aria-label', '一時停止'); }
+      if(btn){ btn.textContent = '▶'; btn.classList.remove('active'); btn.setAttribute('aria-label', '自動再生'); }
+    } else {
+      if(btn){ btn.textContent = '⏸'; btn.classList.add('active'); btn.setAttribute('aria-label', '一時停止'); }
+      if(revBtn){ revBtn.textContent = '◀'; revBtn.classList.remove('active'); revBtn.setAttribute('aria-label', '逆再生'); }
+    }
+    tropoPlayTimer = setInterval(function(){
+      var g = lastTropoData && lastTropoData.tropo && lastTropoData.tropo.grid;
+      if(!g || !g.times || !g.times.length){ stopTropoPlay(); return; }
+      var next = (tropoStepIndex == null ? 0 : tropoStepIndex) + tropoPlayDir;
+      if(next >= g.times.length) next = 0;              // 最後まで行ったら先頭(現在)に戻ってループ再生
+      if(next < 0) next = g.times.length - 1;            // 先頭より前まで戻したら最後(7日後)に戻ってループ再生
+      tropoStepIndex = next;
+      renderTropoCanvas(lastTropoData);
+    }, TROPO_PLAY_INTERVAL_MS);
+  }
+
+  function toggleTropoPlay(){
+    if(tropoPlayTimer && tropoPlayDir === 1) stopTropoPlay(); else startTropoPlay(1);
+  }
+
+  function toggleTropoPlayReverse(){
+    if(tropoPlayTimer && tropoPlayDir === -1) stopTropoPlay(); else startTropoPlay(-1);
+  }
+
+  function weeklyTropoPeak(grid){
+    var best = {v:-Infinity, stepIdx:0};
+    for(var ri=0; ri<grid.values.length; ri++){
+      var row = grid.values[ri];
+      for(var ci=0; ci<row.length; ci++){
+        var series = row[ci] || [];
+        for(var ti=0; ti<series.length; ti++){
+          if(series[ti] > best.v){ best.v = series[ti]; best.stepIdx = ti; }
+        }
+      }
+    }
+    return best;
+  }
+
+  function tropoStatusNoteText(tropo){
+    if(!tropo || !tropo.status) return ' データ未取得です。';
+    if(tropo.status === 'error') return ' 現在データの取得に失敗しています('+(tropo.error||'不明なエラー')+')。しばらく待って再読み込みしてください。';
+    var extra = '';
+    if(tropo.status === 'partial') extra = ' (一部の格子点で取得に失敗: errors '+(tropo.errors||[]).length+'件)';
+    var age = (tropo.fetched_at != null) ? Math.max(0, Math.round((Date.now()/1000 - tropo.fetched_at)/60)) : null;
+    var ageTxt = age != null ? '約'+age+'分前に取得した' : '取得時刻不明の';
+    var peakTxt = '';
+    if(tropo.grid && tropo.grid.values && tropo.grid.values.length && tropo.grid.times && tropo.grid.times.length){
+      var peak = weeklyTropoPeak(tropo.grid);
+      if(isFinite(peak.v)){
+        peakTxt = ' 今後約7日間の全国ピークは推定 '+Math.round(peak.v)+'('+formatTropoTime(tropo.grid.times[peak.stepIdx])+'頃)です。';
+      }
+    }
+    var modelTxt = (tropo.ecmwf && tropo.ecmwf.used) ? 'GFS+ECMWF併用の' : 'GFSモデルの';
+    return ' '+ageTxt+modelTxt+'データに基づく推定です(更新は約6時間毎)'+extra+'。あくまで気象モデルによる推定であり、精度は数日先になるほど下がります。NICT実測のようなEsの証拠とは性質が異なります。'+peakTxt;
+  }
+
+  function updateTropoBadgeAndNote(data, grid, stepIdx){
+    var tropo = data && data.tropo;
+    var badge = document.getElementById('tropo-badge');
+    var note = document.getElementById('tropo-status-note');
+    if(note) note.textContent = tropoStatusNoteText(tropo);
+    if(!badge) return;
+    if(!grid || !grid.values || !grid.values.length){
+      badge.className = 'pill tropo-ok';
+      badge.innerHTML = '<span class="dot"></span>' + (tropo && tropo.status==='error' ? '取得失敗' : '未取得');
+      return;
+    }
+    var maxV = -Infinity;
+    for(var r=0;r<grid.values.length;r++){
+      var row = grid.values[r];
+      for(var c=0;c<row.length;c++){
+        var v = (row[c] || [])[stepIdx];
+        if(v != null && v>maxV) maxV = v;
+      }
+    }
+    if(!isFinite(maxV)) maxV = 0;
+    var st = tropoStatusOf(maxV);
+    badge.className = 'pill ' + st.cls;
+    badge.innerHTML = '<span class="dot"></span>' + st.label + '(選択時刻の全国最大 ' + Math.round(maxV) + ')';
+  }
+
+  function updateTropoTimeControls(grid, stepIdx){
+    var slider = document.getElementById('tropo-time-slider');
+    var label = document.getElementById('tropo-time-label');
+    if(!grid || !grid.times || !grid.times.length){
+      if(slider){ slider.disabled = true; slider.max = 0; slider.value = 0; }
+      if(label) label.textContent = 'データ取得待ちです';
+      return;
+    }
+    if(slider){
+      slider.disabled = false;
+      slider.max = grid.times.length - 1;
+      slider.value = stepIdx;
+    }
+    if(label){
+      var nowIdx = nearestTropoStepIndex(grid.times, Date.now());
+      label.textContent = formatTropoTime(grid.times[stepIdx]) + (stepIdx === nowIdx ? '(現在に最も近い予報)' : '');
+    }
+  }
+
+  // 取得済みの粗い格子(緯度・経度ともgrid.lat_step/lon_step間隔)から、任意の緯度経度
+  // における値をbilinear補間で求める。値が無い(null)格子点は0として扱う。
+  function bilinearTropoValue(grid, lat, lon, stepIdx){
+    var fi = (lat - grid.lat_min) / grid.lat_step;
+    var fj = (lon - grid.lon_min) / grid.lon_step;
+    var i0 = Math.max(0, Math.min(grid.rows - 1, Math.floor(fi)));
+    var j0 = Math.max(0, Math.min(grid.cols - 1, Math.floor(fj)));
+    var i1 = Math.min(grid.rows - 1, i0 + 1);
+    var j1 = Math.min(grid.cols - 1, j0 + 1);
+    var ti = Math.max(0, Math.min(1, fi - i0));
+    var tj = Math.max(0, Math.min(1, fj - j0));
+    function cell(ri, ci){
+      var series = (grid.values[ri] && grid.values[ri][ci]) || [];
+      var v = series[stepIdx];
+      return (v == null) ? 0 : v;
+    }
+    var v00 = cell(i0, j0), v01 = cell(i0, j1), v10 = cell(i1, j0), v11 = cell(i1, j1);
+    var v0 = v00 + (v01 - v00) * tj;
+    var v1 = v10 + (v11 - v10) * tj;
+    return v0 + (v1 - v0) * ti;
+  }
+
+  function renderTropoCanvas(data){
+    var canvas = document.getElementById('tropo-map');
+    if(!canvas || !coastline) return;
+    var tropo = data && data.tropo;
+    var grid = tropo && tropo.grid;
+
+    if(grid && grid.times && grid.times.length){
+      if(tropoStepIndex == null || tropoStepIndex >= grid.times.length){
+        tropoStepIndex = nearestTropoStepIndex(grid.times, Date.now());
+      }
+    } else {
+      tropoStepIndex = null;
+    }
+    var stepIdx = tropoStepIndex || 0;
+
+    updateTropoBadgeAndNote(data, grid, stepIdx);
+    updateTropoTimeControls(grid, stepIdx);
+
+    var dpr = window.devicePixelRatio || 1;
+    var w = canvas.clientWidth, h = canvas.clientHeight || 440;
+    canvas.width = w*dpr; canvas.height = h*dpr;
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+
+    // Unlike the Es heatmap, the tropo grid is deliberately projected against
+    // its OWN bbox (not the coastline's) and its fill is NOT clipped to the
+    // Japan landmass - tropo ducting happens over the sea at least as often
+    // as over land (coastal/over-water paths are classic tropo openings), so
+    // clipping to land would hide the most relevant part of the map. The
+    // coastline is drawn as a reference outline on top of the full grid.
+    var tropoBbox = grid ? {
+      lonMin: grid.lon_min - grid.lon_step/2, lonMax: grid.lon_max + grid.lon_step/2,
+      latMin: grid.lat_min - grid.lat_step/2, latMax: grid.lat_max + grid.lat_step/2
+    } : coastline;
+    var proj = makeProjector(tropoBbox, w, h, 14);
+    tropoProj = proj;
+
+    var path = new Path2D();
+    coastline.rings.forEach(function(ring){
+      ring.forEach(function(p, i){
+        var xy = proj.toXY(p[1], p[0]);
+        if(i===0) path.moveTo(xy[0], xy[1]); else path.lineTo(xy[0], xy[1]);
+      });
+      path.closePath();
+    });
+
+    if(grid && grid.values && grid.values.length){
+      // 実際に取得している格子(約2度間隔)はEsマップ(0.5度)より粗いが、Open-Meteoへの
+      // 通信回数を増やさずに見た目だけ滑らかにするため、描画時にbilinear補間で
+      // SUBDIV倍(=0.25度相当、Esマップよりさらに細かい視覚解像度)まで細分化して塗る。
+      // 元データそのものの精度が上がるわけではない(あくまで表示上の補間)。2026-09-02:
+      // ユーザー希望でEsマップ相当(4=0.5度)からさらに細かく(8=0.25度)に変更。
+      var SUBDIV = 8;
+      var subLatStep = grid.lat_step / SUBDIV, subLonStep = grid.lon_step / SUBDIV;
+      var latStart = grid.lat_min - grid.lat_step/2, lonStart = grid.lon_min - grid.lon_step/2;
+      var nSubRows = grid.rows * SUBDIV, nSubCols = grid.cols * SUBDIV;
+      for(var sri=0; sri<nSubRows; sri++){
+        var lat0 = latStart + sri*subLatStep, lat1 = lat0 + subLatStep;
+        var latC = (lat0+lat1)/2;
+        for(var sci=0; sci<nSubCols; sci++){
+          var lon0 = lonStart + sci*subLonStep, lon1 = lon0 + subLonStep;
+          var lonC = (lon0+lon1)/2;
+          var p0 = proj.toXY(lat0, lon0), p1 = proj.toXY(lat1, lon1);
+          var x = Math.min(p0[0], p1[0]), y = Math.min(p0[1], p1[1]);
+          var cw = Math.abs(p1[0]-p0[0]) + 1, ch = Math.abs(p1[1]-p0[1]) + 1;
+          var v = bilinearTropoValue(grid, latC, lonC, stepIdx);
+          ctx.fillStyle = valueToTropoColor(v);
+          ctx.fillRect(x, y, cw, ch);
+        }
+      }
+    }
+
+    ctx.strokeStyle = cssVar('--ink-dim'); ctx.lineWidth = 1; ctx.globalAlpha = 0.7;
+    ctx.stroke(path);
+    ctx.globalAlpha = 1;
+
+    if(!grid || !grid.values || !grid.values.length){
+      ctx.fillStyle = cssVar('--ink-dim');
+      ctx.font = "12.5px 'Zen Kaku Gothic New', sans-serif";
+      ctx.textAlign = 'center';
+      ctx.fillText('データ取得待ちです', w/2, h/2);
+    }
+
+    // タップ/クリックで選んだ地点の目印を描画し、読み取りバーもその地点の
+    // 現在のstepIdxでの値に同期させる(スライダーや自動再生で時間を変えても
+    // 選んだ地点に印が残り、その地点の値が追従して更新される)。
+    if(grid && grid.values && grid.values.length && tropoMarkerLatLon){
+      var mxy = proj.toXY(tropoMarkerLatLon[0], tropoMarkerLatLon[1]);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(mxy[0], mxy[1], 8, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(20,20,20,0.85)';
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(mxy[0], mxy[1], 3.2, 0, Math.PI*2);
+      ctx.fillStyle = cssVar('--tropo-high') || '#e5533d';
+      ctx.fill();
+      ctx.restore();
+
+      var readout = document.getElementById('tropo-readout');
+      if(readout){
+        var mv = bilinearTropoValue(grid, tropoMarkerLatLon[0], tropoMarkerLatLon[1], stepIdx);
+        var mst = tropoStatusOf(mv);
+        readout.innerHTML = '選択した地点: ダクト指数 <b>'+mv.toFixed(0)+'</b> /100 ('+mst.label+', 周辺格子からの補間値)';
+      }
+    }
+
+    setTropoLegendGradient();
+  }
+
+  var TROPO_READOUT_DEFAULT = '地図をタップ/クリックすると、その地点のダクト指数がここに表示されます';
+
+  function initTropoTooltip(){
+    var canvas = document.getElementById('tropo-map');
+    var readout = document.getElementById('tropo-readout');
+    if(!canvas || !readout) return;
+
+    // タップ位置に追従する浮動ツールチップだと、スマホでは画面端で見切れて
+    // 読めなくなることがある(ユーザー報告)。そのため地図の上の固定位置に
+    // ある読み取りバー(#tropo-readout)のテキストを更新するだけにし、表示
+    // 位置そのものは常に同じ場所に固定している。
+    function showValueAt(x, y){
+      var grid = lastTropoData && lastTropoData.tropo && lastTropoData.tropo.grid;
+      if(!tropoProj || !grid) return false;
+      var ll = tropoProj.toLatLon(x, y);
+      if(ll[0] < grid.lat_min - grid.lat_step/2 || ll[0] > grid.lat_max + grid.lat_step/2
+         || ll[1] < grid.lon_min - grid.lon_step/2 || ll[1] > grid.lon_max + grid.lon_step/2){
+        return false;
+      }
+      // 表示している色(bilinear補間後)と一致させるため、読み取り値も同じ補間値を使う。
+      var v = bilinearTropoValue(grid, ll[0], ll[1], tropoStepIndex || 0);
+      var st = tropoStatusOf(v);
+      readout.innerHTML = 'ダクト指数 <b>'+v.toFixed(0)+'</b> /100 ('+st.label+', 周辺格子からの補間値)';
+      return true;
+    }
+
+    // マウスホバー(デスクトップ)は「一時的なプレビュー」で、選択済みマーカーは
+    // 動かさない。マウスがどこにあるか自体が見えるデスクトップでは目印は不要。
+    canvas.addEventListener('mousemove', function(ev){
+      var rect = canvas.getBoundingClientRect();
+      showValueAt(ev.clientX - rect.left, ev.clientY - rect.top);
+    });
+    // マウスが離れたら、選択中のマーカーがあればその値の表示に戻し(消さない)、
+    // 何も選んでいなければ初期のガイド文に戻す。
+    canvas.addEventListener('mouseleave', function(){
+      if(!tropoMarkerLatLon){ readout.textContent = TROPO_READOUT_DEFAULT; }
+      else if(lastTropoData) { renderTropoCanvas(lastTropoData); }
+    });
+
+    // 地図をタップ/クリックすると、その地点に目印(マーカー)を置いて選択状態に
+    // する。マーカーは緯度経度で保持するため、時間を進めても同じ地点に残り、
+    // 読み取りバーの数値もその地点のものに追従する(2026-09-03追加、「どこを
+    // タップしたか分かりにくい」というフィードバックを受けて対応)。あわせて
+    // 自動再生中なら「停止」もする(再生中に別の場所を確認しようとした操作を
+    // 妨げないため。逆に停止中のタップで再生が始まると、複数の場所を見比べる
+    // たびに再生が始まってしまうので、地図タップは「止める」専用とし「始める」
+    // 操作は必ず再生ボタン側から行う)。
+    canvas.addEventListener('click', function(ev){
+      if(tropoPlayTimer) stopTropoPlay();
+      var rect = canvas.getBoundingClientRect();
+      var x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+      var grid = lastTropoData && lastTropoData.tropo && lastTropoData.tropo.grid;
+      if(tropoProj && grid){
+        var ll = tropoProj.toLatLon(x, y);
+        if(ll[0] >= grid.lat_min - grid.lat_step/2 && ll[0] <= grid.lat_max + grid.lat_step/2
+           && ll[1] >= grid.lon_min - grid.lon_step/2 && ll[1] <= grid.lon_max + grid.lon_step/2){
+          tropoMarkerLatLon = ll;
+          renderTropoCanvas(lastTropoData); // 目印を描画し、読み取りバーもこの地点の値に同期させる
+          return;
+        }
+      }
+      showValueAt(x, y);
+    });
+  }
+
+  function initTropoTimeControls(){
+    var slider = document.getElementById('tropo-time-slider');
+    if(slider){
+      slider.addEventListener('input', function(){
+        stopTropoPlay();
+        tropoStepIndex = parseInt(slider.value, 10) || 0;
+        if(lastTropoData) renderTropoCanvas(lastTropoData);
+      });
+    }
+    document.querySelectorAll('#tropo-map-panel .time-btn[data-jump]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        stopTropoPlay();
+        var jump = btn.getAttribute('data-jump');
+        jumpTropoTo(jump === 'now' ? 'now' : parseFloat(jump));
+      });
+    });
+    var playBtn = document.getElementById('tropo-play-btn');
+    if(playBtn){
+      playBtn.addEventListener('click', function(){ toggleTropoPlay(); });
+    }
+    var playRevBtn = document.getElementById('tropo-play-rev-btn');
+    if(playRevBtn){
+      playRevBtn.addEventListener('click', function(){ toggleTropoPlayReverse(); });
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Self-station path panel: great-circle bearing/distance/midpoint from a
+  // registered QTH (prefecture) to major target cities, looked up against
+  // the same heatmap grid used for the map above.
+  // ---------------------------------------------------------------------
+
+  var PREFECTURES = [
+    ["北海道",43.06,141.35],["青森県",40.82,140.74],["岩手県",39.70,141.15],["宮城県",38.27,140.87],
+    ["秋田県",39.72,140.10],["山形県",38.24,140.36],["福島県",37.75,140.47],["茨城県",36.34,140.45],
+    ["栃木県",36.57,139.88],["群馬県",36.39,139.06],["埼玉県",35.86,139.65],["千葉県",35.60,140.12],
+    ["東京都",35.69,139.69],["神奈川県",35.45,139.64],["新潟県",37.90,139.02],["富山県",36.70,137.21],
+    ["石川県",36.59,136.63],["福井県",36.07,136.22],["山梨県",35.66,138.57],["長野県",36.65,138.18],
+    ["岐阜県",35.39,136.72],["静岡県",34.98,138.38],["愛知県",35.18,136.91],["三重県",34.73,136.51],
+    ["滋賀県",35.00,135.87],["京都府",35.02,135.76],["大阪府",34.69,135.52],["兵庫県",34.69,135.18],
+    ["奈良県",34.69,135.83],["和歌山県",34.23,135.17],["鳥取県",35.50,134.24],["島根県",35.47,133.05],
+    ["岡山県",34.66,133.93],["広島県",34.40,132.46],["山口県",34.19,131.47],["徳島県",34.07,134.56],
+    ["香川県",34.34,134.04],["愛媛県",33.84,132.77],["高知県",33.56,133.53],["福岡県",33.61,130.42],
+    ["佐賀県",33.25,130.30],["長崎県",32.74,129.87],["熊本県",32.79,130.74],["大分県",33.24,131.61],
+    ["宮崎県",31.91,131.42],["鹿児島県",31.56,130.56],["沖縄県",26.21,127.68]
+  ];
+
+  var TARGET_CITIES = [
+    ["札幌(北海道)",43.06,141.35],["仙台(東北)",38.27,140.87],["東京(関東)",35.69,139.69],
+    ["名古屋(中部)",35.18,136.91],["大阪(近畿)",34.69,135.52],["広島(中国)",34.40,132.46],
+    ["高松(四国)",34.34,134.04],["福岡(九州)",33.61,130.42],["那覇(沖縄)",26.21,127.68]
+  ];
+
+  var QTH_KEY = 'esforecast_qth_pref';
+
+  function toRad(d){ return d*Math.PI/180; }
+  function toDeg(r){ return r*180/Math.PI; }
+
+  function greatCircleKm(lat1,lon1,lat2,lon2){
+    var R=6371, p1=toRad(lat1), p2=toRad(lat2), dp=toRad(lat2-lat1), dl=toRad(lon2-lon1);
+    var a = Math.sin(dp/2)*Math.sin(dp/2) + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)*Math.sin(dl/2);
+    return R * 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  function initialBearingDeg(lat1,lon1,lat2,lon2){
+    var p1=toRad(lat1), p2=toRad(lat2), dl=toRad(lon2-lon1);
+    var y = Math.sin(dl)*Math.cos(p2);
+    var x = Math.cos(p1)*Math.sin(p2) - Math.sin(p1)*Math.cos(p2)*Math.cos(dl);
+    return (toDeg(Math.atan2(y,x)) + 360) % 360;
+  }
+
+  function bearingToCompass16(deg){
+    var names = ['北','北北東','北東','東北東','東','東南東','南東','南南東','南','南南西','南西','西南西','西','西北西','北西','北北西'];
+    return names[Math.round(deg/22.5) % 16];
+  }
+
+  function geographicMidpoint(lat1,lon1,lat2,lon2){
+    var p1=toRad(lat1), l1=toRad(lon1), p2=toRad(lat2), l2=toRad(lon2);
+    var x = Math.cos(p1)*Math.cos(l1) + Math.cos(p2)*Math.cos(l2);
+    var y = Math.cos(p1)*Math.sin(l1) + Math.cos(p2)*Math.sin(l2);
+    var z = Math.sin(p1) + Math.sin(p2);
+    var hyp = Math.sqrt(x*x + y*y);
+    return [toDeg(Math.atan2(z, hyp)), toDeg(Math.atan2(y, x))];
+  }
+
+  function heatmapValueAt(lat, lon){
+    if(!lastHeatmapData || !lastHeatmapData.heatmap) return null;
+    var hm = lastHeatmapData.heatmap;
+    var fr = (lat - hm.lat_min) / hm.lat_step, fc = (lon - hm.lon_min) / hm.lon_step;
+    fr = Math.max(0, Math.min(hm.rows - 1, fr));
+    fc = Math.max(0, Math.min(hm.cols - 1, fc));
+    var r0 = Math.floor(fr), c0 = Math.floor(fc);
+    var r1 = Math.min(hm.rows - 1, r0 + 1), c1 = Math.min(hm.cols - 1, c0 + 1);
+    var tr = fr - r0, tc = fc - c0;
+    var v00 = hm.values[r0][c0], v01 = hm.values[r0][c1], v10 = hm.values[r1][c0], v11 = hm.values[r1][c1];
+    var v0 = v00 + (v01 - v00) * tc, v1 = v10 + (v11 - v10) * tc;
+    return v0 + (v1 - v0) * tr;
+  }
+
+  function loadQth(){
+    try { return localStorage.getItem(QTH_KEY) || ''; } catch(e){ return ''; }
+  }
+  function saveQth(name){
+    try { localStorage.setItem(QTH_KEY, name); } catch(e){ /* ignore: private mode etc. */ }
+  }
+
+  function populateQthSelect(){
+    var sel = document.getElementById('qth-select');
+    if(!sel || sel.dataset.filled) return;
+    PREFECTURES.forEach(function(p){
+      var opt = document.createElement('option');
+      opt.value = p[0]; opt.textContent = p[0];
+      sel.appendChild(opt);
+    });
+    sel.dataset.filled = '1';
+    var saved = loadQth();
+    if(saved) sel.value = saved;
+    sel.addEventListener('change', function(){
+      saveQth(sel.value);
+      renderPathPanel();
+      drawSelfChanceMap(lastHeatmapData);
+    });
+  }
+
+  function renderPathPanel(){
+    var wrap = document.getElementById('path-cards');
+    if(!wrap) return;
+    var sel = document.getElementById('qth-select');
+    var qthName = sel ? sel.value : loadQth();
+    if(!qthName){
+      wrap.innerHTML = '<div class="path-empty">上の「自局(送信地点)を登録」で選択すると、主要都市方向ごとのEs伝搬見込みが表示されます。</div>';
+      return;
+    }
+    var qth = PREFECTURES.find(function(p){ return p[0] === qthName; });
+    if(!qth){ wrap.innerHTML = ''; return; }
+    if(!lastHeatmapData || !lastHeatmapData.heatmap){
+      wrap.innerHTML = '<div class="path-empty">地図データの読み込みを待っています…</div>';
+      return;
+    }
+    var html = '';
+    TARGET_CITIES.forEach(function(city){
+      var dist = greatCircleKm(qth[1], qth[2], city[1], city[2]);
+      if(dist < 80){
+        html += '<div class="path-card"><div class="city">'+city[0]+'</div><div class="dir">自局とほぼ同じ地点</div></div>';
+        return;
+      }
+      var bearing = initialBearingDeg(qth[1], qth[2], city[1], city[2]);
+      var mid = geographicMidpoint(qth[1], qth[2], city[1], city[2]);
+      var v = heatmapValueAt(mid[0], mid[1]);
+      var st = v == null ? {cls:'', label:'--'} : statusOf(v);
+      var rangeNote = '';
+      if(dist < 500) rangeNote = '距離がやや近め(単発Esが開きにくい距離)';
+      else if(dist > 2400) rangeNote = '距離がやや遠め(マルチホップが必要な距離)';
+      html +=
+        '<div class="path-card">' +
+          '<div class="city">'+city[0]+'</div>' +
+          '<div class="dir">'+bearingToCompass16(bearing)+'方向 &middot; 約'+Math.round(dist)+'km</div>' +
+          '<div class="val mono">'+(v==null?'--':Math.round(v))+'<span class="unit">/100</span></div>' +
+          '<span class="pill '+st.cls+'" style="align-self:flex-start;"><span class="dot"></span>'+st.label+'</span>' +
+          (rangeNote ? '<div class="note">'+rangeNote+'</div>' : '') +
+        '</div>';
+    });
+    wrap.innerHTML = html;
+  }
+
+  // ---------------------------------------------------------------------
+  // Self-station "contact chance" map: like the nationwide activity map
+  // above, but every grid cell is re-colored by the activity at the
+  // MIDPOINT of the path from the registered QTH to that cell (the point
+  // where Es actually reflects the signal), tapered toward 0 for cells
+  // whose distance from the QTH falls outside the ~500-2400km single-hop
+  // window. Same fixed 0-100 color scale as the main map, for consistency.
+  // ---------------------------------------------------------------------
+
+  var RANGE_FULL_MIN = 500, RANGE_FULL_MAX = 2400, RANGE_TAPER_KM = 300;
+
+  function rangeFactor(distKm){
+    if(distKm >= RANGE_FULL_MIN && distKm <= RANGE_FULL_MAX) return 1;
+    if(distKm < RANGE_FULL_MIN){
+      var lo = RANGE_FULL_MIN - RANGE_TAPER_KM;
+      if(distKm <= lo) return 0;
+      return (distKm - lo) / RANGE_TAPER_KM;
+    }
+    var hi = RANGE_FULL_MAX + RANGE_TAPER_KM;
+    if(distKm >= hi) return 0;
+    return (hi - distKm) / RANGE_TAPER_KM;
+  }
+
+  function computeSelfChanceGrid(hm, selfLat, selfLon){
+    var values = [];
+    for(var r=0; r<hm.rows; r++){
+      var lat = hm.lat_min + (r+0.5)*hm.lat_step;
+      var rowArr = [];
+      for(var c=0; c<hm.cols; c++){
+        var lon = hm.lon_min + (c+0.5)*hm.lon_step;
+        var dist = greatCircleKm(selfLat, selfLon, lat, lon);
+        var mid = geographicMidpoint(selfLat, selfLon, lat, lon);
+        var midVal = heatmapValueAt(mid[0], mid[1]);
+        rowArr.push((midVal==null?0:midVal) * rangeFactor(dist));
+      }
+      values.push(rowArr);
+    }
+    return {rows:hm.rows, cols:hm.cols, lat_min:hm.lat_min, lat_step:hm.lat_step,
+            lon_min:hm.lon_min, lon_step:hm.lon_step, values:values};
+  }
+
+  var lastSelfChanceGrid = null, lastSelfChanceProj = null;
+  var selfChanceRange = {min: null, max: null};
+
+  function setSelfChanceLegend(){
+    var samples = [];
+    for(var i=0;i<=10;i++){ samples.push(valueToColor(i*10) + ' ' + (i*10) + '%'); }
+    var bar = document.getElementById('self-chance-legend-bar');
+    if(bar) bar.style.background = 'linear-gradient(90deg, '+samples.join(', ')+')';
+    var curEl = document.getElementById('self-chance-legend-current');
+    if(curEl){
+      curEl.textContent = (selfChanceRange.min != null)
+        ? Math.round(selfChanceRange.min) + '〜' + Math.round(selfChanceRange.max)
+        : '-';
+    }
+  }
+
+  function drawSelfChanceMap(data){
+    var panelWrap = document.getElementById('self-chance-wrap');
+    var empty = document.getElementById('self-chance-empty');
+    var canvas = document.getElementById('self-chance-map');
+    if(!canvas || !panelWrap || !empty) return;
+
+    var sel = document.getElementById('qth-select');
+    var qthName = sel ? sel.value : loadQth();
+    var qth = qthName ? PREFECTURES.find(function(p){ return p[0] === qthName; }) : null;
+
+    if(!qth || !coastline || !data || !data.heatmap || !data.heatmap.values || !data.heatmap.values.length){
+      panelWrap.style.display = 'none';
+      empty.style.display = '';
+      if(qth && (!coastline || !data)) empty.textContent = '地図データの読み込みを待っています…';
+      return;
+    }
+    panelWrap.style.display = '';
+    empty.style.display = 'none';
+
+    // Right after un-hiding the panel (or right after a viewport-width change,
+    // e.g. iOS Safari's "Request Desktop Website" re-laying out the whole page
+    // at a much wider virtual viewport), some mobile browsers can still report
+    // a stale/zero clientWidth for a beat, which would draw the map at the
+    // wrong size and shift the coastline off to the side. Deferring two
+    // animation frames guarantees a full layout pass has actually completed
+    // before we measure the canvas, on every call - not just the first reveal.
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ renderSelfChanceCanvas(data, qth); }); });
+  }
+
+  function renderSelfChanceCanvas(data, qth){
+    var canvas = document.getElementById('self-chance-map');
+    if(!canvas || !coastline) return;
+
+    var dpr = window.devicePixelRatio || 1;
+    var w = canvas.clientWidth, h = canvas.clientHeight || 440;
+    canvas.width = w*dpr; canvas.height = h*dpr;
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+
+    var proj = makeProjector(coastline, w, h, 14);
+    lastSelfChanceProj = proj;
+
+    var path = new Path2D();
+    coastline.rings.forEach(function(ring){
+      ring.forEach(function(p, i){
+        var xy = proj.toXY(p[1], p[0]);
+        if(i===0) path.moveTo(xy[0], xy[1]); else path.lineTo(xy[0], xy[1]);
+      });
+      path.closePath();
+    });
+
+    var grid = computeSelfChanceGrid(data.heatmap, qth[1], qth[2]);
+    lastSelfChanceGrid = grid;
+
+    var lo = Infinity, hi = -Infinity;
+    ctx.save();
+    ctx.clip(path);
+    for(var ri=0; ri<grid.rows; ri++){
+      var lat0 = grid.lat_min + ri*grid.lat_step, lat1 = lat0 + grid.lat_step;
+      var row = grid.values[ri];
+      for(var ci=0; ci<grid.cols; ci++){
+        var lon0 = grid.lon_min + ci*grid.lon_step, lon1 = lon0 + grid.lon_step;
+        var p0 = proj.toXY(lat0, lon0), p1 = proj.toXY(lat1, lon1);
+        var x = Math.min(p0[0], p1[0]), y = Math.min(p0[1], p1[1]);
+        var cw = Math.abs(p1[0]-p0[0]) + 1, ch = Math.abs(p1[1]-p0[1]) + 1;
+        var v = row[ci];
+        if(v < lo) lo = v; if(v > hi) hi = v;
+        ctx.fillStyle = valueToColor(v);
+        ctx.fillRect(x, y, cw, ch);
+      }
+    }
+    ctx.restore();
+    if(isFinite(lo)) selfChanceRange = {min: lo, max: hi};
+
+    ctx.strokeStyle = cssVar('--ink-dim'); ctx.lineWidth = 1; ctx.globalAlpha = 0.55;
+    ctx.stroke(path);
+    ctx.globalAlpha = 1;
+
+    // Reference dots for the 9 target cities used in the cards above.
+    TARGET_CITIES.forEach(function(city){
+      var xy = proj.toXY(city[1], city[2]);
+      ctx.beginPath(); ctx.arc(xy[0], xy[1], 3, 0, Math.PI*2);
+      ctx.fillStyle = cssVar('--panel'); ctx.fill();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = cssVar('--ink-dim'); ctx.stroke();
+    });
+
+    // Self marker, drawn last so it stays on top.
+    var sxy = proj.toXY(qth[1], qth[2]);
+    ctx.beginPath(); ctx.arc(sxy[0], sxy[1], 6, 0, Math.PI*2);
+    ctx.fillStyle = cssVar('--accent-warm'); ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = cssVar('--panel'); ctx.stroke();
+    ctx.font = "bold 12px 'Zen Kaku Gothic New', sans-serif";
+    ctx.fillStyle = cssVar('--ink');
+    ctx.textAlign = sxy[0] > w-70 ? 'right' : 'left';
+    ctx.fillText('自局('+qth[0]+')', sxy[0] + (sxy[0] > w-70 ? -10 : 10), sxy[1]+4);
+
+    setSelfChanceLegend();
+  }
+
+  function initSelfChanceTooltip(){
+    var canvas = document.getElementById('self-chance-map');
+    var tip = document.getElementById('self-chance-tooltip');
+    if(!canvas || !tip) return;
+    canvas.addEventListener('mousemove', function(ev){
+      if(!lastSelfChanceProj || !lastSelfChanceGrid){ tip.style.display='none'; return; }
+      var rect = canvas.getBoundingClientRect();
+      var x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+      var ll = lastSelfChanceProj.toLatLon(x, y);
+      var g = lastSelfChanceGrid;
+      var ri = Math.floor((ll[0]-g.lat_min)/g.lat_step);
+      var ci = Math.floor((ll[1]-g.lon_min)/g.lon_step);
+      if(ri<0 || ri>=g.rows || ci<0 || ci>=g.cols){ tip.style.display='none'; return; }
+      var v = g.values[ri][ci];
+      tip.innerHTML = '交信チャンス <b>'+v.toFixed(0)+'</b> /100';
+      tip.style.left = x+'px'; tip.style.top = y+'px'; tip.style.display='block';
+    });
+    canvas.addEventListener('mouseleave', function(){ tip.style.display='none'; });
+  }
+
+  var BAND_LABELS = {"10m":"10mバンド", "6m":"6mバンド"};
+
+  function renderContactsPanel(data){
+    var wrap = document.getElementById('contacts-cols');
+    if(!wrap) return;
+    var psk = data.pskreporter || {};
+    var html = '';
+    ["10m","6m"].forEach(function(band){
+      var b = psk[band];
+      html += '<div class="contacts-col"><h4>'+(BAND_LABELS[band]||band)+'</h4>';
+      if(!b || b.status !== 'ok' || !b.pair_stats){
+        html += '<div class="path-empty">データ取得待ち</div></div>';
+        return;
+      }
+      var ps = b.pair_stats;
+      if(!ps.matched_pairs){
+        html += '<div class="path-empty">現在、距離が分かる報告はありません</div></div>';
+        return;
+      }
+      html += '<div class="contacts-stat">両端判明: <b>'+ps.matched_pairs+'</b>件 &middot; 平均 <b>'+ps.avg_distance_km+'</b>km &middot; 最長 <b>'+ps.max_distance_km+'</b>km</div>';
+      (ps.top_contacts||[]).forEach(function(c){
+        html += '<div class="contact-row"><span class="calls">'+(c.sender_callsign||'?')+' → '+(c.receiver_callsign||'?')+'</span><span class="dist">'+c.distance_km+'km</span></div>';
+      });
+      html += '</div>';
+    });
+    wrap.innerHTML = html;
+  }
+
+  function render(data){
+    var accent = cssVar('--accent'), accentWarm = cssVar('--accent-warm');
+
+    // データ取得状況: 各上流データソースが今回取得できたかを、生のエラーではなく
+    // 平易な言葉で表示する。ユーザー側で対処できることは無いので「直す」ためではなく、
+    // 数値が控えめに見える理由がひと目で分かるようにするための表示。
+    var statusPillsEl = document.getElementById('status-pills');
+    var LEVEL_CLASS = {ok: 'ok', warn: 'watch', error: 'vhigh'};
+    var LEVEL_LABEL = {ok: '正常', warn: '注意', error: '失敗'};
+    if(statusPillsEl){
+      statusPillsEl.innerHTML = (data.system_status || []).map(function(it){
+        var cls = LEVEL_CLASS[it.level] || 'watch';
+        return '<span class="pill '+cls+'" title="'+it.note+'"><span class="dot"></span>'+it.name+'</span>';
+      }).join('');
+    }
+
+    // Kp panel
+    if(data.kp && data.kp.status === 'ok'){
+      document.getElementById('kp-num').textContent = data.kp.value;
+      var d = new Date(data.kp.time_tag + (data.kp.time_tag.endsWith('Z') ? '' : 'Z'));
+      var jp = new Intl.DateTimeFormat('ja-JP', {timeZone:'Asia/Tokyo', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}).format(d);
+      document.getElementById('kp-updated').textContent = '実測値: '+jp+' JST';
+    } else {
+      document.getElementById('kp-num').textContent = '--';
+      document.getElementById('kp-updated').innerHTML = '<span class="err">宇宙天気データの取得に失敗しました（次回更新で再試行）</span>';
+    }
+    drawKpChart(document.getElementById('kp-chart'), (data.kp_history||[]).map(function(p){return {kp:p.kp};}), accentWarm);
+
+    // Kp forecast (NOAA's own 3-day predicted Kp, not just the live reading above) -
+    // used to flag an incoming geomagnetic disturbance before it actually arrives.
+    var kpf = data.kp_forecast;
+    var kpfNote = document.getElementById('kp-forecast-note');
+    if(kpf && kpf.status === 'ok' && kpf.peak != null){
+      var kpfd = new Date(kpf.peak_time);
+      var kpfJp = new Intl.DateTimeFormat('ja-JP', {timeZone:'Asia/Tokyo', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}).format(kpfd);
+      var hoursAhead = Math.round((kpfd.getTime() - Date.now()) / 3600000);
+      var whenTxt = hoursAhead <= 0 ? 'まもなく' : ('約'+hoursAhead+'時間後');
+      kpfNote.innerHTML = '今後24時間の予報ピーク: <b>Kp '+kpf.peak.toFixed(1)+'</b>（'+whenTxt+' '+kpfJp+' JST、稚内のオーロラ性Es見込みに反映済み）';
+    } else {
+      kpfNote.textContent = '';
+    }
+
+    // stations
+    var grid = document.getElementById('station-grid');
+    grid.innerHTML = '';
+    (data.stations||[]).forEach(function(s){
+      var st = statusOf(s.es_index);
+      var hasEvidence = (s.live_evidence.ft8_6m_spots_15min + s.live_evidence.ft8_10m_spots_15min) > 0;
+      var nict = s.nict || {};
+      var nictLine = '';
+      if(nict.status === 'ok' && nict.foes_mhz != null){
+        var staleTxt = nict.stale_minutes ? ' <span style="opacity:.7">('+nict.stale_minutes+'分前の値)</span>' : '';
+        nictLine = '<span>NICT実測foEs: <b>'+nict.foes_mhz.toFixed(1)+'</b> MHz'+staleTxt+'</span>';
+      } else if(nict.status === 'quiet'){
+        nictLine = '<span>NICT実測: <b>静穏(Es無し)</b></span>';
+      } else {
+        nictLine = '<span>NICT実測: <b>取得待ち</b></span>';
+      }
+      var card = document.createElement('div');
+      card.className = 'station';
+      card.innerHTML =
+        '<div class="station-head">' +
+          '<div><div class="name">'+s.name+'</div><div class="loc">'+s.loc+'</div></div>' +
+          '<span class="pill '+st.cls+'"><span class="dot"></span>'+st.label+'</span>' +
+        '</div>' +
+        '<div class="gauge-row"><span class="gauge-num mono">'+Math.round(s.es_index)+'<span class="unit">/100</span></span>'+
+          trendHtml(s) +
+          (hasEvidence ? '<span class="pill live">実伝播あり</span>' : '') +
+          (nict.status === 'ok' ? '<span class="pill live">NICT実測</span>' : '') +
+          (s.aurora_forecast_active ? '<span class="pill watch" title="NOAAのKp予報で地磁気嵐の接近を検知。実測Kpが上がる前から見込みに反映しています">地磁気嵐接近中(予報)</span>' : '') + '</div>' +
+        '<div class="clima-note">統計ベースライン: '+Math.round(s.climatology_index)+'</div>' +
+        '<div class="evidence-row">' + nictLine + '</div>' +
+        '<div class="evidence-row">' +
+          '<span>6m FT8: <b>'+s.live_evidence.ft8_6m_spots_15min+'</b>局</span>' +
+          '<span>10m FT8: <b>'+s.live_evidence.ft8_10m_spots_15min+'</b>局</span>' +
+        '</div>' +
+        '<div class="model-tag">'+s.model+'</div>';
+      grid.appendChild(card);
+    });
+
+    var top = (data.stations||[]).reduce(function(a,b){ return (!a || b.es_index>a.es_index) ? b : a; }, null);
+    if(top){
+      var st2 = statusOf(top.es_index);
+      document.getElementById('headline-num').textContent = Math.round(top.es_index);
+      document.getElementById('headline-place').textContent = top.name || '';
+      var pillEl = document.getElementById('headline-pill');
+      pillEl.className = 'pill '+st2.cls;
+      pillEl.innerHTML = '<span class="dot"></span>'+st2.label;
+      document.getElementById('headline-trend').innerHTML = trendHtml(top);
+      var evidenceNote = (top.live_evidence.ft8_6m_spots_15min>0)
+        ? ' 実際に6m FT8で'+top.live_evidence.ft8_6m_spots_15min+'局の受信報告があり、Esによる伝播が実測で確認できています。'
+        : ' 現時点でこの地点への実伝播報告はまだ確認できていません(統計モデルによる見込み値)。';
+      document.getElementById('headline-text').innerHTML =
+        '現在もっとも活動指数が高いのは <b>'+top.name+'</b>（'+top.loc+'）です。'+evidenceNote;
+    }
+
+    document.getElementById('model-status').textContent =
+      ' 現在の蓄積データ: '+(data.history_rows||0)+'件'+
+      ((data.models_trained && data.models_trained.length) ? '（学習済み地点: '+data.models_trained.join(', ')+'）' : '（学習にはまだデータ不足です）') + '。';
+
+    var genJst = data.generated_at_jst ? data.generated_at_jst.replace('T',' ').slice(0,16) : '--';
+    document.getElementById('footer-updated').textContent = '最終データ更新: '+genJst+' JST';
+
+    drawJapanHeatmap(data);
+    renderPathPanel();
+    drawSelfChanceMap(data);
+    drawTropoMap(data);
+    renderContactsPanel(data);
+  }
+
+  function loadData(){
+    fetch('./data.json?t=' + Date.now(), {cache:'no-store'})
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(render)
+      .catch(function(err){
+        document.getElementById('headline-text').innerHTML =
+          '<span class="err">data.json の取得に失敗しました（'+err.message+'）。GitHub Actionsの初回実行が完了するまでお待ちください。</span>';
+      });
+  }
+
+  function init(){
+    tickClock();
+    setInterval(tickClock, 1000);
+    initMapTooltip();
+    initSelfChanceTooltip();
+    initTropoTooltip();
+    initTropoTimeControls();
+    populateQthSelect();
+    loadCoastline().then(function(){
+      if(lastHeatmapData){ drawJapanHeatmap(lastHeatmapData); drawSelfChanceMap(lastHeatmapData); }
+      if(lastTropoData){ drawTropoMap(lastTropoData); }
+    });
+    loadData();
+    setInterval(loadData, 5 * 60 * 1000);
+    var resizeTimer = null;
+    window.addEventListener('resize', function(){
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function(){
+        if(lastHeatmapData){ drawJapanHeatmap(lastHeatmapData); drawSelfChanceMap(lastHeatmapData); }
+        if(lastTropoData){ drawTropoMap(lastTropoData); }
+      }, 150);
+    });
+  }
+
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }
+})();
+</script>
+</body>
+</html>
