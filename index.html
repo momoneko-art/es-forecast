@@ -317,6 +317,7 @@
         <button type="button" class="time-btn" data-jump="3">+3日</button>
         <button type="button" class="time-btn" data-jump="5">+5日</button>
         <button type="button" class="time-btn" data-jump="7">+7日</button>
+        <button type="button" class="time-btn play-btn" id="tropo-play-rev-btn" aria-label="逆再生" title="時間を自動で戻す(良いタイミングを行き過ぎた時に押すと戻せます)">◀</button>
         <button type="button" class="time-btn play-btn" id="tropo-play-btn" aria-label="自動再生" title="時間を自動で進める(地図をタップすると一時停止して数値を確認できます)">▶</button>
       </div>
     </div>
@@ -725,7 +726,8 @@
   var lastTropoData = null;
   var tropoProj = null;
   var tropoStepIndex = null; // selected index into grid.times; null = not yet initialized for this grid
-  var tropoPlayTimer = null; // setInterval handle while auto-play is running; null = paused
+  var tropoPlayTimer = null; // setInterval handle while auto-play (forward or reverse) is running; null = paused
+  var tropoPlayDir = 1; // +1=順再生 / -1=逆再生。tropoPlayTimerが動いている間だけ意味を持つ
   var TROPO_PLAY_INTERVAL_MS = 650;
   var tropoMarkerLatLon = null; // [lat,lon] of the last tapped/clicked point; null = nothing selected yet.
   // 読み取りバーが常に固定位置に出るようになった代わりに「どこをタップしたか
@@ -782,29 +784,48 @@
   // 1コマずつ進めるアニメーション再生(2026-09-03追加)。7日分の最後まで
   // 進んだら先頭(現在)へループする。手動でスライダー/クイックジャンプを
   // 操作した際は自動的に一時停止する(ユーザー操作と競合しないように)。
+  // 2026-09-10追加: 「良いタイミングで止めたいのに行き過ぎる」というフィードバックを
+  // 受け、逆方向に1コマずつ戻す「◀ 逆再生」ボタンを追加。仕組みは共通で、
+  // tropoPlayDir(+1=順再生/-1=逆再生)の符号だけを変えてstepIndexを進めている。
   function stopTropoPlay(){
     if(tropoPlayTimer){ clearInterval(tropoPlayTimer); tropoPlayTimer = null; }
     var btn = document.getElementById('tropo-play-btn');
     if(btn){ btn.textContent = '▶'; btn.classList.remove('active'); btn.setAttribute('aria-label', '自動再生'); }
+    var revBtn = document.getElementById('tropo-play-rev-btn');
+    if(revBtn){ revBtn.textContent = '◀'; revBtn.classList.remove('active'); revBtn.setAttribute('aria-label', '逆再生'); }
   }
 
-  function startTropoPlay(){
+  function startTropoPlay(dir){
     var grid = lastTropoData && lastTropoData.tropo && lastTropoData.tropo.grid;
-    if(!grid || !grid.times || !grid.times.length || tropoPlayTimer) return;
+    if(!grid || !grid.times || !grid.times.length) return;
+    if(tropoPlayTimer){ clearInterval(tropoPlayTimer); tropoPlayTimer = null; }
+    tropoPlayDir = dir;
     var btn = document.getElementById('tropo-play-btn');
-    if(btn){ btn.textContent = '⏸'; btn.classList.add('active'); btn.setAttribute('aria-label', '一時停止'); }
+    var revBtn = document.getElementById('tropo-play-rev-btn');
+    if(dir < 0){
+      if(revBtn){ revBtn.textContent = '⏸'; revBtn.classList.add('active'); revBtn.setAttribute('aria-label', '一時停止'); }
+      if(btn){ btn.textContent = '▶'; btn.classList.remove('active'); btn.setAttribute('aria-label', '自動再生'); }
+    } else {
+      if(btn){ btn.textContent = '⏸'; btn.classList.add('active'); btn.setAttribute('aria-label', '一時停止'); }
+      if(revBtn){ revBtn.textContent = '◀'; revBtn.classList.remove('active'); revBtn.setAttribute('aria-label', '逆再生'); }
+    }
     tropoPlayTimer = setInterval(function(){
       var g = lastTropoData && lastTropoData.tropo && lastTropoData.tropo.grid;
       if(!g || !g.times || !g.times.length){ stopTropoPlay(); return; }
-      var next = (tropoStepIndex == null ? 0 : tropoStepIndex) + 1;
-      if(next >= g.times.length) next = 0; // 最後まで行ったら先頭(現在)に戻ってループ再生
+      var next = (tropoStepIndex == null ? 0 : tropoStepIndex) + tropoPlayDir;
+      if(next >= g.times.length) next = 0;              // 最後まで行ったら先頭(現在)に戻ってループ再生
+      if(next < 0) next = g.times.length - 1;            // 先頭より前まで戻したら最後(7日後)に戻ってループ再生
       tropoStepIndex = next;
       renderTropoCanvas(lastTropoData);
     }, TROPO_PLAY_INTERVAL_MS);
   }
 
   function toggleTropoPlay(){
-    if(tropoPlayTimer) stopTropoPlay(); else startTropoPlay();
+    if(tropoPlayTimer && tropoPlayDir === 1) stopTropoPlay(); else startTropoPlay(1);
+  }
+
+  function toggleTropoPlayReverse(){
+    if(tropoPlayTimer && tropoPlayDir === -1) stopTropoPlay(); else startTropoPlay(-1);
   }
 
   function weeklyTropoPeak(grid){
@@ -1103,6 +1124,10 @@
     var playBtn = document.getElementById('tropo-play-btn');
     if(playBtn){
       playBtn.addEventListener('click', function(){ toggleTropoPlay(); });
+    }
+    var playRevBtn = document.getElementById('tropo-play-rev-btn');
+    if(playRevBtn){
+      playRevBtn.addEventListener('click', function(){ toggleTropoPlayReverse(); });
     }
   }
 
