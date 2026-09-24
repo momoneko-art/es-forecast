@@ -6,7 +6,7 @@
       "wakkanai": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 2.5,
+        "foes_mhz": 3.2,
         "esp_status": "ok"
       },
       "kokubunji": {
@@ -18,13 +18,13 @@
       "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": null,
-        "esp_status": "quiet"
+        "foes_mhz": 1.9,
+        "esp_status": "ok"
       },
       "oogimi": {
         "storm": "Atn+",
         "dis": "Qui.",
-        "foes_mhz": 2.5,
+        "foes_mhz": 2.0,
         "esp_status": "ok"
       }
     }
