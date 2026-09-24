@@ -6,7 +6,7 @@
       "wakkanai": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 2.4,
+        "foes_mhz": 3.0,
         "esp_status": "ok"
       },
       "kokubunji": {
@@ -18,13 +18,13 @@
       "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 2.0,
-        "esp_status": "ok"
+        "foes_mhz": null,
+        "esp_status": "quiet"
       },
       "oogimi": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 2.8,
+        "foes_mhz": 2.3,
         "esp_status": "ok"
       }
     }
@@ -39,6 +39,7 @@
       "error": null,
       "blended_points": 168,
       "blended_hours": 28224
-    }
+    },
+    "reused": true
   }
 }
