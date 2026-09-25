@@ -370,7 +370,7 @@
 
     <div class="tropo-path" id="tropo-path">
       <h4>2地点間のダクト交信チャンス</h4>
-      <div class="sub">起点と相手を選ぶと、その間がダクトでつながりそうかを判定します。<strong>基準は特定小電力(0.01W・付属アンテナ)同士</strong>の目安です。<details class="tp-more-info"><summary>くわしい説明</summary>起点と相手を結ぶ経路上のダクト指数を約20kmおきに調べ、「経路の8割以上がこの強さ以上」という値(経路スコア)を出し、さらに起点・相手それぞれの近くまでダクトが届いているか(沖にダクトがあっても近くまで来ていないと交信しにくいため)も確かめて、一番弱いところで判定します。「近く」の範囲は標高から求めた電波の見通し距離(海辺なら約20km、600m級の山頂なら約100km、富士山なら約250km)です。標高は地点ごとに自由に書き換えられ、この端末に保存されます(空欄にすると既定値に戻ります)。ダクトは途中で途切れると届かないので、平均ではなく弱い区間を重視しています。地図上には経路を点線で、一番弱い地点を×で表示します。あくまで気象モデルからの目安で、山による遮蔽は考慮していません。<br><strong>判定の基準:</strong> 特定小電力(0.01W・付属アンテナ)同士で交信できるかどうかの目安です。出力やアンテナが強い局(例: DCR 5W+八木アンテナ)なら、ワンランク下の判定でもつながることがあります。</details></div>
+      <div class="sub">起点と相手を選ぶと、その間がダクトでつながりそうかを判定します。<strong>基準は特定小電力(0.01W・付属アンテナ)同士</strong>の目安です。<details class="tp-more-info"><summary>くわしい説明</summary>起点と相手を結ぶ経路上のダクト指数を約20kmおきに調べ、「経路の8割以上がこの強さ以上」という値(経路スコア)を出し、さらに起点・相手それぞれの近くまでダクトが届いているか(沖にダクトがあっても近くまで来ていないと交信しにくいため)も確かめて、一番弱いところで判定します。「近く」の範囲は標高から求めた電波の見通し距離(海辺なら約20km、600m級の山頂なら約100km、富士山なら約250km)です。標高は地点ごとに自由に書き換えられ、この端末に保存されます(空欄にすると既定値に戻ります)。ダクトは途中で途切れると届かないので、平均ではなく弱い区間を重視しています。地図上には経路を点線で、一番弱い地点を×で表示します。あくまで気象モデルからの目安で、山による遮蔽は考慮していません。<br><strong>アンテナの向き:</strong> 真北基準の方位と、コンパス(磁北)で合わせる時の方位(国土地理院の2020年磁気図の近似式による偏角で補正。本州・四国・九州・北海道南部では誤差1度程度、沖縄などでは誤差が大きくなります)を表示します。仰角の目安は起点の標高から見た水平線の方向です。ダクトの電波は帯に沿って少し曲がって来ることもあるので、最後はパイロット局などで振って合わせてください。<br><strong>判定の基準:</strong> 特定小電力(0.01W・付属アンテナ)同士で交信できるかどうかの目安です。出力やアンテナが強い局(例: DCR 5W+八木アンテナ)なら、ワンランク下の判定でもつながることがあります。</details></div>
       <div class="qth-row">
         <label for="tp-from">起点:</label>
         <select class="qth-select" id="tp-from"></select>
@@ -1421,6 +1421,7 @@
       else {
         res.innerHTML =
           '<span class="tp-title">'+a[0]+' → '+b[0]+'</span>(約'+Math.round(samp.km)+'km)<br>' +
+          tpAimHtml(a, b, hA) +
           '<span style="font-size:11.5px">標高: 起点 '+Math.round(hA)+'m(見通し約'+Math.round(st.rA)+'km) / 相手 '+Math.round(hB)+'m(見通し約'+Math.round(st.rB)+'km)</span><br>' +
           '表示中の時刻: '+tpDot(st.score)+'経路スコア <b>'+st.score.toFixed(0)+'</b> /100 → <span class="tp-verdict">'+tpVerdict(st.score)+'</span><br>' +
           '<span style="font-size:11.5px">内訳: 起点の近く(見通し範囲) '+st.coupleA.toFixed(0)+' / 経路の途中 '+st.base.toFixed(0)+' / 相手の近く(見通し範囲) '+st.coupleB.toFixed(0)+'(一番弱い地点 '+st.min.toFixed(0)+'=地図の×)</span>' +
@@ -1446,7 +1447,7 @@
     rank.innerHTML = rows.map(function(r){
       return '<div class="tp-row">' +
         '<span class="tp-name" data-to="'+r.sp[0]+'">'+r.sp[0]+'</span>' +
-        '<span>約'+Math.round(r.km)+'km・'+tpVerdict(r.st.score)+'</span>' +
+        '<span>約'+Math.round(r.km)+'km・'+tpDir8(initialBearingDeg(a[1],a[2],r.sp[1],r.sp[2]))+' '+Math.round(initialBearingDeg(a[1],a[2],r.sp[1],r.sp[2]))+'°・'+tpVerdict(r.st.score)+'</span>' +
         '<span class="tp-score">'+tpDot(r.st.score)+r.st.score.toFixed(0)+'</span>' +
         (r.pk ? '<span class="tp-peak">7日間のベスト: '+r.pk.score.toFixed(0)+' ('+tpWhen(grid, r.pk.idx)+') <button type="button" class="time-btn peak-jump" data-step="'+r.pk.idx+'">その時刻へ</button></span>' : '') +
         '</div>';
@@ -1496,6 +1497,26 @@
     var l2 = l1 + Math.atan2(Math.sin(th)*Math.sin(d)*Math.cos(p1), Math.cos(d) - Math.sin(p1)*Math.sin(p2));
     return [toDeg(p2), toDeg(l2)];
   }
+  // 磁気偏角(西偏, 度)の近似。国土地理院の磁気図2020.0年値の近似式(日本国内向け)。
+  // コンパス(磁北)で合わせる時は「真方位+偏角」の向きにする。2026-09-25追加
+  function tpDeclinationW(lat, lon){
+    var dp = lat - 37, dl = lon - 138;
+    var m = 460.585 + 19.003*dp - 6.265*dl + 0.024*dp*dp - 0.322*dp*dl - 0.543*dl*dl;   // 分
+    return m / 60;
+  }
+  // 起点の標高から見た水平線の見下ろし角(度)。電波の等価地球半径(4/3倍)で計算
+  function tpDipDeg(h){
+    var Re = 6371*4/3*1000;
+    return toDeg(Math.acos(Re/(Re + Math.max(0, h || 0))));
+  }
+  function tpAimHtml(a, b, hA){
+    var tb = initialBearingDeg(a[1], a[2], b[1], b[2]);
+    var mb = (tb + tpDeclinationW(a[1], a[2]) + 360) % 360;
+    var dip = tpDipDeg(hA);
+    var tilt = dip < 0.2 ? 'ほぼ水平' : '水平より約'+dip.toFixed(1)+'°下(水平線の方向)';
+    return '<span style="font-size:11.5px">アンテナの向き: <b>'+tpDir8(tb)+' '+Math.round(tb)+'°</b>(真北基準) / コンパスで合わせるなら <b>約'+Math.round(mb)+'°</b>(磁北基準) ・ 仰角の目安: '+tilt+'</span><br>';
+  }
+
   function tpDir8(deg){ return ['北','北東','東','南東','南','南西','西','北西'][Math.round(((deg%360)+360)%360/45)%8]; }
 
   // 起点ごとに光線の座標を前計算(時刻が変わっても座標は同じなのでキャッシュ)
@@ -1661,7 +1682,7 @@
       var samp = tpSamples(o, t), st = tpStats(grid, samp.pts, tropoStepIndex || 0, samp.km, tpInputElev('tp-from-h', o), TP_RADAR_FAR_H);
       if(!st){ out.textContent = 'この地点のデータがありません'; return; }
       var brg = initialBearingDeg(o[1], o[2], ll[0], ll[1]);
-      out.innerHTML = '起点から<b>'+tpDir8(brg)+'方向 約'+Math.round(samp.km)+'km</b>: 経路スコア <b>'+st.score.toFixed(0)+'</b> /100 → '+tpVerdict(st.score);
+      out.innerHTML = '起点から<b>'+tpDir8(brg)+' '+Math.round(brg)+'° 約'+Math.round(samp.km)+'km</b>: 経路スコア <b>'+st.score.toFixed(0)+'</b> /100 → '+tpVerdict(st.score);
     });
   }
 
