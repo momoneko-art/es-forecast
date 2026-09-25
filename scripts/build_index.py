@@ -631,6 +631,15 @@ def run():
     print(json.dumps({"stations": [(s["id"], s["es_index"]) for s in stations_out], "kp": kp,
                        "history_rows": len(history_rows), "models_trained": list(models.keys())}, ensure_ascii=False))
 
+    # 2026-09-25: ダクト予報の「過ぎた時間」の地図をtropo_hist/に1日1ファイルで貯める(過去再生用)。
+    # data.json/debug.jsonを書き終えた後に、完全に独立した処理として実行する。ここで何が
+    # 起きても(モジュールが無い場合も含めて)通常の予報更新には一切影響させない。
+    try:
+        import tropo_history
+        print("tropo_history:", json.dumps(tropo_history.save(ROOT, tropo_result), ensure_ascii=False))
+    except Exception as exc:  # noqa: BLE001
+        print("tropo_history skipped (non-fatal):", exc)
+
 
 if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
