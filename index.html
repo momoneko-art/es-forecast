@@ -113,6 +113,14 @@
   .trend-step{ color:var(--ink-dim); }
   .trend-step.up{ color:var(--accent-warm); }
   .trend-step.hot{ color:var(--vhigh); }
+  /* Esフェーズ表示(2026-09-25追加): 直近1時間の推移から「発生の兆し/成長期/ピーク付近/持続中/衰退期/収束へ/静穏」を判定 */
+  .phase{ display:inline-flex; align-items:center; font-size:11.5px; font-weight:700; padding:2px 8px; border-radius:999px; border:1px solid currentColor; white-space:nowrap; flex-shrink:0; color:var(--ink-dim); opacity:.95; }
+  .phase.formation{ color:var(--watch); }
+  .phase.growth{ color:var(--accent-warm); }
+  .phase.peak{ color:var(--vhigh); }
+  .phase.plateau{ color:var(--high); }
+  .phase.decay, .phase.collapse, .phase.quiet{ color:var(--ink-dim); }
+  .phase-note{ font-size:11.5px; color:var(--ink-dim); margin:2px 2px 8px; }
   .clima-note{ font-size:11px; color:var(--ink-dim); }
   .evidence-row{ display:flex; gap:10px; font-size:11.5px; color:var(--ink-dim); flex-wrap:wrap; }
   .evidence-row b{ color:var(--ink); font-family:'JetBrains Mono',monospace; }
@@ -246,6 +254,7 @@
       <h2>観測4地点の Es 活動指数</h2>
       <span class="sub">NICT実測foEs + PSKReporter実伝播データ（15分毎更新）+ 季節・時刻統計 のハイブリッド指数</span>
     </div>
+    <div class="phase-note">フェーズ表示: 発生の兆し → 成長期 → ピーク付近/持続中 → 衰退期 → 収束へ(直近約1時間の推移から判定。指数30未満で動きが無い時は「静穏」)</div>
     <div class="stations" id="station-grid"></div>
   </div>
 
@@ -435,6 +444,44 @@
     var deltaTxt = (s.trend_delta != null) ? ' ('+(s.trend_delta>0?'+':'')+s.trend_delta+')' : '';
     var curCls = 'trend '+s.trend+(sustainedUp ? ' hot' : '');
     return histHtml + '<span class="'+curCls+'" title="前回(約15分前)比'+deltaTxt+'">'+arrow+' '+label+'</span>';
+  }
+
+  // Esフェーズ判定(2026-09-25追加、JL7KHN氏の予測プログラムの考え方を参考)。
+  // サーバー側の計算は一切変えず、既に届いている es_index / trend_history /
+  // trend_delta / climatology_index から画面側だけで判定する。データが無い・
+  // 足りない時は何も表示しない(従来の表示には一切影響しない)。
+  var PHASE_INFO = {
+    formation:{label:'発生の兆し', desc:'まだ弱いが、統計ベースラインを上回って上昇し始めています'},
+    growth:   {label:'成長期',     desc:'活動指数が上昇中。これから伸びる可能性があります'},
+    peak:     {label:'ピーク付近', desc:'上昇が止まり横ばいに。今が一番強い時間帯かもしれません'},
+    plateau:  {label:'持続中',     desc:'一定の強さで続いています'},
+    decay:    {label:'衰退期',     desc:'下がり始めています'},
+    collapse: {label:'収束へ',     desc:'下降が続いています。そろそろ終わりかけです'},
+    quiet:    {label:'静穏',       desc:'目立った活動はありません'}
+  };
+  function esPhaseOf(s){
+    if(!s || typeof s.es_index !== 'number') return null;
+    var h = s.trend_history || [];
+    if(!h.length) return null;
+    var v = s.es_index, last = h[h.length-1], prev = h.length>=2 ? h[h.length-2] : null;
+    var base = (typeof s.climatology_index === 'number') ? s.climatology_index : null;
+    var d = (typeof s.trend_delta === 'number') ? s.trend_delta : 0;
+    if(v >= 30){
+      if(last === 'up') return 'growth';
+      if(last === 'flat') return (prev === 'up') ? 'peak' : 'plateau';
+      if(last === 'down') return (prev === 'down') ? 'collapse' : 'decay';
+      return null;
+    }
+    if(last === 'up' && (prev === 'up' || (d >= 3 && base != null && v >= base + 5))) return 'formation';
+    // 実伝播(FT8受信報告)がある時に「静穏」と並ぶと矛盾して見えるので、その場合は表示しない
+    var ev = s.live_evidence || {};
+    if(((ev.ft8_6m_spots_15min||0) + (ev.ft8_10m_spots_15min||0)) > 0) return null;
+    return 'quiet';
+  }
+  function phaseHtml(s){
+    var k = esPhaseOf(s); if(!k || !PHASE_INFO[k]) return '';
+    var info = PHASE_INFO[k];
+    return '<span class="phase '+k+'" title="'+info.desc+'">'+info.label+'</span>';
   }
 
   // しきい値(30/50/80)は全国Es活動分布ヒートマップの色の変わり目と揃えている。
@@ -1541,7 +1588,7 @@
           '<span class="pill '+st.cls+'"><span class="dot"></span>'+st.label+'</span>' +
         '</div>' +
         '<div class="gauge-row"><span class="gauge-num mono">'+Math.round(s.es_index)+'<span class="unit">/100</span></span>'+
-          trendHtml(s) +
+          trendHtml(s) + phaseHtml(s) +
           (hasEvidence ? '<span class="pill live">実伝播あり</span>' : '') +
           (nict.status === 'ok' ? '<span class="pill live">NICT実測</span>' : '') +
           (s.aurora_forecast_active ? '<span class="pill watch" title="NOAAのKp予報で地磁気嵐の接近を検知。実測Kpが上がる前から見込みに反映しています">地磁気嵐接近中(予報)</span>' : '') + '</div>' +
@@ -1563,7 +1610,7 @@
       var pillEl = document.getElementById('headline-pill');
       pillEl.className = 'pill '+st2.cls;
       pillEl.innerHTML = '<span class="dot"></span>'+st2.label;
-      document.getElementById('headline-trend').innerHTML = trendHtml(top);
+      document.getElementById('headline-trend').innerHTML = trendHtml(top) + ' ' + phaseHtml(top);
       var evidenceNote = (top.live_evidence.ft8_6m_spots_15min>0)
         ? ' 実際に6m FT8で'+top.live_evidence.ft8_6m_spots_15min+'局の受信報告があり、Esによる伝播が実測で確認できています。'
         : ' 現時点でこの地点への実伝播報告はまだ確認できていません(統計モデルによる見込み値)。';
