@@ -170,6 +170,10 @@
   .tropo-path{ margin-top:16px; border-top:1px solid var(--line); padding-top:14px; }
   .tropo-path h4{ margin:0 0 2px; font-size:13.5px; font-weight:700; }
   .tropo-path .sub{ font-size:12px; color:var(--ink-dim); margin-bottom:10px; display:block; }
+  .tp-elev{ width:6.5em; }
+  .tp-more-info{ margin-top:4px; }
+  .tp-more-info summary{ cursor:pointer; color:var(--accent); }
+  .tp-unit{ font-size:12.5px; color:var(--ink-dim); margin-left:-6px; }
   .tp-result{ padding:10px 12px; border-radius:10px; background:var(--panel-2); border:1px solid var(--line); font-size:12.5px; color:var(--ink-dim); line-height:1.7; margin-bottom:14px; }
   .tp-result b{ color:var(--ink); font-family:'JetBrains Mono',monospace; }
   .tp-title{ color:var(--ink); font-weight:700; font-size:13px; }
@@ -366,16 +370,22 @@
 
     <div class="tropo-path" id="tropo-path">
       <h4>2地点間のダクト交信チャンス</h4>
-      <span class="sub">起点と相手を結ぶ経路上のダクト指数を約20kmおきに調べ、「経路の8割以上がこの強さ以上」という値(経路スコア)を出し、さらに起点・相手それぞれの約60km以内までダクトが届いているか(沖にダクトがあっても沿岸まで来ていないと交信しにくいため)も確かめて、一番弱いところで判定します。ダクトは途中で途切れると届かないので、平均ではなく弱い区間を重視しています。地図上には経路を点線で、一番弱い地点を×で表示します。あくまで気象モデルからの目安で、山による遮蔽や、アンテナ・出力の違いは考慮していません。</span>
+      <div class="sub">起点と相手を選ぶと、その間がダクトでつながりそうかを判定します。<strong>基準は特定小電力(0.01W・付属アンテナ)同士</strong>の目安です。<details class="tp-more-info"><summary>くわしい説明</summary>起点と相手を結ぶ経路上のダクト指数を約20kmおきに調べ、「経路の8割以上がこの強さ以上」という値(経路スコア)を出し、さらに起点・相手それぞれの近くまでダクトが届いているか(沖にダクトがあっても近くまで来ていないと交信しにくいため)も確かめて、一番弱いところで判定します。「近く」の範囲は標高から求めた電波の見通し距離(海辺なら約20km、600m級の山頂なら約100km、富士山なら約250km)です。標高は地点ごとに自由に書き換えられ、この端末に保存されます(空欄にすると既定値に戻ります)。ダクトは途中で途切れると届かないので、平均ではなく弱い区間を重視しています。地図上には経路を点線で、一番弱い地点を×で表示します。あくまで気象モデルからの目安で、山による遮蔽は考慮していません。<br><strong>判定の基準:</strong> 特定小電力(0.01W・付属アンテナ)同士で交信できるかどうかの目安です。出力やアンテナが強い局(例: DCR 5W+八木アンテナ)なら、ワンランク下の判定でもつながることがあります。</details></div>
       <div class="qth-row">
         <label for="tp-from">起点:</label>
         <select class="qth-select" id="tp-from"></select>
+        <label for="tp-from-h">標高</label>
+        <input class="qth-select tp-elev" id="tp-from-h" type="number" inputmode="numeric" min="0" max="9000" step="1"> <span class="tp-unit">m</span>
+      </div>
+      <div class="qth-row">
         <label for="tp-to">相手:</label>
         <select class="qth-select" id="tp-to"></select>
+        <label for="tp-to-h">標高</label>
+        <input class="qth-select tp-elev" id="tp-to-h" type="number" inputmode="numeric" min="0" max="9000" step="1"> <span class="tp-unit">m</span>
       </div>
       <div class="tp-result" id="tp-result">データ読込中…</div>
       <h4>起点からのダクト到達範囲(レーダー表示)</h4>
-      <span class="sub">起点から3度おきの方向に電波を飛ばしたと考え、それぞれの方向・距離まで上と同じ「経路スコア」(起点側・途中・相手側の一番弱いところ)を計算して扇状に塗り分けました。赤く濃いほど届きやすく、色が薄くなるほど届きにくくなります。<span class="tp-legend-line"></span>35以上(つながる可能性あり)の範囲 <span class="tp-legend-line dash"></span>15以上(条件次第)の範囲。上のスライダー・再生ボタンの時刻に連動し、地図をタップするとその地点までの見込みが出ます。</span>
+      <div class="sub">起点からどの方向へ、どこまで届きそうかを扇形で表示します。赤く濃いほど届きやすいです。<span class="tp-legend-line"></span>つながる可能性あり <span class="tp-legend-line dash"></span>条件次第<details class="tp-more-info"><summary>くわしい説明</summary>起点から3度おきの方向に電波を飛ばしたと考え、それぞれの方向・距離まで上と同じ「経路スコア」(起点の近く・途中・相手の近くの一番弱いところ)を計算して扇状に塗り分けました。起点の標高は上の入力欄の値を使い、相手側はどの方向も海辺(標高10m)と仮定しています。赤く濃いほど届きやすく、色が薄くなるほど届きにくくなります。<span class="tp-legend-line"></span>35以上(つながる可能性あり)の範囲 <span class="tp-legend-line dash"></span>15以上(条件次第)の範囲。上のスライダー・再生ボタンの時刻に連動し、地図をタップするとその地点までの見込みが出ます。</details></div>
       <div class="tropo-readout" id="tp-reach-readout">地図をタップすると、起点からその地点までの見込みが表示されます</div>
       <div class="map-wrap"><canvas id="tropo-reach-map"></canvas></div>
       <div class="tp-reach-sum" id="tp-reach-sum"></div>
@@ -1231,18 +1241,39 @@
   // 新機能の中でエラーが起きても地図本体の表示は止めないよう、呼び出し側を
   // try/catchで囲んでいる。
   // =====================================================================
+  // [地名, 緯度, 経度, 標高(m)の目安]。標高は下の入力欄で自由に変えられます(2026-09-25追加)。
   var TROPO_SPOTS = [
-    ["山口・長門 千畳敷",34.40,131.07],["山口・下関",33.96,130.94],["広島・灰ヶ峰",34.26,132.60],
-    ["島根・出雲",35.40,132.70],["島根・隠岐",36.20,133.30],["京都・丹後半島",35.75,135.20],
-    ["福井・越前岬",35.98,135.96],["石川・能登(珠洲)",37.50,137.35],["新潟市",37.90,139.02],
-    ["新潟・佐渡島",38.05,138.40],["秋田・男鹿半島",39.95,139.72],["青森・龍飛崎",41.26,140.34],
-    ["北海道・松前",41.43,140.10],["北海道・奥尻島",42.15,139.45],["北海道・札幌",43.06,141.35],
-    ["宮城・仙台",38.27,140.87],["東京",35.69,139.69],["伊豆・八丈島",33.11,139.79],
-    ["和歌山・潮岬",33.44,135.76],["高知・室戸岬",33.25,134.18],["福岡",33.61,130.42],
-    ["長崎・対馬",34.40,129.33],["長崎・五島",32.70,128.84],["鹿児島・種子島",30.60,130.98],
-    ["鹿児島・奄美大島",28.38,129.49],["沖縄・那覇",26.21,127.68],["韓国・釜山",35.18,129.08],
-    ["韓国・済州島",33.50,126.53]
+    ["山口・長門 千畳敷",34.40,131.07,333],["山口・下関",33.96,130.94,10],["山口・宇部",33.95,131.25,10],
+    ["山口・西鳳翩山",34.21,131.44,742],["山口・長野山",34.26,131.86,1015],["山口・嵩山(周防大島)",33.93,132.28,619],
+    ["山口・銭壺山",33.94,132.09,540],["広島・灰ヶ峰",34.26,132.60,737],
+    ["島根・出雲",35.40,132.70,10],["島根・隠岐",36.20,133.30,10],["京都・丹後半島",35.75,135.20,10],
+    ["福井・越前岬",35.98,135.96,10],["石川・能登(珠洲)",37.50,137.35,10],["新潟市",37.90,139.02,10],
+    ["新潟・佐渡島",38.05,138.40,10],["秋田市",39.72,140.10,10],["秋田・男鹿半島",39.95,139.72,10],
+    ["青森市",40.82,140.74,10],["青森・龍飛崎",41.26,140.34,100],
+    ["北海道・松前",41.43,140.10,10],["北海道・奥尻島",42.15,139.45,10],["北海道・札幌",43.06,141.35,20],
+    ["宮城・仙台",38.27,140.87,10],["東京",35.69,139.69,40],["山梨・甲府",35.66,138.57,270],
+    ["静岡・富士山",35.36,138.73,3776],["伊豆・八丈島",33.11,139.79,10],
+    ["和歌山・潮岬",33.44,135.76,50],["高知・室戸岬",33.25,134.18,50],["福岡",33.61,130.42,10],
+    ["長崎・対馬",34.40,129.33,10],["長崎・五島",32.70,128.84,10],["鹿児島・種子島",30.60,130.98,10],
+    ["鹿児島・奄美大島",28.38,129.49,10],["沖縄・那覇",26.21,127.68,10],["韓国・釜山",35.18,129.08,10],
+    ["韓国・済州島",33.50,126.53,10]
   ];
+  var TP_ELEV_KEY = 'esforecast_tp_elev';   // 地点ごとに手入力した標高 {地名: m}
+  var TP_RADAR_FAR_H = 10;                  // レーダー表示では相手を海辺(標高10m)と仮定
+  function tpElevMap(){ try { return JSON.parse(localStorage.getItem(TP_ELEV_KEY) || '{}') || {}; } catch(e){ return {}; } }
+  function tpElev(sp){
+    if(!sp) return 10;
+    var m = tpElevMap();
+    if(m && typeof m[sp[0]] === 'number' && isFinite(m[sp[0]])) return m[sp[0]];
+    return (typeof sp[3] === 'number') ? sp[3] : 10;
+  }
+  function tpSetElev(name, h){
+    var m = tpElevMap();
+    if(h == null) delete m[name]; else m[name] = h;   // null = 手入力を取り消して既定値に戻す
+    try { localStorage.setItem(TP_ELEV_KEY, JSON.stringify(m)); } catch(e){}
+  }
+  // 電波の見通し距離(標準大気・地球等価半径4/3倍): d[km] ≒ 4.12√h[m]。最低でも20km(調べる点の間隔)
+  function tpHorizonKm(h){ return Math.max(20, 4.12*Math.sqrt(Math.max(0, h || 0))); }
   var TP_FROM_KEY = 'esforecast_tp_from', TP_TO_KEY = 'esforecast_tp_to';
   var tpPeakCache = {};
   var tpShowAll = false; // ランキングは通常上位10件、ボタンで全件表示
@@ -1256,7 +1287,7 @@
     try {
       var q = loadQth();
       var qp = q ? PREFECTURES.find(function(p){ return p[0] === q; }) : null;
-      if(qp) list.push(['自局('+qp[0]+')', qp[1], qp[2]]);
+      if(qp) list.push(['自局('+qp[0]+')', qp[1], qp[2], 10]);
     } catch(e){}
     return list.concat(TROPO_SPOTS);
   }
@@ -1264,6 +1295,19 @@
     var l = tpSpotList();
     for(var i=0;i<l.length;i++){ if(l[i][0] === name) return l[i]; }
     return null;
+  }
+
+  // 標高入力欄の値(未入力・不正なら地点の既定値)
+  function tpInputElev(id, sp){
+    var el = document.getElementById(id);
+    var v = el ? parseFloat(el.value) : NaN;
+    return (isFinite(v) && v >= 0) ? Math.min(v, 9000) : tpElev(sp);
+  }
+  function tpSyncElevInputs(){
+    var f = document.getElementById('tp-from'), t = document.getElementById('tp-to');
+    var fh = document.getElementById('tp-from-h'), th = document.getElementById('tp-to-h');
+    if(f && fh){ fh.value = Math.round(tpElev(tpFind(f.value))); }
+    if(t && th){ th.value = Math.round(tpElev(tpFind(t.value))); }
   }
 
   function populateTropoPathSelects(){
@@ -1281,6 +1325,7 @@
     }
     fill(fromSel, fromWant, list[0][0]);
     fill(toSel, toWant, '青森・龍飛崎');
+    tpSyncElevInputs();
   }
 
   // 大圏(地球表面の最短経路)に沿って約20kmおきの点を作る
@@ -1301,10 +1346,19 @@
     return {pts:pts, km:d};
   }
 
-  // 両端の「結合」を見る距離。9/12の実体験(沖にダクトはあったが沿岸まで来ておらず交信できず)を
-  // 受けて、起点・相手それぞれ約60km以内にもダクトが届いているかを判定に加えた(2026-09-25)。
-  var TP_COUPLE_KM = 60;
-  function tpStats(grid, pts, stepIdx, km){
+  // 両端の「結合」: 9/12の実体験(沖にダクトはあったが沿岸まで来ておらず交信できず)を受けて、
+  // 起点・相手それぞれの近くまでダクトが届いているかを判定に加えた。調べる範囲は各地点の標高から
+  // 求めた「見通し距離」(海辺なら約20km、600m級の山頂なら約100km)で、その範囲の強いほう半分の
+  // 平均を使う(山頂からは少し離れたダクトにも電波を入れやすいため)。2026-09-25
+  var TP_COUPLE_KM = 60; // 標高が分からない時の既定値
+  function tpCouple(arr){
+    if(!arr.length) return 0;
+    var s = arr.slice().sort(function(x,y){ return y-x; });
+    var n = Math.max(1, Math.ceil(s.length/2)), t = 0;
+    for(var i=0;i<n;i++) t += s[i];
+    return t/n;
+  }
+  function tpStats(grid, pts, stepIdx, km, hA, hB){
     var vals = [], minV = Infinity, minP = null, maxV = -Infinity;
     for(var i=0;i<pts.length;i++){
       var v = bilinearTropoValue(grid, pts[i][0], pts[i][1], stepIdx);
@@ -1318,11 +1372,12 @@
     var base = sorted[Math.floor(0.2*(sorted.length-1))];   // 経路の8割以上がこの値以上
     var mean = vals.reduce(function(s,v){ return s+v; }, 0) / vals.length;
     var spacing = (km && pts.length > 1) ? km/(pts.length-1) : 20;
-    var k = Math.max(1, Math.min(vals.length, Math.floor(TP_COUPLE_KM/spacing) + 1));
-    function avg(a){ return a.reduce(function(s,v){ return s+v; }, 0) / a.length; }
-    var coupleA = avg(vals.slice(0, k)), coupleB = avg(vals.slice(vals.length - k));
+    var rA = (hA == null) ? TP_COUPLE_KM : tpHorizonKm(hA), rB = (hB == null) ? TP_COUPLE_KM : tpHorizonKm(hB);
+    var kA = Math.max(1, Math.min(vals.length, Math.floor(rA/spacing) + 1));
+    var kB = Math.max(1, Math.min(vals.length, Math.floor(rB/spacing) + 1));
+    var coupleA = tpCouple(vals.slice(0, kA)), coupleB = tpCouple(vals.slice(vals.length - kB));
     var score = Math.min(base, coupleA, coupleB);
-    return {score:score, base:base, coupleA:coupleA, coupleB:coupleB, mean:mean, min:minV, minP:minP, max:maxV};
+    return {score:score, base:base, coupleA:coupleA, coupleB:coupleB, rA:rA, rB:rB, mean:mean, min:minV, minP:minP, max:maxV};
   }
 
   function tpVerdict(score){
@@ -1332,12 +1387,12 @@
     return '難しい';
   }
 
-  function tpPeak(grid, a, b, samp){
-    var key = a[0]+'|'+b[0]+'|'+a[1]+','+a[2]+'|'+grid.times[0]+'|'+grid.times.length+'|'+Math.floor(Date.now()/3600000);
+  function tpPeak(grid, a, b, samp, hA, hB){
+    var key = a[0]+'|'+b[0]+'|'+a[1]+','+a[2]+'|'+hA+'|'+hB+'|'+grid.times[0]+'|'+grid.times.length+'|'+Math.floor(Date.now()/3600000);
     if(tpPeakCache[key]) return tpPeakCache[key];
     var start = nearestTropoStepIndex(grid.times, Date.now()), best = null;
     for(var i=start;i<grid.times.length;i++){
-      var st = tpStats(grid, samp.pts, i, samp.km);
+      var st = tpStats(grid, samp.pts, i, samp.km, hA, hB);
       if(st && (!best || st.score > best.score)) best = {score:st.score, idx:i};
     }
     tpPeakCache[key] = best;
@@ -1360,27 +1415,30 @@
     if(a[0] === b[0]){
       res.innerHTML = '起点と相手が同じ地点です。別の相手を選んでください。';
     } else {
-      var samp = tpSamples(a, b), st = tpStats(grid, samp.pts, stepIdx, samp.km), pk = tpPeak(grid, a, b, samp);
+      var hA = tpInputElev('tp-from-h', a), hB = tpInputElev('tp-to-h', b);
+      var samp = tpSamples(a, b), st = tpStats(grid, samp.pts, stepIdx, samp.km, hA, hB), pk = tpPeak(grid, a, b, samp, hA, hB);
       if(!st){ res.textContent = 'この経路のデータがありません'; }
       else {
         res.innerHTML =
           '<span class="tp-title">'+a[0]+' → '+b[0]+'</span>(約'+Math.round(samp.km)+'km)<br>' +
+          '<span style="font-size:11.5px">標高: 起点 '+Math.round(hA)+'m(見通し約'+Math.round(st.rA)+'km) / 相手 '+Math.round(hB)+'m(見通し約'+Math.round(st.rB)+'km)</span><br>' +
           '表示中の時刻: '+tpDot(st.score)+'経路スコア <b>'+st.score.toFixed(0)+'</b> /100 → <span class="tp-verdict">'+tpVerdict(st.score)+'</span><br>' +
-          '<span style="font-size:11.5px">内訳: 起点側(約60km以内) '+st.coupleA.toFixed(0)+' / 経路の途中 '+st.base.toFixed(0)+' / 相手側(約60km以内) '+st.coupleB.toFixed(0)+'(一番弱い地点 '+st.min.toFixed(0)+'=地図の×)</span>' +
-          ((st.max >= 35 && st.coupleA < 35) ? '<br>⚠ 経路の途中にはダクトがあります(最大'+st.max.toFixed(0)+')が、<b style="font-family:inherit">起点の沿岸まで届いていません</b>' : '') +
-          ((st.max >= 35 && st.coupleB < 35) ? '<br>⚠ 経路の途中にはダクトがあります(最大'+st.max.toFixed(0)+')が、<b style="font-family:inherit">相手側の沿岸まで届いていません</b>' : '') +
+          '<span style="font-size:11.5px">内訳: 起点の近く(見通し範囲) '+st.coupleA.toFixed(0)+' / 経路の途中 '+st.base.toFixed(0)+' / 相手の近く(見通し範囲) '+st.coupleB.toFixed(0)+'(一番弱い地点 '+st.min.toFixed(0)+'=地図の×)</span>' +
+          ((st.max >= 35 && st.coupleA < 35) ? '<br>⚠ 経路の途中にはダクトがあります(最大'+st.max.toFixed(0)+')が、<b style="font-family:inherit">起点の近く(見通し範囲)まで届いていません</b>' : '') +
+          ((st.max >= 35 && st.coupleB < 35) ? '<br>⚠ 経路の途中にはダクトがあります(最大'+st.max.toFixed(0)+')が、<b style="font-family:inherit">相手の近く(見通し範囲)まで届いていません</b>' : '') +
           ((st.max >= 35 && st.coupleA >= 35 && st.coupleB >= 35 && st.base < 35) ? '<br>⚠ 両端にはダクトがありますが、<b style="font-family:inherit">経路の途中で途切れています</b>' : '') +
           (pk ? '<br>この先7日間のベスト: '+tpDot(pk.score)+'<b>'+pk.score.toFixed(0)+'</b> /100 ('+tpWhen(grid, pk.idx)+', '+tpVerdict(pk.score)+') <button type="button" class="time-btn peak-jump" data-step="'+pk.idx+'">その時刻へ</button>' : '');
       }
     }
 
-    // 起点から全候補へのランキング(表示中の時刻)
-    var rows = [];
+    // 起点から全候補へのランキング(表示中の時刻)。起点の標高は入力欄の値、相手は各地点の標高を使う
+    var rows = [], hFrom = tpInputElev('tp-from-h', a);
     tpSpotList().forEach(function(sp){
       if(sp[0] === a[0] || sp[0].indexOf('自局(') === 0) return;
-      var smp = tpSamples(a, sp); var s2 = tpStats(grid, smp.pts, stepIdx, smp.km);
+      var hTo = tpElev(sp);
+      var smp = tpSamples(a, sp); var s2 = tpStats(grid, smp.pts, stepIdx, smp.km, hFrom, hTo);
       if(!s2) return;
-      rows.push({sp:sp, km:smp.km, st:s2, pk:tpPeak(grid, a, sp, smp)});
+      rows.push({sp:sp, km:smp.km, st:s2, pk:tpPeak(grid, a, sp, smp, hFrom, hTo)});
     });
     rows.sort(function(x,y){ return (y.st.score - x.st.score) || ((y.pk?y.pk.score:0) - (x.pk?x.pk.score:0)); });
     var total = rows.length;
@@ -1401,7 +1459,7 @@
     var fromSel = document.getElementById('tp-from'), toSel = document.getElementById('tp-to');
     var a = tpFind(fromSel && fromSel.value), b = tpFind(toSel && toSel.value);
     if(!a || !b || a[0] === b[0]) return;
-    var samp = tpSamples(a, b), st = tpStats(grid, samp.pts, stepIdx, samp.km);
+    var samp = tpSamples(a, b), st = tpStats(grid, samp.pts, stepIdx, samp.km, tpInputElev('tp-from-h', a), tpInputElev('tp-to-h', b));
     ctx.save();
     ctx.lineCap = 'round';
     function line(width, color, dash){
@@ -1464,8 +1522,9 @@
   }
 
   // 各光線について、起点から距離jまでの経路スコア(=2地点判定と同じ「8割以上がこの値以上」)
-  function tpReachScores(geo, grid, stepIdx){
-    var K = Math.floor(TP_COUPLE_KM / TP_REACH_KM) + 1;   // 両端の約60km(=4点)
+  function tpReachScores(geo, grid, stepIdx, hOrigin){
+    var KA = Math.floor(tpHorizonKm(hOrigin) / TP_REACH_KM) + 1;          // 起点側: 起点の見通し範囲
+    var KB = Math.floor(tpHorizonKm(TP_RADAR_FAR_H) / TP_REACH_KM) + 1;   // 相手側: 海辺(10m)と仮定
     return geo.rays.map(function(ray){
       var sorted = [], out = [], raw = [];
       for(var j=0; j<ray.c.length; j++){
@@ -1476,9 +1535,9 @@
         while(lo < hi){ var mid = (lo+hi)>>1; if(sorted[mid] < v) lo = mid+1; else hi = mid; }
         sorted.splice(lo, 0, v);
         var base = sorted[Math.floor(0.2*(sorted.length-1))];
-        var nA = Math.min(K, raw.length), sA = 0; for(var a=0;a<nA;a++) sA += raw[a];
-        var sB = 0, nB = 0; for(var b=Math.max(0, raw.length-K); b<raw.length; b++){ sB += raw[b]; nB++; }
-        out.push(Math.min(base, sA/nA, sB/nB));   // 2地点判定と同じ考え方(起点側・途中・相手側の一番弱いところ)
+        var cA = tpCouple(raw.slice(0, Math.min(KA, raw.length)));
+        var cB = tpCouple(raw.slice(Math.max(0, raw.length - KB)));
+        out.push(Math.min(base, cA, cB));   // 2地点判定と同じ考え方(起点の近く・途中・相手の近くの一番弱いところ)
       }
       return out;
     });
@@ -1512,7 +1571,7 @@
     tpReachProj = proj;
 
     var geo = tpReachGeometry(o, grid);
-    var scores = tpReachScores(geo, grid, stepIdx);
+    var scores = tpReachScores(geo, grid, stepIdx, tpInputElev('tp-from-h', o));
 
     // 扇(ビーム)の塗り: スコアが高いほど赤く濃く、低いほど薄く
     geo.rays.forEach(function(ray, k){
@@ -1599,7 +1658,7 @@
       var rect = canvas.getBoundingClientRect();
       var ll = tpReachProj.toLatLon(ev.clientX - rect.left, ev.clientY - rect.top);
       var o = tpReachOrigin, t = ['タップ地点', ll[0], ll[1]];
-      var samp = tpSamples(o, t), st = tpStats(grid, samp.pts, tropoStepIndex || 0, samp.km);
+      var samp = tpSamples(o, t), st = tpStats(grid, samp.pts, tropoStepIndex || 0, samp.km, tpInputElev('tp-from-h', o), TP_RADAR_FAR_H);
       if(!st){ out.textContent = 'この地点のデータがありません'; return; }
       var brg = initialBearingDeg(o[1], o[2], ll[0], ll[1]);
       out.innerHTML = '起点から<b>'+tpDir8(brg)+'方向 約'+Math.round(samp.km)+'km</b>: 経路スコア <b>'+st.score.toFixed(0)+'</b> /100 → '+tpVerdict(st.score);
@@ -1614,8 +1673,20 @@
       if(toSel) tpSave(TP_TO_KEY, toSel.value);
       if(lastTropoData) renderTropoCanvas(lastTropoData);
     }
-    if(fromSel) fromSel.addEventListener('change', changed);
-    if(toSel) toSel.addEventListener('change', changed);
+    if(fromSel) fromSel.addEventListener('change', function(){ tpSyncElevInputs(); changed(); });
+    if(toSel) toSel.addEventListener('change', function(){ tpSyncElevInputs(); changed(); });
+    // 標高を手入力したら、その地点の標高として覚えておく(この端末・ブラウザだけ)
+    [['tp-from-h', fromSel], ['tp-to-h', toSel]].forEach(function(pair){
+      var inp = document.getElementById(pair[0]);
+      if(!inp) return;
+      inp.addEventListener('change', function(){
+        var v = parseFloat(inp.value);
+        if(pair[1] && isFinite(v) && v >= 0){ tpSetElev(pair[1].value, Math.min(v, 9000)); }
+        else if(pair[1]){ tpSetElev(pair[1].value, null); inp.value = Math.round(tpElev(tpFind(pair[1].value))); }  // 空欄にすると既定の標高に戻す
+        tpPeakCache = {};
+        if(lastTropoData) renderTropoCanvas(lastTropoData);
+      });
+    });
     // Esの自局登録を変えたら、起点候補の「自局」も更新する
     var qsel = document.getElementById('qth-select');
     if(qsel) qsel.addEventListener('change', function(){ populateTropoPathSelects(); changed(); });
@@ -1631,7 +1702,7 @@
         }
         if(t && t.closest && t.closest('.tp-more')){ tpShowAll = !tpShowAll; if(lastTropoData) renderTropoCanvas(lastTropoData); return; }
         var nm = t && t.closest ? t.closest('.tp-name') : null;
-        if(nm && toSel){ toSel.value = nm.getAttribute('data-to'); changed(); }
+        if(nm && toSel){ toSel.value = nm.getAttribute('data-to'); tpSyncElevInputs(); changed(); }
       });
     }
   }
