@@ -166,6 +166,27 @@
   .tropo-readout b{ color:var(--ink); font-family:'JetBrains Mono',monospace; }
   .tropo-readout .peak-jump{ margin-left:4px; padding:2px 10px; font-size:11.5px; vertical-align:middle; }
   .map-legend{ display:flex; align-items:center; gap:8px; margin-top:10px; font-size:11px; color:var(--ink-dim); }
+  /* 2地点間のダクト交信チャンス(2026-09-25追加) */
+  .tropo-path{ margin-top:16px; border-top:1px solid var(--line); padding-top:14px; }
+  .tropo-path h4{ margin:0 0 2px; font-size:13.5px; font-weight:700; }
+  .tropo-path .sub{ font-size:12px; color:var(--ink-dim); margin-bottom:10px; display:block; }
+  .tp-result{ padding:10px 12px; border-radius:10px; background:var(--panel-2); border:1px solid var(--line); font-size:12.5px; color:var(--ink-dim); line-height:1.7; margin-bottom:14px; }
+  .tp-result b{ color:var(--ink); font-family:'JetBrains Mono',monospace; }
+  .tp-title{ color:var(--ink); font-weight:700; font-size:13px; }
+  .tp-dot{ display:inline-block; width:10px; height:10px; border-radius:50%; vertical-align:middle; margin-right:4px; border:1px solid rgba(0,0,0,.25); }
+  .tp-verdict{ font-weight:700; color:var(--ink); }
+  .tp-rank{ display:flex; flex-direction:column; gap:6px; }
+  .tp-row{ display:grid; grid-template-columns:auto 1fr auto; gap:4px 10px; align-items:center; padding:7px 10px; border:1px solid var(--line); border-radius:9px; background:var(--panel-2); font-size:12px; color:var(--ink-dim); }
+  .tp-row .tp-name{ color:var(--ink); font-weight:700; cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px; }
+  .tp-row .tp-score{ font-family:'JetBrains Mono',monospace; color:var(--ink); font-weight:700; white-space:nowrap; }
+  .tp-row .tp-peak{ grid-column:1 / -1; font-size:11.5px; }
+  .tropo-path .peak-jump{ margin-left:4px; padding:2px 10px; font-size:11.5px; vertical-align:middle; }
+  /* 起点からのダクト到達範囲(レーダー表示) 2026-09-25追加 */
+  #tropo-reach-map{ width:100%; height:auto; aspect-ratio:207/213; display:block; cursor:crosshair; max-height:640px; border-radius:10px; }
+  .tp-reach-sum{ font-size:12.5px; color:var(--ink-dim); margin:8px 0 14px; line-height:1.7; }
+  .tp-reach-sum b{ color:var(--ink); }
+  .tp-legend-line{ display:inline-block; width:22px; height:0; border-top:2px solid var(--ink); vertical-align:middle; margin:0 4px 0 8px; }
+  .tp-legend-line.dash{ border-top-style:dashed; }
   .map-legend .bar{ flex:1; height:10px; border-radius:5px; }
   .map-loading{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12.5px; color:var(--ink-dim); }
 
@@ -342,6 +363,26 @@
       <span>100</span>
     </div>
     <span class="sub" style="margin:6px 0 0;">色は0(標準的な大気=ダクトなし)〜100(強いダクト発生の可能性)の固定スケール。Esのヒートマップと同じ配色(緑→黄→橙→赤)にしています。格子は約2度間隔とEsの地図より粗めです。<span id="tropo-status-note"></span><br><strong>数値の目安:</strong> 15未満はダクトなし、15〜35はやや増強(まだ本物のダクトではない)、<strong>35超で実際のダクト(トラッピング層)が発生し始め</strong>、60超は強い開けが期待できるレベル(あくまで簡易的な工学スケールで、正確な伝搬損失予測ではありません)。</span>
+
+    <div class="tropo-path" id="tropo-path">
+      <h4>2地点間のダクト交信チャンス</h4>
+      <span class="sub">起点と相手を結ぶ経路上のダクト指数を約20kmおきに調べ、「経路の8割以上がこの強さ以上」という値(経路スコア)で判定します。ダクトは途中で途切れると届かないので、平均ではなく弱い区間を重視しています。地図上には経路を点線で、一番弱い地点を×で表示します。あくまで気象モデルからの目安で、山による遮蔽や、アンテナ・出力の違いは考慮していません。</span>
+      <div class="qth-row">
+        <label for="tp-from">起点:</label>
+        <select class="qth-select" id="tp-from"></select>
+        <label for="tp-to">相手:</label>
+        <select class="qth-select" id="tp-to"></select>
+      </div>
+      <div class="tp-result" id="tp-result">データ読込中…</div>
+      <h4>起点からのダクト到達範囲(レーダー表示)</h4>
+      <span class="sub">起点から3度おきの方向に電波を飛ばしたと考え、それぞれの方向・距離まで上と同じ「経路スコア」を計算して扇状に塗り分けました。赤く濃いほど届きやすく、色が薄くなるほど届きにくくなります。<span class="tp-legend-line"></span>35以上(つながる可能性あり)の範囲 <span class="tp-legend-line dash"></span>15以上(条件次第)の範囲。上のスライダー・再生ボタンの時刻に連動し、地図をタップするとその地点までの見込みが出ます。</span>
+      <div class="tropo-readout" id="tp-reach-readout">地図をタップすると、起点からその地点までの見込みが表示されます</div>
+      <div class="map-wrap"><canvas id="tropo-reach-map"></canvas></div>
+      <div class="tp-reach-sum" id="tp-reach-sum"></div>
+      <h4>起点からつながりそうな相手(表示中の時刻)</h4>
+      <span class="sub">経路スコアの高い順(同点なら7日間のベストが高い順)。地名をタップすると上の「相手」に設定されます。</span>
+      <div class="tp-rank" id="tp-rank"></div>
+    </div>
   </div>
 
   <div class="contacts-panel">
@@ -1089,6 +1130,11 @@
       }
     }
 
+    // 2地点間のダクト交信チャンス(新機能でエラーが出ても地図本体は止めない)
+    try { drawTropoPath(ctx, proj, grid, stepIdx); } catch(e){ if(window.console) console.warn('tropo path draw', e); }
+    try { updateTropoPathPanel(grid, stepIdx); } catch(e){ if(window.console) console.warn('tropo path panel', e); }
+    try { renderTropoReach(grid, stepIdx); } catch(e){ if(window.console) console.warn('tropo reach', e); }
+
     setTropoLegendGradient();
   }
 
@@ -1176,6 +1222,401 @@
       }
       showValueAt(x, y);
     });
+  }
+
+  // =====================================================================
+  // 2地点間のダクト交信チャンス(2026-09-25追加)
+  // 既に届いているダクト予報の格子データ(data.tropo.grid)だけを使い、画面側で
+  // 経路上の値を調べる。サーバー側の計算やデータ形式は一切変えていない。
+  // 新機能の中でエラーが起きても地図本体の表示は止めないよう、呼び出し側を
+  // try/catchで囲んでいる。
+  // =====================================================================
+  var TROPO_SPOTS = [
+    ["山口・長門 千畳敷",34.40,131.07],["山口・下関",33.96,130.94],["広島・灰ヶ峰",34.26,132.60],
+    ["島根・出雲",35.40,132.70],["島根・隠岐",36.20,133.30],["京都・丹後半島",35.75,135.20],
+    ["福井・越前岬",35.98,135.96],["石川・能登(珠洲)",37.50,137.35],["新潟市",37.90,139.02],
+    ["新潟・佐渡島",38.05,138.40],["秋田・男鹿半島",39.95,139.72],["青森・龍飛崎",41.26,140.34],
+    ["北海道・松前",41.43,140.10],["北海道・奥尻島",42.15,139.45],["北海道・札幌",43.06,141.35],
+    ["宮城・仙台",38.27,140.87],["東京",35.69,139.69],["伊豆・八丈島",33.11,139.79],
+    ["和歌山・潮岬",33.44,135.76],["高知・室戸岬",33.25,134.18],["福岡",33.61,130.42],
+    ["長崎・対馬",34.40,129.33],["長崎・五島",32.70,128.84],["鹿児島・種子島",30.60,130.98],
+    ["鹿児島・奄美大島",28.38,129.49],["沖縄・那覇",26.21,127.68],["韓国・釜山",35.18,129.08],
+    ["韓国・済州島",33.50,126.53]
+  ];
+  var TP_FROM_KEY = 'esforecast_tp_from', TP_TO_KEY = 'esforecast_tp_to';
+  var tpPeakCache = {};
+  var tpShowAll = false; // ランキングは通常上位10件、ボタンで全件表示
+
+  function tpLoad(k){ try { return localStorage.getItem(k) || ''; } catch(e){ return ''; } }
+  function tpSave(k,v){ try { localStorage.setItem(k, v); } catch(e){} }
+
+  // 起点・相手の候補一覧(自局を登録していれば先頭に「自局」を追加)
+  function tpSpotList(){
+    var list = [];
+    try {
+      var q = loadQth();
+      var qp = q ? PREFECTURES.find(function(p){ return p[0] === q; }) : null;
+      if(qp) list.push(['自局('+qp[0]+')', qp[1], qp[2]]);
+    } catch(e){}
+    return list.concat(TROPO_SPOTS);
+  }
+  function tpFind(name){
+    var l = tpSpotList();
+    for(var i=0;i<l.length;i++){ if(l[i][0] === name) return l[i]; }
+    return null;
+  }
+
+  function populateTropoPathSelects(){
+    var fromSel = document.getElementById('tp-from'), toSel = document.getElementById('tp-to');
+    if(!fromSel || !toSel) return;
+    var list = tpSpotList();
+    var fromWant = fromSel.value || tpLoad(TP_FROM_KEY);
+    var toWant = toSel.value || tpLoad(TP_TO_KEY);
+    function fill(sel, want, fallback){
+      sel.innerHTML = '';
+      list.forEach(function(sp){
+        var o = document.createElement('option'); o.value = sp[0]; o.textContent = sp[0]; sel.appendChild(o);
+      });
+      sel.value = (want && tpFind(want)) ? want : fallback;
+    }
+    fill(fromSel, fromWant, list[0][0]);
+    fill(toSel, toWant, '青森・龍飛崎');
+  }
+
+  // 大圏(地球表面の最短経路)に沿って約20kmおきの点を作る
+  function tpSamples(a, b){
+    var d = greatCircleKm(a[1],a[2],b[1],b[2]);
+    var n = Math.max(8, Math.ceil(d/20));
+    var p1=toRad(a[1]), l1=toRad(a[2]), p2=toRad(b[1]), l2=toRad(b[2]);
+    var x1=Math.cos(p1)*Math.cos(l1), y1=Math.cos(p1)*Math.sin(l1), z1=Math.sin(p1);
+    var x2=Math.cos(p2)*Math.cos(l2), y2=Math.cos(p2)*Math.sin(l2), z2=Math.sin(p2);
+    var om = Math.acos(Math.max(-1, Math.min(1, x1*x2+y1*y2+z1*z2)));
+    var pts = [];
+    for(var i=0;i<=n;i++){
+      var f = i/n, A, B;
+      if(om < 1e-9){ A = 1-f; B = f; } else { A = Math.sin((1-f)*om)/Math.sin(om); B = Math.sin(f*om)/Math.sin(om); }
+      var x=A*x1+B*x2, y=A*y1+B*y2, z=A*z1+B*z2;
+      pts.push([toDeg(Math.atan2(z, Math.sqrt(x*x+y*y))), toDeg(Math.atan2(y, x))]);
+    }
+    return {pts:pts, km:d};
+  }
+
+  function tpStats(grid, pts, stepIdx){
+    var vals = [], minV = Infinity, minP = null;
+    for(var i=0;i<pts.length;i++){
+      var v = bilinearTropoValue(grid, pts[i][0], pts[i][1], stepIdx);
+      if(typeof v !== 'number' || isNaN(v)) continue;
+      vals.push(v);
+      if(v < minV){ minV = v; minP = pts[i]; }
+    }
+    if(!vals.length) return null;
+    var sorted = vals.slice().sort(function(x,y){ return x-y; });
+    var score = sorted[Math.floor(0.2*(sorted.length-1))];   // 経路の8割以上がこの値以上
+    var mean = vals.reduce(function(s,v){ return s+v; }, 0) / vals.length;
+    return {score:score, mean:mean, min:minV, minP:minP};
+  }
+
+  function tpVerdict(score){
+    if(score >= 60) return '強い開けの可能性';
+    if(score >= 35) return 'つながる可能性あり';
+    if(score >= 15) return '条件次第(やや増強)';
+    return '難しい';
+  }
+
+  function tpPeak(grid, a, b, samp){
+    var key = a[0]+'|'+b[0]+'|'+a[1]+','+a[2]+'|'+grid.times[0]+'|'+grid.times.length+'|'+Math.floor(Date.now()/3600000);
+    if(tpPeakCache[key]) return tpPeakCache[key];
+    var start = nearestTropoStepIndex(grid.times, Date.now()), best = null;
+    for(var i=start;i<grid.times.length;i++){
+      var st = tpStats(grid, samp.pts, i);
+      if(st && (!best || st.score > best.score)) best = {score:st.score, idx:i};
+    }
+    tpPeakCache[key] = best;
+    return best;
+  }
+
+  function tpWhen(grid, idx){ return String(formatTropoTime(grid.times[idx])).split(' ／ ')[0]; }
+  function tpDot(v){ return '<span class="tp-dot" style="background:'+valueToTropoColor(v)+'"></span>'; }
+
+  function updateTropoPathPanel(grid, stepIdx){
+    var res = document.getElementById('tp-result'), rank = document.getElementById('tp-rank');
+    if(!res || !rank) return;
+    if(!grid || !grid.times || !grid.times.length || !grid.values || !grid.values.length){
+      res.textContent = 'ダクト予報データの取得待ちです'; rank.innerHTML = ''; return;
+    }
+    var fromSel = document.getElementById('tp-from'), toSel = document.getElementById('tp-to');
+    var a = tpFind(fromSel && fromSel.value), b = tpFind(toSel && toSel.value);
+    if(!a || !b){ res.textContent = '起点と相手を選んでください'; rank.innerHTML=''; return; }
+
+    if(a[0] === b[0]){
+      res.innerHTML = '起点と相手が同じ地点です。別の相手を選んでください。';
+    } else {
+      var samp = tpSamples(a, b), st = tpStats(grid, samp.pts, stepIdx), pk = tpPeak(grid, a, b, samp);
+      if(!st){ res.textContent = 'この経路のデータがありません'; }
+      else {
+        res.innerHTML =
+          '<span class="tp-title">'+a[0]+' → '+b[0]+'</span>(約'+Math.round(samp.km)+'km)<br>' +
+          '表示中の時刻: '+tpDot(st.score)+'経路スコア <b>'+st.score.toFixed(0)+'</b> /100 → <span class="tp-verdict">'+tpVerdict(st.score)+'</span><br>' +
+          '<span style="font-size:11.5px">経路の平均 '+st.mean.toFixed(0)+' / 一番弱い地点 '+st.min.toFixed(0)+'(地図の×)</span>' +
+          (pk ? '<br>この先7日間のベスト: '+tpDot(pk.score)+'<b>'+pk.score.toFixed(0)+'</b> /100 ('+tpWhen(grid, pk.idx)+', '+tpVerdict(pk.score)+') <button type="button" class="time-btn peak-jump" data-step="'+pk.idx+'">その時刻へ</button>' : '');
+      }
+    }
+
+    // 起点から全候補へのランキング(表示中の時刻)
+    var rows = [];
+    tpSpotList().forEach(function(sp){
+      if(sp[0] === a[0] || sp[0].indexOf('自局(') === 0) return;
+      var smp = tpSamples(a, sp); var s2 = tpStats(grid, smp.pts, stepIdx);
+      if(!s2) return;
+      rows.push({sp:sp, km:smp.km, st:s2, pk:tpPeak(grid, a, sp, smp)});
+    });
+    rows.sort(function(x,y){ return (y.st.score - x.st.score) || ((y.pk?y.pk.score:0) - (x.pk?x.pk.score:0)); });
+    var total = rows.length;
+    if(!tpShowAll) rows = rows.slice(0, 10);
+    rank.innerHTML = rows.map(function(r){
+      return '<div class="tp-row">' +
+        '<span class="tp-name" data-to="'+r.sp[0]+'">'+r.sp[0]+'</span>' +
+        '<span>約'+Math.round(r.km)+'km・'+tpVerdict(r.st.score)+'</span>' +
+        '<span class="tp-score">'+tpDot(r.st.score)+r.st.score.toFixed(0)+'</span>' +
+        (r.pk ? '<span class="tp-peak">7日間のベスト: '+r.pk.score.toFixed(0)+' ('+tpWhen(grid, r.pk.idx)+') <button type="button" class="time-btn peak-jump" data-step="'+r.pk.idx+'">その時刻へ</button></span>' : '') +
+        '</div>';
+    }).join('') +
+    (total > 10 ? '<button type="button" class="time-btn tp-more" style="align-self:center">'+(tpShowAll ? '上位10件だけ表示' : 'すべて表示(全'+total+'件)')+'</button>' : '');
+  }
+
+  function drawTropoPath(ctx, proj, grid, stepIdx){
+    if(!ctx || !proj || !grid || !grid.values || !grid.values.length) return;
+    var fromSel = document.getElementById('tp-from'), toSel = document.getElementById('tp-to');
+    var a = tpFind(fromSel && fromSel.value), b = tpFind(toSel && toSel.value);
+    if(!a || !b || a[0] === b[0]) return;
+    var samp = tpSamples(a, b), st = tpStats(grid, samp.pts, stepIdx);
+    ctx.save();
+    ctx.lineCap = 'round';
+    function line(width, color, dash){
+      ctx.beginPath(); ctx.setLineDash(dash); ctx.lineWidth = width; ctx.strokeStyle = color;
+      samp.pts.forEach(function(p, i){ var xy = proj.toXY(p[0], p[1]); if(i) ctx.lineTo(xy[0], xy[1]); else ctx.moveTo(xy[0], xy[1]); });
+      ctx.stroke();
+    }
+    line(4, 'rgba(0,0,0,0.55)', []);
+    line(2, 'rgba(255,255,255,0.95)', [6,5]);
+    ctx.setLineDash([]);
+    [a, b].forEach(function(p){
+      var xy = proj.toXY(p[1], p[2]);
+      ctx.beginPath(); ctx.arc(xy[0], xy[1], 5, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(20,20,20,0.85)'; ctx.stroke();
+    });
+    if(st && st.minP){
+      var m = proj.toXY(st.minP[0], st.minP[1]), r = 6;
+      ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+      ctx.beginPath(); ctx.moveTo(m[0]-r,m[1]-r); ctx.lineTo(m[0]+r,m[1]+r); ctx.moveTo(m[0]+r,m[1]-r); ctx.lineTo(m[0]-r,m[1]+r); ctx.stroke();
+      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+      ctx.beginPath(); ctx.moveTo(m[0]-r,m[1]-r); ctx.lineTo(m[0]+r,m[1]+r); ctx.moveTo(m[0]+r,m[1]-r); ctx.lineTo(m[0]-r,m[1]+r); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ---- 起点からのダクト到達範囲(レーダー表示) ----
+  var TP_REACH_DEG = 3, TP_REACH_KM = 20, TP_REACH_MAX = 1600;
+  var tpReachProj = null, tpReachOrigin = null, tpReachGeoCache = null;
+
+  function tpDest(lat, lon, brgDeg, km){
+    var d = km/6371, th = toRad(brgDeg), p1 = toRad(lat), l1 = toRad(lon);
+    var p2 = Math.asin(Math.sin(p1)*Math.cos(d) + Math.cos(p1)*Math.sin(d)*Math.cos(th));
+    var l2 = l1 + Math.atan2(Math.sin(th)*Math.sin(d)*Math.cos(p1), Math.cos(d) - Math.sin(p1)*Math.sin(p2));
+    return [toDeg(p2), toDeg(l2)];
+  }
+  function tpDir8(deg){ return ['北','北東','東','南東','南','南西','西','北西'][Math.round(((deg%360)+360)%360/45)%8]; }
+
+  // 起点ごとに光線の座標を前計算(時刻が変わっても座標は同じなのでキャッシュ)
+  function tpReachGeometry(o, grid){
+    var key = o[0]+'|'+o[1]+','+o[2]+'|'+grid.lat_min+','+grid.lon_min+','+grid.rows+','+grid.cols;
+    if(tpReachGeoCache && tpReachGeoCache.key === key) return tpReachGeoCache;
+    var latLo = grid.lat_min - grid.lat_step/2, latHi = grid.lat_max + grid.lat_step/2;
+    var lonLo = grid.lon_min - grid.lon_step/2, lonHi = grid.lon_max + grid.lon_step/2;
+    function inside(p){ return p[0]>=latLo && p[0]<=latHi && p[1]>=lonLo && p[1]<=lonHi; }
+    var rays = [];
+    for(var a=0; a<360; a+=TP_REACH_DEG){
+      var ray = {brg:a, c:[[o[1],o[2]]], l:[[o[1],o[2]]], r:[[o[1],o[2]]]};
+      for(var km=TP_REACH_KM; km<=TP_REACH_MAX; km+=TP_REACH_KM){
+        var c = tpDest(o[1], o[2], a, km);
+        if(!inside(c)) break;   // 予報格子の外は値が無いので描かない
+        ray.c.push(c);
+        ray.l.push(tpDest(o[1], o[2], a - TP_REACH_DEG/2, km));
+        ray.r.push(tpDest(o[1], o[2], a + TP_REACH_DEG/2, km));
+      }
+      rays.push(ray);
+    }
+    tpReachGeoCache = {key:key, rays:rays};
+    return tpReachGeoCache;
+  }
+
+  // 各光線について、起点から距離jまでの経路スコア(=2地点判定と同じ「8割以上がこの値以上」)
+  function tpReachScores(geo, grid, stepIdx){
+    return geo.rays.map(function(ray){
+      var sorted = [], out = [];
+      for(var j=0; j<ray.c.length; j++){
+        var v = bilinearTropoValue(grid, ray.c[j][0], ray.c[j][1], stepIdx);
+        if(typeof v !== 'number' || isNaN(v)) v = 0;
+        var lo = 0, hi = sorted.length;
+        while(lo < hi){ var mid = (lo+hi)>>1; if(sorted[mid] < v) lo = mid+1; else hi = mid; }
+        sorted.splice(lo, 0, v);
+        out.push(sorted[Math.floor(0.2*(sorted.length-1))]);
+      }
+      return out;
+    });
+  }
+
+  function renderTropoReach(grid, stepIdx){
+    var canvas = document.getElementById('tropo-reach-map');
+    var sum = document.getElementById('tp-reach-sum');
+    if(!canvas || !coastline) return;
+    var w = canvas.clientWidth; if(!w) return;
+    var h = canvas.clientHeight || w;
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = w*dpr; canvas.height = h*dpr;
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.fillStyle = cssVar('--panel-2') || '#1c2733';
+    ctx.fillRect(0,0,w,h);
+    var fromSel = document.getElementById('tp-from');
+    var o = tpFind(fromSel && fromSel.value);
+    tpReachOrigin = o;
+    if(!grid || !grid.values || !grid.values.length || !o){
+      tpReachProj = null;
+      ctx.fillStyle = cssVar('--ink-dim'); ctx.font = "12.5px 'Zen Kaku Gothic New', sans-serif"; ctx.textAlign = 'center';
+      ctx.fillText('データ取得待ちです', w/2, h/2);
+      if(sum) sum.textContent = '';
+      return;
+    }
+    var bbox = { lonMin: grid.lon_min - grid.lon_step/2, lonMax: grid.lon_max + grid.lon_step/2,
+                 latMin: grid.lat_min - grid.lat_step/2, latMax: grid.lat_max + grid.lat_step/2 };
+    var proj = makeProjector(bbox, w, h, 14);
+    tpReachProj = proj;
+
+    var geo = tpReachGeometry(o, grid);
+    var scores = tpReachScores(geo, grid, stepIdx);
+
+    // 扇(ビーム)の塗り: スコアが高いほど赤く濃く、低いほど薄く
+    geo.rays.forEach(function(ray, k){
+      var sc = scores[k];
+      for(var j=1; j<ray.c.length; j++){
+        var s = sc[j];
+        var alpha = Math.max(0, Math.min(0.9, (s - 5) / 40));
+        if(alpha <= 0.02) continue;
+        var a0 = proj.toXY(ray.l[j-1][0], ray.l[j-1][1]), b0 = proj.toXY(ray.r[j-1][0], ray.r[j-1][1]);
+        var a1 = proj.toXY(ray.l[j][0], ray.l[j][1]),     b1 = proj.toXY(ray.r[j][0], ray.r[j][1]);
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = valueToTropoColor(s);
+        ctx.beginPath(); ctx.moveTo(a0[0],a0[1]); ctx.lineTo(b0[0],b0[1]); ctx.lineTo(b1[0],b1[1]); ctx.lineTo(a1[0],a1[1]); ctx.closePath();
+        ctx.fill();
+      }
+    });
+    ctx.globalAlpha = 1;
+
+    // 海岸線
+    ctx.strokeStyle = cssVar('--ink-dim'); ctx.lineWidth = 1; ctx.globalAlpha = 0.75;
+    ctx.beginPath();
+    coastline.rings.forEach(function(ring){
+      ring.forEach(function(p, i){ var xy = proj.toXY(p[1], p[0]); if(i===0) ctx.moveTo(xy[0], xy[1]); else ctx.lineTo(xy[0], xy[1]); });
+      ctx.closePath();
+    });
+    ctx.stroke(); ctx.globalAlpha = 1;
+
+    // 到達範囲の境界線(35以上=実線、15以上=点線)
+    function reachKm(sc, thr){ var r = 0; for(var j=1;j<sc.length;j++){ if(sc[j] >= thr) r = j; else break; } return r; }
+    var r35 = scores.map(function(sc){ return reachKm(sc, 35); });
+    var r15 = scores.map(function(sc){ return reachKm(sc, 15); });
+    function outline(rs, dash){
+      if(!rs.some(function(r){ return r > 0; })) return;
+      ctx.save();
+      ctx.beginPath();
+      geo.rays.forEach(function(ray, k){ var p = ray.c[rs[k]] || ray.c[0]; var xy = proj.toXY(p[0], p[1]); if(k===0) ctx.moveTo(xy[0], xy[1]); else ctx.lineTo(xy[0], xy[1]); });
+      ctx.closePath();
+      // 黒の下地+白線の2重描きで、ライト/ダークどちらの背景でも見えるようにする
+      ctx.setLineDash(dash); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.stroke();
+      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.stroke();
+      ctx.restore();
+    }
+    outline(r15, [5,4]);
+    outline(r35, []);
+    if(!r15.some(function(r){ return r > 0; })){
+      // 何も塗られないと「壊れた?」と思われやすいので、理由を地図の下部に表示
+      ctx.save();
+      ctx.font = "12px 'Zen Kaku Gothic New', sans-serif"; ctx.textAlign = 'center';
+      var msg = 'この時刻はダクトが弱く、届きそうな方向がありません';
+      var tw = ctx.measureText(msg).width + 20;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(w/2 - tw/2, h - 34, tw, 22);
+      ctx.fillStyle = '#ffffff'; ctx.fillText(msg, w/2, h - 19);
+      ctx.restore();
+    }
+
+    // 候補地点(小さな点)と起点
+    ctx.fillStyle = cssVar('--ink'); ctx.globalAlpha = 0.8;
+    TROPO_SPOTS.forEach(function(sp){ if(sp[0] === o[0]) return; var xy = proj.toXY(sp[1], sp[2]); ctx.beginPath(); ctx.arc(xy[0], xy[1], 2.2, 0, Math.PI*2); ctx.fill(); });
+    ctx.globalAlpha = 1;
+    var oxy = proj.toXY(o[1], o[2]);
+    ctx.beginPath(); ctx.arc(oxy[0], oxy[1], 6, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(20,20,20,0.85)'; ctx.stroke();
+    ctx.font = "bold 11.5px 'Zen Kaku Gothic New', sans-serif"; ctx.textAlign = 'left';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText('起点', oxy[0]+9, oxy[1]+4);
+    ctx.fillStyle = '#ffffff'; ctx.fillText('起点', oxy[0]+9, oxy[1]+4);
+
+    // まとめ文: 一番遠くまで届きそうな方向
+    if(sum){
+      function best(rs){ var bk = -1, bj = 0; rs.forEach(function(r,k){ if(r > bj){ bj = r; bk = k; } }); return bk < 0 ? null : {brg:geo.rays[bk].brg, km:bj*TP_REACH_KM}; }
+      var b35 = best(r35), b15 = best(r15);
+      sum.innerHTML = '起点: <b>'+o[0]+'</b>(表示中の時刻)<br>' +
+        'つながる可能性あり(35以上)で一番遠くまで届きそうな方向: ' + (b35 ? '<b>'+tpDir8(b35.brg)+'方向 約'+b35.km+'km</b>' : '<b>なし</b>') + '<br>' +
+        '条件次第(15以上)で一番遠くまで届きそうな方向: ' + (b15 ? '<b>'+tpDir8(b15.brg)+'方向 約'+b15.km+'km</b>' : '<b>なし</b>');
+    }
+  }
+
+  function initTropoReachTap(){
+    var canvas = document.getElementById('tropo-reach-map');
+    var out = document.getElementById('tp-reach-readout');
+    if(!canvas || !out) return;
+    canvas.addEventListener('click', function(ev){
+      var grid = lastTropoData && lastTropoData.tropo && lastTropoData.tropo.grid;
+      if(!tpReachProj || !tpReachOrigin || !grid) return;
+      var rect = canvas.getBoundingClientRect();
+      var ll = tpReachProj.toLatLon(ev.clientX - rect.left, ev.clientY - rect.top);
+      var o = tpReachOrigin, t = ['タップ地点', ll[0], ll[1]];
+      var samp = tpSamples(o, t), st = tpStats(grid, samp.pts, tropoStepIndex || 0);
+      if(!st){ out.textContent = 'この地点のデータがありません'; return; }
+      var brg = initialBearingDeg(o[1], o[2], ll[0], ll[1]);
+      out.innerHTML = '起点から<b>'+tpDir8(brg)+'方向 約'+Math.round(samp.km)+'km</b>: 経路スコア <b>'+st.score.toFixed(0)+'</b> /100 → '+tpVerdict(st.score);
+    });
+  }
+
+  function initTropoPath(){
+    populateTropoPathSelects();
+    var fromSel = document.getElementById('tp-from'), toSel = document.getElementById('tp-to');
+    function changed(){
+      if(fromSel) tpSave(TP_FROM_KEY, fromSel.value);
+      if(toSel) tpSave(TP_TO_KEY, toSel.value);
+      if(lastTropoData) renderTropoCanvas(lastTropoData);
+    }
+    if(fromSel) fromSel.addEventListener('change', changed);
+    if(toSel) toSel.addEventListener('change', changed);
+    // Esの自局登録を変えたら、起点候補の「自局」も更新する
+    var qsel = document.getElementById('qth-select');
+    if(qsel) qsel.addEventListener('change', function(){ populateTropoPathSelects(); changed(); });
+    var box = document.getElementById('tropo-path');
+    if(box){
+      box.addEventListener('click', function(ev){
+        var t = ev.target;
+        var jump = t && t.closest ? t.closest('.peak-jump') : null;
+        if(jump){
+          var idx = parseInt(jump.getAttribute('data-step'), 10);
+          if(!isNaN(idx)){ stopTropoPlay(); tropoStepIndex = idx; if(lastTropoData) renderTropoCanvas(lastTropoData); }
+          return;
+        }
+        if(t && t.closest && t.closest('.tp-more')){ tpShowAll = !tpShowAll; if(lastTropoData) renderTropoCanvas(lastTropoData); return; }
+        var nm = t && t.closest ? t.closest('.tp-name') : null;
+        if(nm && toSel){ toSel.value = nm.getAttribute('data-to'); changed(); }
+      });
+    }
   }
 
   function initTropoTimeControls(){
@@ -1694,6 +2135,8 @@
     initTropoTooltip();
     initTropoTimeControls();
     populateQthSelect();
+    try { initTropoPath(); } catch(e){ if(window.console) console.warn('tropo path init', e); }
+    try { initTropoReachTap(); } catch(e){ if(window.console) console.warn('tropo reach init', e); }
     loadCoastline().then(function(){
       if(lastHeatmapData){ drawJapanHeatmap(lastHeatmapData); drawSelfChanceMap(lastHeatmapData); }
       if(lastTropoData){ drawTropoMap(lastTropoData); }
