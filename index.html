@@ -164,6 +164,7 @@
     font-size:12.5px; color:var(--ink-dim); text-align:center;
   }
   .tropo-readout b{ color:var(--ink); font-family:'JetBrains Mono',monospace; }
+  .tropo-readout .peak-jump{ margin-left:4px; padding:2px 10px; font-size:11.5px; vertical-align:middle; }
   .map-legend{ display:flex; align-items:center; gap:8px; margin-top:10px; font-size:11px; color:var(--ink-dim); }
   .map-legend .bar{ flex:1; height:10px; border-radius:5px; }
   .map-loading{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12.5px; color:var(--ink-dim); }
@@ -1083,7 +1084,8 @@
       if(readout){
         var mv = bilinearTropoValue(grid, tropoMarkerLatLon[0], tropoMarkerLatLon[1], stepIdx);
         var mst = tropoStatusOf(mv);
-        readout.innerHTML = '選択した地点: ダクト指数 <b>'+mv.toFixed(0)+'</b> /100 ('+mst.label+', 周辺格子からの補間値)';
+        readout.innerHTML = '選択した地点: ダクト指数 <b>'+mv.toFixed(0)+'</b> /100 ('+mst.label+', 周辺格子からの補間値)' +
+          tropoPeakHtml(grid, tropoMarkerLatLon[0], tropoMarkerLatLon[1]);
       }
     }
 
@@ -1091,6 +1093,27 @@
   }
 
   var TROPO_READOUT_DEFAULT = '地図をタップ/クリックすると、その地点のダクト指数がここに表示されます';
+
+  // 選んだ地点の「この先(現在〜予報の最後まで)で一番ダクト指数が高くなる時刻」を探す
+  // (2026-09-25追加)。既に届いている予報データを画面側で調べるだけで、計算方法は変えていない。
+  function tropoPeakAhead(grid, lat, lon){
+    if(!grid || !grid.times || !grid.times.length) return null;
+    var start = nearestTropoStepIndex(grid.times, Date.now());
+    var best = null;
+    for(var i=start; i<grid.times.length; i++){
+      var v = bilinearTropoValue(grid, lat, lon, i);
+      if(typeof v !== 'number' || isNaN(v)) continue;
+      if(!best || v > best.v){ best = {v:v, idx:i}; }
+    }
+    return best;
+  }
+  function tropoPeakHtml(grid, lat, lon){
+    var pk = tropoPeakAhead(grid, lat, lon);
+    if(!pk) return '';
+    var when = String(formatTropoTime(grid.times[pk.idx])).split(' ／ ')[0];
+    return '<br>この地点のこの先のピーク予想: <b>'+pk.v.toFixed(0)+'</b> /100 ('+when+') ' +
+      '<button type="button" class="time-btn peak-jump" data-step="'+pk.idx+'">その時刻へ</button>';
+  }
 
   function initTropoTooltip(){
     var canvas = document.getElementById('tropo-map');
@@ -1174,6 +1197,19 @@
     var playBtn = document.getElementById('tropo-play-btn');
     if(playBtn){
       playBtn.addEventListener('click', function(){ toggleTropoPlay(); });
+    }
+    var readoutBar = document.getElementById('tropo-readout');
+    if(readoutBar){
+      readoutBar.addEventListener('click', function(ev){
+        var b = ev.target && ev.target.closest ? ev.target.closest('.peak-jump') : null;
+        if(!b) return;
+        ev.stopPropagation();
+        var idx = parseInt(b.getAttribute('data-step'), 10);
+        if(isNaN(idx)) return;
+        stopTropoPlay();
+        tropoStepIndex = idx;
+        if(lastTropoData) renderTropoCanvas(lastTropoData);
+      });
     }
     var playRevBtn = document.getElementById('tropo-play-rev-btn');
     if(playRevBtn){
@@ -1614,9 +1650,14 @@
       pillEl.className = 'pill '+st2.cls;
       pillEl.innerHTML = '<span class="dot"></span>'+st2.label;
       document.getElementById('headline-trend').innerHTML = trendHtml(top) + ' ' + phaseHtml(top);
-      var evidenceNote = (top.live_evidence.ft8_6m_spots_15min>0)
-        ? ' 実際に6m FT8で'+top.live_evidence.ft8_6m_spots_15min+'局の受信報告があり、Esによる伝播が実測で確認できています。'
-        : ' 現時点でこの地点への実伝播報告はまだ確認できていません(統計モデルによる見込み値)。';
+      var ev6 = top.live_evidence.ft8_6m_spots_15min || 0, ev10 = top.live_evidence.ft8_10m_spots_15min || 0;
+      // 2026-09-25: 各地点カードの「実伝播あり」(6m+10m)と説明文が食い違わないよう、10mの報告も反映。
+      // 10mはF2層など他の伝播のこともあるので、Es確定とは書かない。
+      var evidenceNote = (ev6>0)
+        ? ' 実際に6m FT8で'+ev6+'局の受信報告があり、Esによる伝播が実測で確認できています。'
+        : (ev10>0)
+          ? ' 6mの受信報告はまだありませんが、10m FT8で'+ev10+'局の受信報告があります(10mはF2層など別の伝播の場合もあり、Esとは限りません)。'
+          : ' 現時点でこの地点への実伝播報告はまだ確認できていません(統計モデルによる見込み値)。';
       document.getElementById('headline-text').innerHTML =
         '現在もっとも活動指数が高いのは <b>'+top.name+'</b>（'+top.loc+'）です。'+evidenceNote;
     }
