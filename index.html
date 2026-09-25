@@ -120,6 +120,7 @@
   .phase.peak{ color:var(--vhigh); }
   .phase.plateau{ color:var(--high); }
   .phase.decay, .phase.collapse, .phase.quiet{ color:var(--ink-dim); }
+  .phase.low{ color:var(--ok); }
   .phase-note{ font-size:11.5px; color:var(--ink-dim); margin:2px 2px 8px; }
   .clima-note{ font-size:11px; color:var(--ink-dim); }
   .evidence-row{ display:flex; gap:10px; font-size:11.5px; color:var(--ink-dim); flex-wrap:wrap; }
@@ -254,7 +255,7 @@
       <h2>観測4地点の Es 活動指数</h2>
       <span class="sub">NICT実測foEs + PSKReporter実伝播データ（15分毎更新）+ 季節・時刻統計 のハイブリッド指数</span>
     </div>
-    <div class="phase-note">フェーズ表示: 発生の兆し → 成長期 → ピーク付近/持続中 → 衰退期 → 収束へ(直近約1時間の推移から判定。指数30未満で動きが無い時は「静穏」)</div>
+    <div class="phase-note">フェーズ表示: 発生の兆し → 成長期 → ピーク付近/持続中 → 衰退期 → 収束へ(直近約1時間の推移から判定。指数30未満で動きが無い時は、実伝播があれば「低調」、無ければ「静穏」)</div>
     <div class="stations" id="station-grid"></div>
   </div>
 
@@ -457,6 +458,7 @@
     plateau:  {label:'持続中',     desc:'一定の強さで続いています'},
     decay:    {label:'衰退期',     desc:'下がり始めています'},
     collapse: {label:'収束へ',     desc:'下降が続いています。そろそろ終わりかけです'},
+    low:      {label:'低調',       desc:'指数は低めですが、一部で実際の伝播(FT8受信報告)があります'},
     quiet:    {label:'静穏',       desc:'目立った活動はありません'}
   };
   function esPhaseOf(s){
@@ -473,9 +475,10 @@
       return null;
     }
     if(last === 'up' && (prev === 'up' || (d >= 3 && base != null && v >= base + 5))) return 'formation';
-    // 実伝播(FT8受信報告)がある時に「静穏」と並ぶと矛盾して見えるので、その場合は表示しない
+    // 実伝播(FT8受信報告)がある時に「静穏」と並ぶと矛盾して見えるので、その場合は「低調」とする
+    // (指数は低いが、一部で伝播は起きている状態)
     var ev = s.live_evidence || {};
-    if(((ev.ft8_6m_spots_15min||0) + (ev.ft8_10m_spots_15min||0)) > 0) return null;
+    if(((ev.ft8_6m_spots_15min||0) + (ev.ft8_10m_spots_15min||0)) > 0) return 'low';
     return 'quiet';
   }
   function phaseHtml(s){
