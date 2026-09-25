@@ -366,7 +366,7 @@
 
     <div class="tropo-path" id="tropo-path">
       <h4>2地点間のダクト交信チャンス</h4>
-      <span class="sub">起点と相手を結ぶ経路上のダクト指数を約20kmおきに調べ、「経路の8割以上がこの強さ以上」という値(経路スコア)で判定します。ダクトは途中で途切れると届かないので、平均ではなく弱い区間を重視しています。地図上には経路を点線で、一番弱い地点を×で表示します。あくまで気象モデルからの目安で、山による遮蔽や、アンテナ・出力の違いは考慮していません。</span>
+      <span class="sub">起点と相手を結ぶ経路上のダクト指数を約20kmおきに調べ、「経路の8割以上がこの強さ以上」という値(経路スコア)を出し、さらに起点・相手それぞれの約60km以内までダクトが届いているか(沖にダクトがあっても沿岸まで来ていないと交信しにくいため)も確かめて、一番弱いところで判定します。ダクトは途中で途切れると届かないので、平均ではなく弱い区間を重視しています。地図上には経路を点線で、一番弱い地点を×で表示します。あくまで気象モデルからの目安で、山による遮蔽や、アンテナ・出力の違いは考慮していません。</span>
       <div class="qth-row">
         <label for="tp-from">起点:</label>
         <select class="qth-select" id="tp-from"></select>
@@ -375,7 +375,7 @@
       </div>
       <div class="tp-result" id="tp-result">データ読込中…</div>
       <h4>起点からのダクト到達範囲(レーダー表示)</h4>
-      <span class="sub">起点から3度おきの方向に電波を飛ばしたと考え、それぞれの方向・距離まで上と同じ「経路スコア」を計算して扇状に塗り分けました。赤く濃いほど届きやすく、色が薄くなるほど届きにくくなります。<span class="tp-legend-line"></span>35以上(つながる可能性あり)の範囲 <span class="tp-legend-line dash"></span>15以上(条件次第)の範囲。上のスライダー・再生ボタンの時刻に連動し、地図をタップするとその地点までの見込みが出ます。</span>
+      <span class="sub">起点から3度おきの方向に電波を飛ばしたと考え、それぞれの方向・距離まで上と同じ「経路スコア」(起点側・途中・相手側の一番弱いところ)を計算して扇状に塗り分けました。赤く濃いほど届きやすく、色が薄くなるほど届きにくくなります。<span class="tp-legend-line"></span>35以上(つながる可能性あり)の範囲 <span class="tp-legend-line dash"></span>15以上(条件次第)の範囲。上のスライダー・再生ボタンの時刻に連動し、地図をタップするとその地点までの見込みが出ます。</span>
       <div class="tropo-readout" id="tp-reach-readout">地図をタップすると、起点からその地点までの見込みが表示されます</div>
       <div class="map-wrap"><canvas id="tropo-reach-map"></canvas></div>
       <div class="tp-reach-sum" id="tp-reach-sum"></div>
@@ -1301,19 +1301,28 @@
     return {pts:pts, km:d};
   }
 
-  function tpStats(grid, pts, stepIdx){
-    var vals = [], minV = Infinity, minP = null;
+  // 両端の「結合」を見る距離。9/12の実体験(沖にダクトはあったが沿岸まで来ておらず交信できず)を
+  // 受けて、起点・相手それぞれ約60km以内にもダクトが届いているかを判定に加えた(2026-09-25)。
+  var TP_COUPLE_KM = 60;
+  function tpStats(grid, pts, stepIdx, km){
+    var vals = [], minV = Infinity, minP = null, maxV = -Infinity;
     for(var i=0;i<pts.length;i++){
       var v = bilinearTropoValue(grid, pts[i][0], pts[i][1], stepIdx);
-      if(typeof v !== 'number' || isNaN(v)) continue;
+      if(typeof v !== 'number' || isNaN(v)) v = 0;
       vals.push(v);
       if(v < minV){ minV = v; minP = pts[i]; }
+      if(v > maxV){ maxV = v; }
     }
     if(!vals.length) return null;
     var sorted = vals.slice().sort(function(x,y){ return x-y; });
-    var score = sorted[Math.floor(0.2*(sorted.length-1))];   // 経路の8割以上がこの値以上
+    var base = sorted[Math.floor(0.2*(sorted.length-1))];   // 経路の8割以上がこの値以上
     var mean = vals.reduce(function(s,v){ return s+v; }, 0) / vals.length;
-    return {score:score, mean:mean, min:minV, minP:minP};
+    var spacing = (km && pts.length > 1) ? km/(pts.length-1) : 20;
+    var k = Math.max(1, Math.min(vals.length, Math.floor(TP_COUPLE_KM/spacing) + 1));
+    function avg(a){ return a.reduce(function(s,v){ return s+v; }, 0) / a.length; }
+    var coupleA = avg(vals.slice(0, k)), coupleB = avg(vals.slice(vals.length - k));
+    var score = Math.min(base, coupleA, coupleB);
+    return {score:score, base:base, coupleA:coupleA, coupleB:coupleB, mean:mean, min:minV, minP:minP, max:maxV};
   }
 
   function tpVerdict(score){
@@ -1328,7 +1337,7 @@
     if(tpPeakCache[key]) return tpPeakCache[key];
     var start = nearestTropoStepIndex(grid.times, Date.now()), best = null;
     for(var i=start;i<grid.times.length;i++){
-      var st = tpStats(grid, samp.pts, i);
+      var st = tpStats(grid, samp.pts, i, samp.km);
       if(st && (!best || st.score > best.score)) best = {score:st.score, idx:i};
     }
     tpPeakCache[key] = best;
@@ -1351,13 +1360,16 @@
     if(a[0] === b[0]){
       res.innerHTML = '起点と相手が同じ地点です。別の相手を選んでください。';
     } else {
-      var samp = tpSamples(a, b), st = tpStats(grid, samp.pts, stepIdx), pk = tpPeak(grid, a, b, samp);
+      var samp = tpSamples(a, b), st = tpStats(grid, samp.pts, stepIdx, samp.km), pk = tpPeak(grid, a, b, samp);
       if(!st){ res.textContent = 'この経路のデータがありません'; }
       else {
         res.innerHTML =
           '<span class="tp-title">'+a[0]+' → '+b[0]+'</span>(約'+Math.round(samp.km)+'km)<br>' +
           '表示中の時刻: '+tpDot(st.score)+'経路スコア <b>'+st.score.toFixed(0)+'</b> /100 → <span class="tp-verdict">'+tpVerdict(st.score)+'</span><br>' +
-          '<span style="font-size:11.5px">経路の平均 '+st.mean.toFixed(0)+' / 一番弱い地点 '+st.min.toFixed(0)+'(地図の×)</span>' +
+          '<span style="font-size:11.5px">内訳: 起点側(約60km以内) '+st.coupleA.toFixed(0)+' / 経路の途中 '+st.base.toFixed(0)+' / 相手側(約60km以内) '+st.coupleB.toFixed(0)+'(一番弱い地点 '+st.min.toFixed(0)+'=地図の×)</span>' +
+          ((st.max >= 35 && st.coupleA < 35) ? '<br>⚠ 経路の途中にはダクトがあります(最大'+st.max.toFixed(0)+')が、<b style="font-family:inherit">起点の沿岸まで届いていません</b>' : '') +
+          ((st.max >= 35 && st.coupleB < 35) ? '<br>⚠ 経路の途中にはダクトがあります(最大'+st.max.toFixed(0)+')が、<b style="font-family:inherit">相手側の沿岸まで届いていません</b>' : '') +
+          ((st.max >= 35 && st.coupleA >= 35 && st.coupleB >= 35 && st.base < 35) ? '<br>⚠ 両端にはダクトがありますが、<b style="font-family:inherit">経路の途中で途切れています</b>' : '') +
           (pk ? '<br>この先7日間のベスト: '+tpDot(pk.score)+'<b>'+pk.score.toFixed(0)+'</b> /100 ('+tpWhen(grid, pk.idx)+', '+tpVerdict(pk.score)+') <button type="button" class="time-btn peak-jump" data-step="'+pk.idx+'">その時刻へ</button>' : '');
       }
     }
@@ -1366,7 +1378,7 @@
     var rows = [];
     tpSpotList().forEach(function(sp){
       if(sp[0] === a[0] || sp[0].indexOf('自局(') === 0) return;
-      var smp = tpSamples(a, sp); var s2 = tpStats(grid, smp.pts, stepIdx);
+      var smp = tpSamples(a, sp); var s2 = tpStats(grid, smp.pts, stepIdx, smp.km);
       if(!s2) return;
       rows.push({sp:sp, km:smp.km, st:s2, pk:tpPeak(grid, a, sp, smp)});
     });
@@ -1389,7 +1401,7 @@
     var fromSel = document.getElementById('tp-from'), toSel = document.getElementById('tp-to');
     var a = tpFind(fromSel && fromSel.value), b = tpFind(toSel && toSel.value);
     if(!a || !b || a[0] === b[0]) return;
-    var samp = tpSamples(a, b), st = tpStats(grid, samp.pts, stepIdx);
+    var samp = tpSamples(a, b), st = tpStats(grid, samp.pts, stepIdx, samp.km);
     ctx.save();
     ctx.lineCap = 'round';
     function line(width, color, dash){
@@ -1453,15 +1465,20 @@
 
   // 各光線について、起点から距離jまでの経路スコア(=2地点判定と同じ「8割以上がこの値以上」)
   function tpReachScores(geo, grid, stepIdx){
+    var K = Math.floor(TP_COUPLE_KM / TP_REACH_KM) + 1;   // 両端の約60km(=4点)
     return geo.rays.map(function(ray){
-      var sorted = [], out = [];
+      var sorted = [], out = [], raw = [];
       for(var j=0; j<ray.c.length; j++){
         var v = bilinearTropoValue(grid, ray.c[j][0], ray.c[j][1], stepIdx);
         if(typeof v !== 'number' || isNaN(v)) v = 0;
+        raw.push(v);
         var lo = 0, hi = sorted.length;
         while(lo < hi){ var mid = (lo+hi)>>1; if(sorted[mid] < v) lo = mid+1; else hi = mid; }
         sorted.splice(lo, 0, v);
-        out.push(sorted[Math.floor(0.2*(sorted.length-1))]);
+        var base = sorted[Math.floor(0.2*(sorted.length-1))];
+        var nA = Math.min(K, raw.length), sA = 0; for(var a=0;a<nA;a++) sA += raw[a];
+        var sB = 0, nB = 0; for(var b=Math.max(0, raw.length-K); b<raw.length; b++){ sB += raw[b]; nB++; }
+        out.push(Math.min(base, sA/nA, sB/nB));   // 2地点判定と同じ考え方(起点側・途中・相手側の一番弱いところ)
       }
       return out;
     });
@@ -1582,7 +1599,7 @@
       var rect = canvas.getBoundingClientRect();
       var ll = tpReachProj.toLatLon(ev.clientX - rect.left, ev.clientY - rect.top);
       var o = tpReachOrigin, t = ['タップ地点', ll[0], ll[1]];
-      var samp = tpSamples(o, t), st = tpStats(grid, samp.pts, tropoStepIndex || 0);
+      var samp = tpSamples(o, t), st = tpStats(grid, samp.pts, tropoStepIndex || 0, samp.km);
       if(!st){ out.textContent = 'この地点のデータがありません'; return; }
       var brg = initialBearingDeg(o[1], o[2], ll[0], ll[1]);
       out.innerHTML = '起点から<b>'+tpDir8(brg)+'方向 約'+Math.round(samp.km)+'km</b>: 経路スコア <b>'+st.score.toFixed(0)+'</b> /100 → '+tpVerdict(st.score);
