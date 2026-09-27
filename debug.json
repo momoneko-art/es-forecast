@@ -1,8 +1,5 @@
 {
-  "pskreporter_debug": {
-    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"73170075118\"/>\n  <maxFlowStartSeconds value=\"1790547988\"/>\n  <receptionReport receiverCallsign=\"WA0RVK\" receiverLocator=\"EM36BU\" senderCallsign=\"PU4JLV\" senderLocator=\"GH51ub55\" frequency=\"28076700\" flowStartSeconds=\"1790547975\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" senderLotwUpload=\"2026-09-20\" sNR=\"-5\" />\n  <receptionReport receiverCallsign=\"WA0RVK\" receiverLocator=\"EM36BU\" senderCallsign=\"AK9B\" senderLocator=\"DM61VQ\" frequency=\"28074641\" flowStartSeconds=\"1790547975\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-09-19\" senderEqslAuthGuar=\"A\" sNR=\"-10\" />\n  <receptionReport receiverCallsign=\"K3GMQ\" receiverLocator=\"FN20LH\" senderCallsign=\"CE3HXY\" senderLocator=\"FF46QM\" frequency=\"28074863\" flowStartSeconds=\"1790547975\" mode=\"FT8\" senderDXCC=\"Chile\" senderDXCCCode=\"CE\" senderDXCCLocator=\"FG40\" senderLotwUpload=\"2026-09-20\" senderEqslAuthGuar=\"A\" sNR=\"-13\" />\n  <receptionReport receiverCallsign=\"KA0RVH\" receiverLocator=\"DM26WT78AU\" senderCallsign=\"PY4PTO\" senderLocator=\"GG78ls\" frequency=\"28074734\" flowStartSeconds=\"1790547961\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" senderLotwUpload=\"2026-05-17\" senderEqslAuthGuar=\"A\" sNR=\"-16\" />\n  <receptionReport receiverCallsign=\"KA0RVH\" receiverLocator=\"DM26WT78AU\" senderCallsign=\"PY2MER\" senderLocator=\"GG66PL\" frequency=\"28075656\" flow",
-    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"73170076170\"/>\n  <maxFlowStartSeconds value=\"1790547990\"/>\n  <receptionReport receiverCallsign=\"K4SSO\" receiverLocator=\"EM48RC\" senderCallsign=\"K0TPP\" senderLocator=\"EM48rk06tu\" frequency=\"50315037\" flowStartSeconds=\"1790547945\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-09-19\" senderEqslAuthGuar=\"A\" sNR=\"-10\" />\n  <receptionReport receiverCallsign=\"KC0KVR\" receiverLocator=\"EM48RP\" senderCallsign=\"K0TPP\" senderLocator=\"EM48rk06tu\" frequency=\"50315058\" flowStartSeconds=\"1790547945\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-09-19\" senderEqslAuthGuar=\"A\" sNR=\"-12\" />\n  <receptionReport receiverCallsign=\"NR0A\" receiverLocator=\"EN12GA\" senderCallsign=\"CX3TH\" senderLocator=\"GF25\" frequency=\"50313919\" flowStartSeconds=\"1790547930\" mode=\"FT8\" senderDXCC=\"Uruguay\" senderDXCCCode=\"CX\" senderDXCCLocator=\"GF27\" sNR=\"-7\" />\n  <receptionReport receiverCallsign=\"NR0A\" receiverLocator=\"EN12GA\" senderCallsign=\"W5XO\" senderLocator=\"EM10ps97\" frequency=\"50314238\" flowStartSeconds=\"1790547930\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-09-20\" sNR=\"-9\" />\n  <receptionReport receiverCallsign=\"NR0A\" receiverLocator=\"EN12GA\" senderCallsign=\"8P6ET\" senderLocator=\"GK03ec72\" frequency=\"50313524\" flowStartSeconds=\"1790547930\" mode=\"FT8\" senderDXCC=\"B"
-  },
+  "pskreporter_debug": {},
   "nict_findings": {
     "status": "ok",
     "stations": {
@@ -33,16 +30,18 @@
     }
   },
   "tropo_status": {
-    "status": "ok",
-    "errors": [],
-    "fetched_at": 1790528637.3421316,
+    "status": "partial",
+    "errors": [
+      "batch@(38.0, 143.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)",
+      "batch@(40.0, 139.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)"
+    ],
+    "fetched_at": 1790548484.3543282,
     "index_version": 3,
     "ecmwf": {
       "used": true,
       "error": null,
-      "blended_points": 168,
-      "blended_hours": 28224
-    },
-    "reused": true
+      "blended_points": 120,
+      "blended_hours": 20160
+    }
   }
 }
