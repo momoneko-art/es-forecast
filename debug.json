@@ -1,5 +1,8 @@
 {
-  "pskreporter_debug": {},
+  "pskreporter_debug": {
+    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"73170417441\"/>\n  <maxFlowStartSeconds value=\"1790548912\"/>\n  <receptionReport receiverCallsign=\"AI4UC/T\" receiverLocator=\"FM19EC\" senderCallsign=\"W8LLC\" senderLocator=\"EN72HR\" frequency=\"28075356\" flowStartSeconds=\"1790548905\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" sNR=\"-11\" />\n  <receptionReport receiverCallsign=\"LW5DCE\" receiverLocator=\"GF05rl\" senderCallsign=\"NH6D\" senderLocator=\"BL02IC\" frequency=\"28076165\" flowStartSeconds=\"1790548905\" mode=\"FT8\" senderDXCC=\"Hawaii\" senderDXCCCode=\"KH6\" senderDXCCLocator=\"BL11\" senderLotwUpload=\"2026-09-05\" senderEqslAuthGuar=\"A\" sNR=\"-22\" />\n  <receptionReport receiverCallsign=\"N9EAT\" receiverLocator=\"EN41WT\" senderCallsign=\"PY2UTY\" senderLocator=\"GG66\" frequency=\"28075631\" flowStartSeconds=\"1790548905\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" sNR=\"-15\" />\n  <receptionReport receiverCallsign=\"N3MK\" receiverLocator=\"FM27HV\" senderCallsign=\"W8LLC\" senderLocator=\"EN72HR\" frequency=\"28075357\" flowStartSeconds=\"1790548905\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" sNR=\"-19\" />\n  <receptionReport receiverCallsign=\"PY2MER\" receiverLocator=\"GG66PL\" senderCallsign=\"LW3DMA\" senderLocator=\"GF05TG\" frequency=\"28074628\" flowStartSeconds=\"1790548905\" mode=\"FT8\" senderDXCC=\"Argentina\" senderDXCCCode=\"LU\" senderDXCCLocator=\"FF87\" senderLotwUpload=\"2026-09-15\" senderE",
+    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"73170419446\"/>\n  <maxFlowStartSeconds value=\"1790548920\"/>\n  <receptionReport receiverCallsign=\"PT7ST\" receiverLocator=\"GI96ti\" senderCallsign=\"PY2XB\" senderLocator=\"GG66pi57fa\" frequency=\"50315075\" flowStartSeconds=\"1790548889\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" senderLotwUpload=\"2026-08-09\" senderEqslAuthGuar=\"A\" sNR=\"-21\" />\n  <receptionReport receiverCallsign=\"K1RZ\" receiverLocator=\"FM19JH\" senderCallsign=\"AA9JC\" senderLocator=\"EN61XP\" frequency=\"50313668\" flowStartSeconds=\"1790548875\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-09-20\" sNR=\"5\" />\n  <receptionReport receiverCallsign=\"AB3CV\" receiverLocator=\"FM19KJ\" senderCallsign=\"AA9JC\" senderLocator=\"EN61XP\" frequency=\"50313606\" flowStartSeconds=\"1790548875\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-09-20\" sNR=\"-13\" />\n  <receptionReport receiverCallsign=\"K4RX\" receiverLocator=\"EM70UE\" senderCallsign=\"CX7FH\" senderLocator=\"GF15DO\" frequency=\"50314456\" flowStartSeconds=\"1790548815\" mode=\"FT8\" senderDXCC=\"Uruguay\" senderDXCCCode=\"CX\" senderDXCCLocator=\"GF27\" senderLotwUpload=\"2026-07-24\" senderEqslAuthGuar=\"A\" sNR=\"-19\" />\n  <receptionReport receiverCallsign=\"NP3Q\" receiverLocator=\"EN72EH\" senderCallsign=\"AA9JC\" senderLocator=\"EN61XP\" frequency=\"50313608\" flowStartSeconds=\"1790548815\" mode=\""
+  },
   "nict_findings": {
     "status": "ok",
     "stations": {
@@ -12,36 +15,33 @@
       "kokubunji": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.5,
+        "foes_mhz": 3.6,
         "esp_status": "ok"
       },
       "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.1,
+        "foes_mhz": 3.2,
         "esp_status": "ok"
       },
       "oogimi": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.1,
+        "foes_mhz": 3.4,
         "esp_status": "ok"
       }
     }
   },
   "tropo_status": {
-    "status": "partial",
-    "errors": [
-      "batch@(38.0, 143.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)",
-      "batch@(40.0, 139.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)"
-    ],
-    "fetched_at": 1790548484.3543282,
+    "status": "ok",
+    "errors": [],
+    "fetched_at": 1790548924.0793524,
     "index_version": 3,
     "ecmwf": {
       "used": true,
       "error": null,
-      "blended_points": 120,
-      "blended_hours": 20160
+      "blended_points": 168,
+      "blended_hours": 28224
     }
   }
 }
