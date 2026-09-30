@@ -143,6 +143,12 @@
   .tropo-time-label{ font-size:13px; font-weight:700; color:var(--ink); }
   .tropo-time-slider{ width:100%; accent-color: var(--tropo-high); }
   .tropo-time-quick{ display:flex; gap:6px; flex-wrap:wrap; }
+  /* 過去の記録を見る(2026-09-30追加) */
+  .tropo-past-row{ align-items:center; }
+  .tropo-past-jumps{ display:inline-flex; gap:6px; flex-wrap:wrap; }
+  .tropo-past-jumps[hidden]{ display:none; }
+  .tropo-past-status{ font-size:11.5px; color:var(--ink-dim); }
+  .tropo-time-label .past-tag{ display:inline-block; margin-left:6px; padding:1px 8px; border-radius:999px; font-size:11px; font-weight:700; color:var(--accent-warm); border:1px solid currentColor; }
   .time-btn{ font:inherit; font-size:11.5px; padding:5px 10px; border-radius:999px; border:1px solid var(--line); background:var(--panel-2); color:var(--ink-dim); cursor:pointer; transition:border-color .15s ease, color .15s ease; }
   .time-btn:hover{ border-color:var(--tropo-high); color:var(--tropo-high); }
   .time-btn.active{ border-color:var(--tropo-high); color:var(--tropo-high); background:color-mix(in srgb, var(--tropo-high) 12%, transparent); font-weight:700; }
@@ -343,7 +349,7 @@
       <h3>VHF/UHFトロポダクト予報(今後7日間)</h3>
       <span class="pill" id="tropo-badge"><span class="dot"></span>読込中</span>
     </div>
-    <span class="sub">GFSモデル(気象庁も採用する主要モデルの一つ)由来の気温・湿度・高度データから大気の屈折率(M値)の高度勾配を計算し、電波が上空に逃げずに地表付近を伝わる「ラジオダクト」が起きやすい場所を推定した地図(2026-09-03からECMWF(欧州中期予報センター)モデルも併用し、2モデルの平均で精度を高めています)。140MHz帯・351MHz帯・420MHz帯など市民ラジオのVHF/UHF機で通常より遠距離が入感しやすいエリアの目安です(周波数が高いほどダクトの影響を受けやすい傾向)。海上でもダクトは発生する(むしろ海上のほうが起きやすいことも多い)ため、地図は日本列島の輪郭で切り取らず、海上を含む格子全体を着色しています。下のスライダーで1時間刻み・最大7日先まで予報を切り替えられます。</span>
+    <span class="sub">GFSモデル(気象庁も採用する主要モデルの一つ)由来の気温・湿度・高度データから大気の屈折率(M値)の高度勾配を計算し、電波が上空に逃げずに地表付近を伝わる「ラジオダクト」が起きやすい場所を推定した地図(2026-09-03からECMWF(欧州中期予報センター)モデルも併用し、2モデルの平均で精度を高めています)。140MHz帯・351MHz帯・420MHz帯など市民ラジオのVHF/UHF機で通常より遠距離が入感しやすいエリアの目安です(周波数が高いほどダクトの影響を受けやすい傾向)。海上でもダクトは発生する(むしろ海上のほうが起きやすいことも多い)ため、地図は日本列島の輪郭で切り取らず、海上を含む格子全体を着色しています。下のスライダーで1時間刻み・最大7日先まで予報を切り替えられます。「過去を見る」を押すと、2026/9/25から自動で保存している過去の記録(最大40日分)もスライダーでさかのぼれます。</span>
     <div class="tropo-time-row">
       <div class="tropo-time-label" id="tropo-time-label">読込中…</div>
       <input type="range" class="tropo-time-slider" id="tropo-time-slider" min="0" max="0" value="0" step="1" disabled>
@@ -355,6 +361,16 @@
         <button type="button" class="time-btn" data-jump="7">+7日</button>
         <button type="button" class="time-btn play-btn" id="tropo-play-rev-btn" aria-label="逆再生" title="時間を自動で戻す(良いタイミングを行き過ぎた時に押すと戻せます)">◀</button>
         <button type="button" class="time-btn play-btn" id="tropo-play-btn" aria-label="自動再生" title="時間を自動で進める(地図をタップすると一時停止して数値を確認できます)">▶</button>
+      </div>
+      <div class="tropo-time-quick tropo-past-row">
+        <button type="button" class="time-btn" id="tropo-past-toggle">🕘 過去を見る</button>
+        <span class="tropo-past-jumps" id="tropo-past-jumps" hidden>
+          <button type="button" class="time-btn" data-jump="-1">-1日</button>
+          <button type="button" class="time-btn" data-jump="-3">-3日</button>
+          <button type="button" class="time-btn" data-jump="-7">-7日</button>
+          <button type="button" class="time-btn" data-jump="-60">一番古い記録</button>
+        </span>
+        <span class="tropo-past-status" id="tropo-past-status"></span>
       </div>
     </div>
     <div class="tropo-readout" id="tropo-readout">地図をタップ/クリックすると、その地点のダクト指数がここに表示されます</div>
@@ -838,8 +854,126 @@
   // 保持しているので、時間を進めても・再描画しても同じ地点に残り続ける。
 
   function drawTropoMap(data){
-    lastTropoData = data;
-    requestAnimationFrame(function(){ requestAnimationFrame(function(){ renderTropoCanvas(data); }); });
+    // 過去モード中は、保存済みの過去の地図を予報の前につなげたデータを表示する(2026-09-30追加)。
+    // 過去モードでない時は従来どおり、受け取ったデータをそのまま表示する。
+    if(data && !data.__tropoMerged){ tropoRawData = data; }
+    var shown = data;
+    if(tropoPastMode && tropoRawData){
+      var prevTime = null;
+      try {
+        var pg = lastTropoData && lastTropoData.tropo && lastTropoData.tropo.grid;
+        if(pg && pg.times && tropoStepIndex != null) prevTime = pg.times[tropoStepIndex];
+      } catch(e){}
+      shown = tropoMergePast(tropoRawData);
+      // 表示中の時刻を保つ(データ更新でつなげる件数が変わっても同じ時刻を指すように)
+      var ng = shown && shown.tropo && shown.tropo.grid;
+      if(prevTime && ng && ng.times){ var k = ng.times.indexOf(prevTime); if(k >= 0) tropoStepIndex = k; }
+    }
+    lastTropoData = shown;
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ renderTropoCanvas(shown); }); });
+  }
+
+  // ---------------------------------------------------------------------
+  // 過去の記録(tropo_hist/)を読み込んで、予報の前につなげる(2026-09-30追加)
+  // GitHubの自動更新が「過ぎた時間」の地図を1日1ファイルで保存している。
+  // 格子の定義や指数の計算バージョンが違う記録は混ぜない。記録が無い時間は飛ばす。
+  // ---------------------------------------------------------------------
+  var tropoPastMode = false, tropoRawData = null, tropoPastFrames = null, tropoPastLoading = false;
+  var tropoMergeCache = {raw:null, frames:null, out:null};
+
+  function tropoLoadPast(){
+    if(tropoPastFrames) return Promise.resolve(tropoPastFrames);
+    return fetch('./tropo_hist/index.json?t=' + Date.now(), {cache:'no-store'})
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(idx){
+        var dates = (idx && idx.dates) || [];
+        return Promise.all(dates.map(function(d){
+          return fetch('./tropo_hist/'+d+'.json', {cache:'no-cache'})
+            .then(function(r){ return r.ok ? r.json() : null; })
+            .catch(function(){ return null; });
+        }));
+      })
+      .then(function(docs){
+        var frames = [];
+        docs.forEach(function(doc){
+          if(!doc || !doc.frames || !doc.grid) return;
+          Object.keys(doc.frames).forEach(function(t){
+            var ms = parseTropoTimeMs(t);
+            if(!isNaN(ms)) frames.push({t:t, ms:ms, vals:doc.frames[t], grid:doc.grid, ver:doc.index_version});
+          });
+        });
+        frames.sort(function(a,b){ return a.ms - b.ms; });
+        tropoPastFrames = frames;
+        return frames;
+      });
+  }
+
+  function tropoSameGrid(a, g){
+    return a && g && a.lat_min === g.lat_min && a.lat_step === g.lat_step && a.lon_min === g.lon_min
+      && a.lon_step === g.lon_step && a.rows === g.rows && a.cols === g.cols;
+  }
+
+  function tropoMergePast(raw){
+    var tropo = raw && raw.tropo, g = tropo && tropo.grid;
+    if(!g || !g.times || !g.times.length || !g.values || !tropoPastFrames) return raw;
+    if(tropoMergeCache.raw === raw && tropoMergeCache.frames === tropoPastFrames) return tropoMergeCache.out;
+    var firstMs = parseTropoTimeMs(g.times[0]);
+    var use = tropoPastFrames.filter(function(f){
+      return f.ms < firstMs && tropoSameGrid(f.grid, g) && (tropo.index_version == null || f.ver === tropo.index_version);
+    });
+    var times = use.map(function(f){ return f.t; }).concat(g.times);
+    var values = g.values.map(function(row, ri){
+      return row.map(function(series, ci){
+        var past = use.map(function(f){ var r = f.vals[ri]; return r ? r[ci] : null; });
+        return past.concat(series || []);
+      });
+    });
+    var ng = {}; Object.keys(g).forEach(function(k){ ng[k] = g[k]; });
+    ng.times = times; ng.values = values; ng.__pastCount = use.length;
+    var nt = {}; Object.keys(tropo).forEach(function(k){ nt[k] = tropo[k]; }); nt.grid = ng;
+    var out = {}; Object.keys(raw).forEach(function(k){ out[k] = raw[k]; }); out.tropo = nt; out.__tropoMerged = true;
+    tropoMergeCache = {raw:raw, frames:tropoPastFrames, out:out};
+    return out;
+  }
+
+  function tropoPastSetUi(){
+    var btn = document.getElementById('tropo-past-toggle'), jumps = document.getElementById('tropo-past-jumps');
+    if(btn){ btn.textContent = tropoPastMode ? '✕ 過去を閉じる' : '🕘 過去を見る'; btn.classList.toggle('active', tropoPastMode); }
+    if(jumps) jumps.hidden = !tropoPastMode;
+  }
+
+  function tropoPastToggle(){
+    var st = document.getElementById('tropo-past-status');
+    if(tropoPastLoading) return;
+    stopTropoPlay();
+    if(tropoPastMode){
+      // 過去モードを閉じる: 表示中の時刻が予報の範囲内ならそのまま、過去なら「現在」に戻す
+      var g = lastTropoData && lastTropoData.tropo && lastTropoData.tropo.grid;
+      var n = (g && g.__pastCount) || 0;
+      tropoPastMode = false; tropoPastSetUi();
+      if(st) st.textContent = '';
+      if(tropoStepIndex != null) tropoStepIndex = (tropoStepIndex >= n) ? tropoStepIndex - n : null;
+      if(tropoRawData) drawTropoMap(tropoRawData);
+      return;
+    }
+    tropoPastLoading = true;
+    if(st) st.textContent = '過去の記録を読み込み中…';
+    tropoLoadPast().then(function(frames){
+      tropoPastLoading = false;
+      if(!tropoRawData){ if(st) st.textContent = 'ダクト予報データの読み込みを待っています'; return; }
+      tropoPastMode = true; tropoPastSetUi();
+      var merged = tropoMergePast(tropoRawData);
+      var n = (merged && merged.tropo && merged.tropo.grid && merged.tropo.grid.__pastCount) || 0;
+      // 表示中の時刻は drawTropoMap 側で「同じ時刻」を探して保つので、ここでは位置を動かさない
+      if(st){
+        if(!n) st.textContent = 'まだ過去の記録がありません(記録は2026/9/25から自動で貯まっていきます)';
+        else st.textContent = '記録: ' + String(formatTropoTime(merged.tropo.grid.times[0])).split(' ／ ')[0] + ' から(' + n + '時間分)。記録が無い時間は飛ばして表示します。';
+      }
+      drawTropoMap(tropoRawData);
+    }).catch(function(err){
+      tropoPastLoading = false;
+      if(st) st.textContent = '過去の記録を読み込めませんでした(' + (err && err.message || 'エラー') + ')';
+    });
   }
 
   // Open-Meteo's hourly.time strings are plain "YYYY-MM-DDTHH:MM" with no
@@ -936,7 +1070,7 @@
       var row = grid.values[ri];
       for(var ci=0; ci<row.length; ci++){
         var series = row[ci] || [];
-        for(var ti=0; ti<series.length; ti++){
+        for(var ti=(grid.__pastCount || 0); ti<series.length; ti++){   // 過去の記録は「今後のピーク」に含めない
           if(series[ti] > best.v){ best.v = series[ti]; best.stepIdx = ti; }
         }
       }
@@ -1003,6 +1137,10 @@
     if(label){
       var nowIdx = nearestTropoStepIndex(grid.times, Date.now());
       label.textContent = formatTropoTime(grid.times[stepIdx]) + (stepIdx === nowIdx ? '(現在に最も近い予報)' : '');
+      if(grid.__pastCount && stepIdx < grid.__pastCount){
+        var tag = document.createElement('span'); tag.className = 'past-tag'; tag.textContent = '過去の記録';
+        label.appendChild(tag);
+      }
     }
   }
 
@@ -1748,6 +1886,8 @@
     if(playBtn){
       playBtn.addEventListener('click', function(){ toggleTropoPlay(); });
     }
+    var pastBtn = document.getElementById('tropo-past-toggle');
+    if(pastBtn){ pastBtn.addEventListener('click', function(){ tropoPastToggle(); }); }
     var readoutBar = document.getElementById('tropo-readout');
     if(readoutBar){
       readoutBar.addEventListener('click', function(ev){
