@@ -1,31 +1,34 @@
 {
-  "pskreporter_debug": {},
+  "pskreporter_debug": {
+    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"73466494224\"/>\n  <maxFlowStartSeconds value=\"1791320622\"/>\n  <receptionReport receiverCallsign=\"K4CEB\" receiverLocator=\"EM95rk93mx\" senderCallsign=\"K7HOT\" senderLocator=\"DM26ia50\" frequency=\"28075570\" flowStartSeconds=\"1791320622\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-10-01\" sNR=\"-13\" />\n  <receptionReport receiverCallsign=\"WX9WTF\" receiverLocator=\"EM28RS\" senderCallsign=\"WW4JET\" senderLocator=\"EM85PA\" frequency=\"28075133\" flowStartSeconds=\"1791320622\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-10-04\" sNR=\"-20\" />\n  <receptionReport receiverCallsign=\"WX9WTF\" receiverLocator=\"EM28RS\" senderCallsign=\"W7IMP\" senderLocator=\"EL99LM\" frequency=\"28074930\" flowStartSeconds=\"1791320622\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" sNR=\"-12\" />\n  <receptionReport receiverCallsign=\"WX9WTF\" receiverLocator=\"EM28RS\" senderCallsign=\"PY5QR\" senderLocator=\"GG54IN\" frequency=\"28076230\" flowStartSeconds=\"1791320621\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" senderLotwUpload=\"2026-10-05\" sNR=\"-3\" />\n  <receptionReport receiverCallsign=\"WD5CAW\" receiverLocator=\"DM65VT\" senderCallsign=\"CE4HG\" senderLocator=\"FF44dn\" frequency=\"28074936\" flowStartSeconds=\"1791320621\" mode=\"FT8\" senderDXCC=\"Chile\" senderDXCCCode=\"CE\" senderDXCCLocato",
+    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"73466495224\"/>\n  <maxFlowStartSeconds value=\"1791320625\"/>\n  <receptionReport receiverCallsign=\"EA8BFK\" receiverLocator=\"IL38bo\" senderCallsign=\"9T0MD\" senderLocator=\"JI75st\" frequency=\"50313490\" flowStartSeconds=\"1791320580\" mode=\"FT8\" senderDXCC=\"Dem. Rep. of the Congo\" senderDXCCCode=\"9Q\" senderDXCCLocator=\"KI16\" senderLotwUpload=\"2026-10-03\" />\n  <receptionReport receiverCallsign=\"XE3N\" receiverLocator=\"EL60lp10\" senderCallsign=\"OA4DPM\" senderLocator=\"FH17MW70RB\" frequency=\"50314656\" flowStartSeconds=\"1791320563\" mode=\"FT8\" senderDXCC=\"Peru\" senderDXCCCode=\"OA\" senderDXCCLocator=\"FI20\" senderLotwUpload=\"2026-06-02\" senderEqslAuthGuar=\"A\" sNR=\"-16\" />\n  <receptionReport receiverCallsign=\"WF4DX\" receiverLocator=\"EL89sg14\" senderCallsign=\"LU5DF\" senderLocator=\"GF02UD\" frequency=\"50313996\" flowStartSeconds=\"1791320550\" mode=\"FT8\" senderDXCC=\"Argentina\" senderDXCCCode=\"LU\" senderDXCCLocator=\"FF87\" senderEqslAuthGuar=\"A\" sNR=\"0\" />\n  <receptionReport receiverCallsign=\"IK4HLQ\" receiverLocator=\"JN54KP\" senderCallsign=\"I2WDK\" senderLocator=\"JN55JD\" frequency=\"50315011\" flowStartSeconds=\"1791320516\" mode=\"FT8\" senderDXCC=\"Italy\" senderDXCCCode=\"I\" senderDXCCLocator=\"JN62\" sNR=\"-17\" />\n  <receptionReport receiverCallsign=\"OA4DPM\" receiverLocator=\"FH17MW70RB\" senderCallsign=\"HC3RJ\" senderLocator=\"FI06AR\" frequency=\"50314583\" flowStartSeconds=\"1791320505\" mode=\"FT8\" senderDXCC=\"Ecuador\" senderDXCCCode=\"HC\" senderDX"
+  },
   "nict_findings": {
     "status": "ok",
     "stations": {
       "wakkanai": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": null,
-        "esp_status": "quiet"
+        "foes_mhz": 3.0,
+        "esp_status": "ok"
       },
       "kokubunji": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 2.6,
+        "foes_mhz": 2.4,
         "esp_status": "ok"
       },
       "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.1,
+        "foes_mhz": 3.4,
         "esp_status": "ok"
       },
       "oogimi": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 6.7,
-        "esp_status": "ok"
+        "foes_mhz": null,
+        "esp_status": "quiet"
       }
     }
   },
