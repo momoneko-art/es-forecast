@@ -1,33 +1,30 @@
 {
-  "pskreporter_debug": {
-    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"73723125080\"/>\n  <maxFlowStartSeconds value=\"1792014974\"/>\n  <receptionReport receiverCallsign=\"N5BDJ\" receiverLocator=\"EM20EA\" senderCallsign=\"PP5DKR\" senderLocator=\"GG50\" frequency=\"28076096\" flowStartSeconds=\"1792014974\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" senderLotwUpload=\"2026-10-10\" sNR=\"-20\" />\n  <receptionReport receiverCallsign=\"N5BDJ\" receiverLocator=\"EM20EA\" senderCallsign=\"PY2ZYV\" senderLocator=\"GG66IR\" frequency=\"28074516\" flowStartSeconds=\"1792014974\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" senderEqslAuthGuar=\"A\" sNR=\"-18\" />\n  <receptionReport receiverCallsign=\"N5BDJ\" receiverLocator=\"EM20EA\" senderCallsign=\"LU5CQC\" senderLocator=\"GF05SK\" frequency=\"28074958\" flowStartSeconds=\"1792014974\" mode=\"FT8\" senderDXCC=\"Argentina\" senderDXCCCode=\"LU\" senderDXCCLocator=\"FF87\" senderLotwUpload=\"2026-10-01\" senderEqslAuthGuar=\"A\" sNR=\"-11\" />\n  <receptionReport receiverCallsign=\"NM3B\" receiverLocator=\"FN01SK\" senderCallsign=\"N7GT\" senderLocator=\"DM42\" frequency=\"28076504\" flowStartSeconds=\"1792014974\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-10-11\" senderEqslAuthGuar=\"A\" sNR=\"-12\" />\n  <receptionReport receiverCallsign=\"AG6X\" receiverLocator=\"DM12JT\" senderCallsign=\"LU5CQC\" senderLocator=\"GF05SK\" frequency=\"28074972\" flowStartSeconds=\"1792014972\" mode=\"FT8\" senderDX",
-    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"73723126081\"/>\n  <maxFlowStartSeconds value=\"1792014977\"/>\n  <receptionReport receiverCallsign=\"LW5DR\" receiverLocator=\"GF01pk19\" senderCallsign=\"EA8RY\" senderLocator=\"IL28EC\" frequency=\"50313754\" flowStartSeconds=\"1792014956\" mode=\"FT8\" senderDXCC=\"Canary Islands\" senderDXCCCode=\"EA8\" senderDXCCLocator=\"IL28\" senderLotwUpload=\"2026-10-10\" senderEqslAuthGuar=\"A\" sNR=\"-11\" />\n  <receptionReport receiverCallsign=\"LW5DR\" receiverLocator=\"GF01pk19\" senderCallsign=\"JA5AQC\" senderLocator=\"PM63iu95\" frequency=\"50314551\" flowStartSeconds=\"1792014956\" mode=\"FT8\" senderDXCC=\"Japan\" senderDXCCCode=\"JA\" senderDXCCLocator=\"PM96\" senderLotwUpload=\"2026-10-07\" sNR=\"-11\" />\n  <receptionReport receiverCallsign=\"LW5DR\" receiverLocator=\"GF01pk19\" senderCallsign=\"CE3RAC\" senderLocator=\"FF46oo46\" frequency=\"50313712\" flowStartSeconds=\"1792014956\" mode=\"FT8\" senderDXCC=\"Chile\" senderDXCCCode=\"CE\" senderDXCCLocator=\"FG40\" senderLotwUpload=\"2026-10-12\" senderEqslAuthGuar=\"A\" sNR=\"-6\" />\n  <receptionReport receiverCallsign=\"KF7PCL\" receiverLocator=\"CN76wx32\" senderCallsign=\"VE7EXW\" senderLocator=\"CN89DD\" frequency=\"50314801\" flowStartSeconds=\"1792014915\" mode=\"FT8\" senderDXCC=\"Canada\" senderDXCCCode=\"VE\" senderDXCCLocator=\"FN04\" senderLotwUpload=\"2026-08-15\" sNR=\"-21\" />\n  <receptionReport receiverCallsign=\"N7NW\" receiverLocator=\"CN87qf47\" senderCallsign=\"VE7EXW\" senderLocator=\"CN89DD\" frequency=\"50314774\" flowStartSeconds=\"179201"
-  },
+  "pskreporter_debug": {},
   "nict_findings": {
     "status": "ok",
     "stations": {
       "wakkanai": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.4,
+        "foes_mhz": 3.6,
         "esp_status": "ok"
       },
       "kokubunji": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 2.6,
+        "foes_mhz": 2.5,
         "esp_status": "ok"
       },
       "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.1,
+        "foes_mhz": 3.3,
         "esp_status": "ok"
       },
       "oogimi": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.5,
+        "foes_mhz": 3.3,
         "esp_status": "ok"
       }
     }
@@ -42,6 +39,7 @@
       "error": null,
       "blended_points": 168,
       "blended_hours": 28224
-    }
+    },
+    "reused": true
   }
 }
