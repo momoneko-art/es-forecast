@@ -1,30 +1,33 @@
 {
-  "pskreporter_debug": {},
+  "pskreporter_debug": {
+    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"73703437538\"/>\n  <maxFlowStartSeconds value=\"1791970732\"/>\n  <receptionReport receiverCallsign=\"UR4LRH/A\" receiverLocator=\"KO80IB\" senderCallsign=\"R8PB\" senderLocator=\"NO33\" frequency=\"28076081\" flowStartSeconds=\"1791970727\" mode=\"FT8\" senderDXCC=\"Asiatic Russia\" senderDXCCCode=\"UA9\" senderDXCCLocator=\"NO25\" sNR=\"-18\" />\n  <receptionReport receiverCallsign=\"UR4LRH/A\" receiverLocator=\"KO80IB\" senderCallsign=\"BH1PYG\" senderLocator=\"OM89IV\" frequency=\"28074873\" flowStartSeconds=\"1791970726\" mode=\"FT8\" senderDXCC=\"China\" senderDXCCCode=\"BY\" senderDXCCLocator=\"OM16\" senderLotwUpload=\"2026-10-11\" sNR=\"-16\" />\n  <receptionReport receiverCallsign=\"EA5ET\" receiverLocator=\"IM99RN\" senderCallsign=\"BD6JJP\" senderLocator=\"OM74\" frequency=\"28074896\" flowStartSeconds=\"1791970724\" mode=\"FT8\" senderDXCC=\"China\" senderDXCCCode=\"BY\" senderDXCCLocator=\"OM16\" senderLotwUpload=\"2026-10-11\" sNR=\"-20\" />\n  <receptionReport receiverCallsign=\"EA5ET\" receiverLocator=\"IM99RN\" senderCallsign=\"RD6J\" senderLocator=\"LN23HA\" frequency=\"28075647\" flowStartSeconds=\"1791970724\" mode=\"FT8\" senderDXCC=\"European Russia\" senderDXCCCode=\"UA\" senderDXCCLocator=\"LO03\" senderLotwUpload=\"2026-10-11\" sNR=\"-18\" />\n  <receptionReport receiverCallsign=\"EA5ET\" receiverLocator=\"IM99RN\" senderCallsign=\"BG6LQT\" senderLocator=\"OM63ox\" frequency=\"28075516\" flowStartSeconds=\"1791970724\" mode=\"FT8\" senderDXCC=\"China\" senderDXCCCode=\"BY\" senderDXCCLocator=\"OM16\" ",
+    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"73703437538\"/>\n  <maxFlowStartSeconds value=\"1791970732\"/>\n  <receptionReport receiverCallsign=\"PA2RU\" receiverLocator=\"JO32lt12\" senderCallsign=\"DF9QX\" senderLocator=\"JO42hd25\" frequency=\"50313854\" flowStartSeconds=\"1791970709\" mode=\"FT8\" senderDXCC=\"Fed. Rep. of Germany\" senderDXCCCode=\"DL\" senderDXCCLocator=\"JO51\" sNR=\"-2\" />\n  <receptionReport receiverCallsign=\"OZ6FH\" receiverLocator=\"JO47hc27\" senderCallsign=\"DF9QX\" senderLocator=\"JO42hd25\" frequency=\"50313772\" flowStartSeconds=\"1791970695\" mode=\"FT8\" senderDXCC=\"Fed. Rep. of Germany\" senderDXCCCode=\"DL\" senderDXCCLocator=\"JO51\" sNR=\"-5\" />\n  <receptionReport receiverCallsign=\"DL3YAV\" receiverLocator=\"JO42GB\" senderCallsign=\"DF9QX\" senderLocator=\"JO42hd25\" frequency=\"50313765\" flowStartSeconds=\"1791970695\" mode=\"FT8\" senderDXCC=\"Fed. Rep. of Germany\" senderDXCCCode=\"DL\" senderDXCCLocator=\"JO51\" sNR=\"-1\" />\n  <receptionReport receiverCallsign=\"LA0GE\" receiverLocator=\"JO59KF\" senderCallsign=\"DF9QX\" senderLocator=\"JO42hd25\" frequency=\"50313790\" flowStartSeconds=\"1791970695\" mode=\"FT8\" senderDXCC=\"Fed. Rep. of Germany\" senderDXCCCode=\"DL\" senderDXCCLocator=\"JO51\" sNR=\"-9\" />\n  <receptionReport receiverCallsign=\"PA3GCV\" receiverLocator=\"JO32lu64\" senderCallsign=\"DF9QX\" senderLocator=\"JO42hd25\" frequency=\"50313786\" flowStartSeconds=\"1791970695\" mode=\"FT8\" senderDXCC=\"Fed. Rep. of Germany\" senderDXCCCode=\"DL\" senderDXCCLocator=\"JO51\" sNR=\"-10\" />\n  <receptio"
+  },
   "nict_findings": {
     "status": "ok",
     "stations": {
       "wakkanai": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 2.7,
+        "foes_mhz": 2.6,
         "esp_status": "ok"
       },
       "kokubunji": {
-        "storm": "Qui.",
+        "storm": "Atn-",
         "dis": "Qui.",
-        "foes_mhz": 1.9,
+        "foes_mhz": 2.5,
         "esp_status": "ok"
       },
       "yamagawa": {
-        "storm": "Wrn+",
+        "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 6.8,
+        "foes_mhz": 6.0,
         "esp_status": "ok"
       },
       "oogimi": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.1,
+        "foes_mhz": 4.1,
         "esp_status": "ok"
       }
     }
