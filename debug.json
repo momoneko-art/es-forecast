@@ -1,33 +1,30 @@
 {
-  "pskreporter_debug": {
-    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"73697973200\"/>\n  <maxFlowStartSeconds value=\"1791950611\"/>\n  <receptionReport receiverCallsign=\"3D2USU\" receiverLocator=\"RH82RH\" senderCallsign=\"9M8HAZ\" senderLocator=\"OJ51DP\" frequency=\"28090333\" flowStartSeconds=\"1791950595\" mode=\"FT8\" senderDXCC=\"East Malaysia\" senderDXCCCode=\"9M6\" senderDXCCLocator=\"OJ62\" senderEqslAuthGuar=\"A\" sNR=\"-14\" />\n  <receptionReport receiverCallsign=\"HL3AMO\" receiverLocator=\"PM36pj\" senderCallsign=\"3D2USU\" senderLocator=\"RH82RH\" frequency=\"28074550\" flowStartSeconds=\"1791950580\" mode=\"FT8\" senderDXCC=\"Fiji\" senderDXCCCode=\"3D2\" senderDXCCLocator=\"RH82\" senderLotwUpload=\"2026-09-25\" sNR=\"-4\" />\n  <receptionReport receiverCallsign=\"BY5HB\" receiverLocator=\"PM00BB\" senderCallsign=\"RA9LL\" senderLocator=\"MO27sd78ih\" frequency=\"28075591\" flowStartSeconds=\"1791950580\" mode=\"FT8\" senderDXCC=\"Asiatic Russia\" senderDXCCCode=\"UA9\" senderDXCCLocator=\"NO25\" senderLotwUpload=\"2026-10-11\" senderEqslAuthGuar=\"A\" sNR=\"-17\" />\n  <receptionReport receiverCallsign=\"BY5HB\" receiverLocator=\"PM00BB\" senderCallsign=\"BI3XVS\" senderLocator=\"OM68ik\" frequency=\"28076075\" flowStartSeconds=\"1791950580\" mode=\"FT8\" senderDXCC=\"China\" senderDXCCCode=\"BY\" senderDXCCLocator=\"OM16\" senderLotwUpload=\"2026-10-12\" sNR=\"-17\" />\n  <receptionReport receiverCallsign=\"JR2TZJ\" receiverLocator=\"PM95hd\" senderCallsign=\"BI3XVS\" senderLocator=\"OM68ik\" frequency=\"28076091\" flowStartSeconds=\"1791950578\" mode=\"FT8\" senderDXCC=\"",
-    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"73697973200\"/>\n  <maxFlowStartSeconds value=\"1791950611\"/>\n  <receptionReport receiverCallsign=\"VK3HY\" receiverLocator=\"QF22pd74\" senderCallsign=\"VK3AXI\" senderLocator=\"QF24SC\" frequency=\"50314408\" flowStartSeconds=\"1791950550\" mode=\"FT8\" senderDXCC=\"Australia\" senderDXCCCode=\"VK\" senderDXCCLocator=\"PG66\" senderLotwUpload=\"2026-09-02\" sNR=\"-18\" />\n  <receptionReport receiverCallsign=\"JH6NKZ\" receiverLocator=\"PM53tk\" senderCallsign=\"FK8HA\" senderLocator=\"RG37fs\" frequency=\"50313894\" flowStartSeconds=\"1791950473\" mode=\"FT8\" senderDXCC=\"New Caledonia\" senderDXCCCode=\"FK\" senderDXCCLocator=\"RG28\" senderLotwUpload=\"2026-07-05\" senderEqslAuthGuar=\"A\" sNR=\"-2\" />\n  <receptionReport receiverCallsign=\"JA0US/P\" receiverLocator=\"PM95RI\" senderCallsign=\"FK8HA\" senderLocator=\"RG37fs\" frequency=\"50313877\" flowStartSeconds=\"1791950471\" mode=\"FT8\" senderDXCC=\"New Caledonia\" senderDXCCCode=\"FK\" senderDXCCLocator=\"RG28\" senderLotwUpload=\"2026-07-05\" senderEqslAuthGuar=\"A\" sNR=\"29\" />\n  <receptionReport receiverCallsign=\"VK5PJ\" receiverLocator=\"PF95MK\" senderCallsign=\"VK7ZTA\" senderLocator=\"QE37PD\" frequency=\"50313989\" flowStartSeconds=\"1791950460\" mode=\"FT8\" senderDXCC=\"Australia\" senderDXCCCode=\"VK\" senderDXCCLocator=\"PG66\" sNR=\"-6\" />\n  <receptionReport receiverCallsign=\"JM1UTT\" receiverLocator=\"PM95uq17\" senderCallsign=\"FK8HA\" senderLocator=\"RG37fs\" frequency=\"50314063\" flowStartSeconds=\"1791950460\" mode=\"FT8\" senderDXCC"
-  },
+  "pskreporter_debug": {},
   "nict_findings": {
     "status": "ok",
     "stations": {
       "wakkanai": {
-        "storm": "Atn+",
-        "dis": "Qui.",
-        "foes_mhz": 3.1,
-        "esp_status": "ok"
-      },
-      "kokubunji": {
-        "storm": "Atn+",
-        "dis": "Qui.",
-        "foes_mhz": 2.8,
-        "esp_status": "ok"
-      },
-      "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
         "foes_mhz": 3.6,
         "esp_status": "ok"
       },
+      "kokubunji": {
+        "storm": "Qui.",
+        "dis": "Qui.",
+        "foes_mhz": 2.6,
+        "esp_status": "ok"
+      },
+      "yamagawa": {
+        "storm": "Qui.",
+        "dis": "Qui.",
+        "foes_mhz": null,
+        "esp_status": "quiet"
+      },
       "oogimi": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.0,
+        "foes_mhz": 3.5,
         "esp_status": "ok"
       }
     }
