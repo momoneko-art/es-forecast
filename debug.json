@@ -1,30 +1,33 @@
 {
-  "pskreporter_debug": {},
+  "pskreporter_debug": {
+    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"73767374100\"/>\n  <maxFlowStartSeconds value=\"1792127759\"/>\n  <receptionReport receiverCallsign=\"JK2TTP\" receiverLocator=\"PM83AR\" senderCallsign=\"JT1DN\" senderLocator=\"ON37lw10\" frequency=\"28075300\" flowStartSeconds=\"1792127730\" mode=\"FT8\" senderDXCC=\"Mongolia\" senderDXCCCode=\"JT\" senderDXCCLocator=\"ON16\" senderLotwUpload=\"2026-10-01\" senderEqslAuthGuar=\"A\" sNR=\"-9\" />\n  <receptionReport receiverCallsign=\"JA7GLO\" receiverLocator=\"QM08KI\" senderCallsign=\"JA7KJM\" senderLocator=\"QM08kf\" frequency=\"28074507\" flowStartSeconds=\"1792127729\" mode=\"FT8\" senderDXCC=\"Japan\" senderDXCCCode=\"JA\" senderDXCCLocator=\"PM96\" sNR=\"6\" />\n  <receptionReport receiverCallsign=\"VK4CZ\" receiverLocator=\"QG62lp08\" senderCallsign=\"JR7WIS\" senderLocator=\"QM07FR\" frequency=\"28075527\" flowStartSeconds=\"1792127728\" mode=\"FT8\" senderDXCC=\"Japan\" senderDXCCCode=\"JA\" senderDXCCLocator=\"PM96\" senderLotwUpload=\"2026-10-11\" senderEqslAuthGuar=\"A\" sNR=\"0\" />\n  <receptionReport receiverCallsign=\"9V1RS\" receiverLocator=\"OJ11xj\" senderCallsign=\"JA8RHU\" senderLocator=\"QN04ui\" frequency=\"28075113\" flowStartSeconds=\"1792127715\" mode=\"FT8\" senderDXCC=\"Japan\" senderDXCCCode=\"JA\" senderDXCCLocator=\"PM96\" sNR=\"-14\" />\n  <receptionReport receiverCallsign=\"VK4CZ\" receiverLocator=\"QG62lp08\" senderCallsign=\"JT1DN\" senderLocator=\"ON37lw10\" frequency=\"28075297\" flowStartSeconds=\"1792127713\" mode=\"FT8\" senderDXCC=\"Mongolia\" senderDXCCCode=\"JT\" senderDXCCLocator=",
+    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"73767374100\"/>\n  <maxFlowStartSeconds value=\"1792127759\"/>\n  <receptionReport receiverCallsign=\"VK4EW\" receiverLocator=\"QG63AH\" senderCallsign=\"VK4UH\" senderLocator=\"QG62KP\" frequency=\"50314016\" flowStartSeconds=\"1792127471\" mode=\"FT8\" senderDXCC=\"Australia\" senderDXCCCode=\"VK\" senderDXCCLocator=\"PG66\" sNR=\"-2\" />\n  <receptionReport receiverCallsign=\"BD4AHS\" receiverLocator=\"PM01oa77\" senderCallsign=\"BG5GNC\" senderLocator=\"PL09VT\" frequency=\"50314758\" flowStartSeconds=\"1792127398\" mode=\"FT8\" senderDXCC=\"China\" senderDXCCCode=\"BY\" senderDXCCLocator=\"OM16\" senderLotwUpload=\"2026-10-10\" senderEqslAuthGuar=\"A\" sNR=\"-11\" />\n  <receptionReport receiverCallsign=\"VK4CZ\" receiverLocator=\"QG62lp08\" senderCallsign=\"VK4EW\" senderLocator=\"QG63AH\" frequency=\"50313664\" flowStartSeconds=\"1792127323\" mode=\"FT8\" senderDXCC=\"Australia\" senderDXCCCode=\"VK\" senderDXCCLocator=\"PG66\" senderLotwUpload=\"2026-07-27\" senderEqslAuthGuar=\"A\" sNR=\"-9\" />\n  <receptionReport receiverCallsign=\"N7NW\" receiverLocator=\"CN87qf47\" senderCallsign=\"KM7O\" senderLocator=\"CN87ut62\" frequency=\"50313207\" flowStartSeconds=\"1792127160\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-08-24\" senderEqslAuthGuar=\"A\" sNR=\"-15\" />\n  <receptionReport receiverCallsign=\"JI4JKO\" receiverLocator=\"PM64wo\" senderCallsign=\"JA5FFJ\" senderLocator=\"PM63un36\" frequency=\"50315334\" flowStartSeconds=\"1792127159\" mode"
+  },
   "nict_findings": {
     "status": "ok",
     "stations": {
       "wakkanai": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.0,
+        "foes_mhz": 3.6,
         "esp_status": "ok"
       },
       "kokubunji": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": null,
-        "esp_status": "quiet"
+        "foes_mhz": 2.9,
+        "esp_status": "ok"
       },
       "yamagawa": {
-        "storm": "Atn+",
+        "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.4,
+        "foes_mhz": 3.5,
         "esp_status": "ok"
       },
       "oogimi": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 4.3,
+        "foes_mhz": 3.7,
         "esp_status": "ok"
       }
     }
