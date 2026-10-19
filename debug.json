@@ -18,27 +18,30 @@
       "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 2.6,
+        "foes_mhz": 2.0,
         "esp_status": "ok"
       },
       "oogimi": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 2.7,
+        "foes_mhz": 2.6,
         "esp_status": "ok"
       }
     }
   },
   "tropo_status": {
-    "status": "ok",
-    "errors": [],
-    "fetched_at": 1792421634.0557532,
+    "status": "partial",
+    "errors": [
+      "batch@(34.0, 127.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)",
+      "batch@(36.0, 123.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Read timed out. (read timeout=60)"
+    ],
+    "fetched_at": 1792441517.9193037,
     "index_version": 3,
     "ecmwf": {
       "used": true,
       "error": null,
-      "blended_points": 168,
-      "blended_hours": 28224
+      "blended_points": 144,
+      "blended_hours": 24192
     }
   }
 }
