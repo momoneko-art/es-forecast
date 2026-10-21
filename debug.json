@@ -1,30 +1,33 @@
 {
-  "pskreporter_debug": {},
+  "pskreporter_debug": {
+    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"73973703703\"/>\n  <maxFlowStartSeconds value=\"1792611404\"/>\n  <receptionReport receiverCallsign=\"K1RAX\" receiverLocator=\"FN42kj30\" senderCallsign=\"N5CAR\" senderLocator=\"EM35sb69\" frequency=\"28074852\" flowStartSeconds=\"1792611404\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" sNR=\"-21\" />\n  <receptionReport receiverCallsign=\"NS0Q\" receiverLocator=\"EN17lv18\" senderCallsign=\"KC1TRF\" senderLocator=\"FN54BH\" frequency=\"28075428\" flowStartSeconds=\"1792611402\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-10-19\" sNR=\"-14\" />\n  <receptionReport receiverCallsign=\"NS0Q\" receiverLocator=\"EN17lv18\" senderCallsign=\"K7OEG\" senderLocator=\"EL97\" frequency=\"28074812\" flowStartSeconds=\"1792611402\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" sNR=\"-20\" />\n  <receptionReport receiverCallsign=\"NS0Q\" receiverLocator=\"EN17lv18\" senderCallsign=\"PY2MTG\" senderLocator=\"GG66NK\" frequency=\"28076180\" flowStartSeconds=\"1792611402\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" senderLotwUpload=\"2026-10-19\" sNR=\"-20\" />\n  <receptionReport receiverCallsign=\"K1LO\" receiverLocator=\"FN42HR\" senderCallsign=\"PY2HBS\" senderLocator=\"GG48SS\" frequency=\"28074914\" flowStartSeconds=\"1792611402\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" senderLotwUpload=\"2026-",
+    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"73973705748\"/>\n  <maxFlowStartSeconds value=\"1792611407\"/>\n  <receptionReport receiverCallsign=\"N9AZZ\" receiverLocator=\"EM57KS\" senderCallsign=\"K9JEM\" senderLocator=\"EM58IO\" frequency=\"50315027\" flowStartSeconds=\"1792611360\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-02-01\" senderEqslAuthGuar=\"A\" sNR=\"-16\" />\n  <receptionReport receiverCallsign=\"K9KLD\" receiverLocator=\"EM58ar42\" senderCallsign=\"K9JEM\" senderLocator=\"EM58IO\" frequency=\"50314994\" flowStartSeconds=\"1792611330\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-02-01\" senderEqslAuthGuar=\"A\" sNR=\"-21\" />\n  <receptionReport receiverCallsign=\"G4IFX\" receiverLocator=\"IO91od\" senderCallsign=\"G0KOI\" senderLocator=\"IO92ak\" frequency=\"50314672\" flowStartSeconds=\"1792611313\" mode=\"FT8\" senderDXCC=\"England\" senderDXCCCode=\"G\" senderDXCCLocator=\"IO92\" senderEqslAuthGuar=\"A\" sNR=\"-20\" />\n  <receptionReport receiverCallsign=\"KA9UVY\" receiverLocator=\"EM58MK\" senderCallsign=\"K9JEM\" senderLocator=\"EM58IO\" frequency=\"50314994\" flowStartSeconds=\"1792611300\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-02-01\" senderEqslAuthGuar=\"A\" sNR=\"9\" />\n  <receptionReport receiverCallsign=\"SM1FMT\" receiverLocator=\"JO97GT\" senderCallsign=\"SM6LJP\" senderLocator=\"JO68WI\" frequency=\"50314535\" flowStartSe"
+  },
   "nict_findings": {
     "status": "ok",
     "stations": {
       "wakkanai": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 2.3,
-        "esp_status": "ok"
+        "foes_mhz": null,
+        "esp_status": "quiet"
       },
       "kokubunji": {
+        "storm": "Qui.",
+        "dis": "Qui.",
+        "foes_mhz": null,
+        "esp_status": "quiet"
+      },
+      "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
         "foes_mhz": 2.1,
         "esp_status": "ok"
       },
-      "yamagawa": {
-        "storm": "Qui.",
-        "dis": "Qui.",
-        "foes_mhz": 1.8,
-        "esp_status": "ok"
-      },
       "oogimi": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 2.4,
+        "foes_mhz": 2.9,
         "esp_status": "ok"
       }
     }
