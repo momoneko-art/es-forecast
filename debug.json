@@ -7,9 +7,9 @@
     "status": "ok",
     "stations": {
       "wakkanai": {
-        "storm": "Qui.",
+        "storm": "Atn+",
         "dis": "Qui.",
-        "foes_mhz": 5.9,
+        "foes_mhz": 6.8,
         "esp_status": "ok"
       },
       "kokubunji": {
@@ -21,13 +21,7 @@
       "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.5,
-        "esp_status": "ok"
-      },
-      "oogimi": {
-        "storm": "Qui.",
-        "dis": "Qui.",
-        "foes_mhz": 4.9,
+        "foes_mhz": 4.2,
         "esp_status": "ok"
       }
     }
