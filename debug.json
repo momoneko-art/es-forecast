@@ -1,7 +1,7 @@
 {
   "pskreporter_debug": {
-    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"74040190947\"/>\n  <maxFlowStartSeconds value=\"1792787116\"/>\n  <receptionReport receiverCallsign=\"WT8P\" receiverLocator=\"CN87xn\" senderCallsign=\"KJ5ORI\" senderLocator=\"EM20XD\" frequency=\"28075759\" flowStartSeconds=\"1792787115\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-10-19\" sNR=\"-19\" />\n  <receptionReport receiverCallsign=\"NY4Q\" receiverLocator=\"EM84AM\" senderCallsign=\"PY2RPR\" senderLocator=\"GG66rj\" frequency=\"28074852\" flowStartSeconds=\"1792787115\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" sNR=\"-15\" />\n  <receptionReport receiverCallsign=\"N7OR\" receiverLocator=\"cn85uj\" senderCallsign=\"AJ4MP\" senderLocator=\"EM77VR\" frequency=\"28075812\" flowStartSeconds=\"1792787115\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-10-18\" senderEqslAuthGuar=\"A\" sNR=\"-6\" />\n  <receptionReport receiverCallsign=\"WB0IQT\" receiverLocator=\"EN35II\" senderCallsign=\"PY2RPR\" senderLocator=\"GG66rj\" frequency=\"28074792\" flowStartSeconds=\"1792787114\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" sNR=\"-23\" />\n  <receptionReport receiverCallsign=\"N3TAV\" receiverLocator=\"DM79lr75\" senderCallsign=\"PY2RPR\" senderLocator=\"GG66rj\" frequency=\"28074845\" flowStartSeconds=\"1792787114\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" sNR=\"-21\" ",
-    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"74040190947\"/>\n  <maxFlowStartSeconds value=\"1792787116\"/>\n  <receptionReport receiverCallsign=\"G7RAU\" receiverLocator=\"IN79jx55\" senderCallsign=\"G0KOI\" senderLocator=\"IO92ak\" frequency=\"50314766\" flowStartSeconds=\"1792787051\" mode=\"FT8\" senderDXCC=\"England\" senderDXCCCode=\"G\" senderDXCCLocator=\"IO92\" senderEqslAuthGuar=\"A\" sNR=\"-12\" />\n  <receptionReport receiverCallsign=\"GW4VXE\" receiverLocator=\"IO71LX\" senderCallsign=\"G0KOI\" senderLocator=\"IO92ak\" frequency=\"50314920\" flowStartSeconds=\"1792787051\" mode=\"FT8\" senderDXCC=\"England\" senderDXCCCode=\"G\" senderDXCCLocator=\"IO92\" senderEqslAuthGuar=\"A\" sNR=\"1\" />\n  <receptionReport receiverCallsign=\"AA5C\" receiverLocator=\"EM13se03\" senderCallsign=\"K0AXX\" senderLocator=\"EM20vj68nf\" frequency=\"50314470\" flowStartSeconds=\"1792786935\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-06-19\" sNR=\"-14\" />\n  <receptionReport receiverCallsign=\"KA1W\" receiverLocator=\"FN31KI\" senderCallsign=\"N3FIX\" senderLocator=\"FN10OD91\" frequency=\"50314075\" flowStartSeconds=\"1792786905\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-10-16\" senderEqslAuthGuar=\"A\" sNR=\"-20\" />\n  <receptionReport receiverCallsign=\"NA2NY\" receiverLocator=\"FN33GH\" senderCallsign=\"KD3HN\" senderLocator=\"FM19ru73bk\" frequency=\"50315032\" flowStartSeconds=\"1792786905\" mode=\"FT8\" senderDXCC=\"United St"
+    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"74040190947\"/>\n  <maxFlowStartSeconds value=\"1792787116\"/>\n</receptionReports>\n",
+    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"74040190947\"/>\n  <maxFlowStartSeconds value=\"1792787116\"/>\n</receptionReports>\n"
   },
   "nict_findings": {
     "status": "ok",
@@ -15,7 +15,7 @@
       "kokubunji": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.9,
+        "foes_mhz": 4.1,
         "esp_status": "ok"
       },
       "yamagawa": {
@@ -27,8 +27,8 @@
       "oogimi": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 9.3,
-        "esp_status": "ok"
+        "foes_mhz": null,
+        "esp_status": "quiet"
       }
     }
   },
