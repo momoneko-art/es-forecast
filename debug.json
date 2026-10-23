@@ -1,7 +1,7 @@
 {
   "pskreporter_debug": {
-    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"74040190947\"/>\n  <maxFlowStartSeconds value=\"1792787116\"/>\n</receptionReports>\n",
-    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"74040190947\"/>\n  <maxFlowStartSeconds value=\"1792787116\"/>\n</receptionReports>\n"
+    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"74040649907\"/>\n  <maxFlowStartSeconds value=\"1792789393\"/>\n  <receptionReport receiverCallsign=\"PY2VE\" receiverLocator=\"GG67jj\" senderCallsign=\"K7CMI\" senderLocator=\"DN57GB\" frequency=\"28075590\" flowStartSeconds=\"1792789392\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-10-14\" senderEqslAuthGuar=\"A\" sNR=\"-17\" />\n  <receptionReport receiverCallsign=\"PY2VE\" receiverLocator=\"GG67jj\" senderCallsign=\"PY5EW\" senderLocator=\"GG46kp\" frequency=\"28076581\" flowStartSeconds=\"1792789392\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" senderLotwUpload=\"2026-09-08\" senderEqslAuthGuar=\"A\" sNR=\"-19\" />\n  <receptionReport receiverCallsign=\"K0UO\" receiverLocator=\"EM07RB\" senderCallsign=\"PT9TI\" senderLocator=\"GG27NS\" frequency=\"28074815\" flowStartSeconds=\"1792789392\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" senderLotwUpload=\"2026-09-02\" senderEqslAuthGuar=\"A\" sNR=\"-8\" />\n  <receptionReport receiverCallsign=\"WF8Z\" receiverLocator=\"EM79SM\" senderCallsign=\"PP5CF\" senderLocator=\"GG52ES\" frequency=\"28074956\" flowStartSeconds=\"1792789389\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" senderLotwUpload=\"2026-10-18\" senderEqslAuthGuar=\"A\" sNR=\"7\" />\n  <receptionReport receiverCallsign=\"WF8Z\" receiverLocator=\"EM79SM\" senderCallsign=\"PY5EW\" senderLocator=\"GG46kp\" frequency=\"28076603\" fl",
+    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"74040649907\"/>\n  <maxFlowStartSeconds value=\"1792789393\"/>\n  <receptionReport receiverCallsign=\"K1TEO\" receiverLocator=\"FN31JH\" senderCallsign=\"KI2L\" senderLocator=\"FN32et42\" frequency=\"50314817\" flowStartSeconds=\"1792789305\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-10-15\" senderEqslAuthGuar=\"A\" sNR=\"-12\" />\n  <receptionReport receiverCallsign=\"WP4U\" receiverLocator=\"FK68WH\" senderCallsign=\"CX7FH\" senderLocator=\"GF15DO\" frequency=\"50314677\" flowStartSeconds=\"1792789305\" mode=\"FT8\" senderDXCC=\"Uruguay\" senderDXCCCode=\"CX\" senderDXCCLocator=\"GF27\" senderLotwUpload=\"2026-10-10\" senderEqslAuthGuar=\"A\" sNR=\"-16\" />\n  <receptionReport receiverCallsign=\"NC2V\" receiverLocator=\"EL98nq93\" senderCallsign=\"AA6DQ\" senderLocator=\"EL98av18\" frequency=\"50314412\" flowStartSeconds=\"1792789301\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" sNR=\"-14\" />\n  <receptionReport receiverCallsign=\"LW2DAF\" receiverLocator=\"GF05RK\" senderCallsign=\"CX7FH\" senderLocator=\"GF15DO\" frequency=\"50314664\" flowStartSeconds=\"1792789275\" mode=\"FT8\" senderDXCC=\"Uruguay\" senderDXCCCode=\"CX\" senderDXCCLocator=\"GF27\" senderLotwUpload=\"2026-10-10\" senderEqslAuthGuar=\"A\" sNR=\"-19\" />\n  <receptionReport receiverCallsign=\"K8NK\" receiverLocator=\"EL88XX\" senderCallsign=\"AA6DQ\" senderLocator=\"EL98av18\" frequency=\"50314328\" flowStartSeconds=\"1792789271\" mode=\""
   },
   "nict_findings": {
     "status": "ok",
@@ -9,20 +9,20 @@
       "wakkanai": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": null,
-        "esp_status": "quiet"
+        "foes_mhz": 2.3,
+        "esp_status": "ok"
       },
       "kokubunji": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 4.1,
+        "foes_mhz": 3.5,
         "esp_status": "ok"
       },
       "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": null,
-        "esp_status": "quiet"
+        "foes_mhz": 2.5,
+        "esp_status": "ok"
       },
       "oogimi": {
         "storm": "Qui.",
