@@ -3,10 +3,16 @@
   "nict_findings": {
     "status": "ok",
     "stations": {
+      "wakkanai": {
+        "storm": "Qui.",
+        "dis": "Qui.",
+        "foes_mhz": 8.3,
+        "esp_status": "ok"
+      },
       "kokubunji": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 3.9,
+        "foes_mhz": 3.5,
         "esp_status": "ok"
       },
       "yamagawa": {
@@ -18,7 +24,7 @@
       "oogimi": {
         "storm": "Atn-",
         "dis": "Qui.",
-        "foes_mhz": 4.3,
+        "foes_mhz": 3.9,
         "esp_status": "ok"
       }
     }
