@@ -1,33 +1,21 @@
 {
   "pskreporter_debug": {
-    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"74612229267\"/>\n  <maxFlowStartSeconds value=\"1794150706\"/>\n  <receptionReport receiverCallsign=\"M0EYT\" receiverLocator=\"IO80XS\" senderCallsign=\"9Y4C\" senderLocator=\"FK90GP\" frequency=\"28075292\" flowStartSeconds=\"1794150705\" mode=\"FT8\" senderDXCC=\"Trinidad &amp; Tobago\" senderDXCCCode=\"9Y\" senderDXCCLocator=\"FK90\" senderLotwUpload=\"2026-11-01\" senderEqslAuthGuar=\"A\" sNR=\"-17\" />\n  <receptionReport receiverCallsign=\"K2TER\" receiverLocator=\"FN13GE\" senderCallsign=\"HB3YBK\" senderLocator=\"JN36lt85\" frequency=\"28075614\" flowStartSeconds=\"1794150705\" mode=\"FT8\" senderDXCC=\"Switzerland\" senderDXCCCode=\"HB\" senderDXCCLocator=\"JN46\" senderEqslAuthGuar=\"A\" sNR=\"-15\" />\n  <receptionReport receiverCallsign=\"K2TER\" receiverLocator=\"FN13GE\" senderCallsign=\"TN8GD\" senderLocator=\"JI75OR\" frequency=\"28076264\" flowStartSeconds=\"1794150705\" mode=\"FT8\" senderDXCC=\"Republic of the Congo\" senderDXCCCode=\"TN\" senderDXCCLocator=\"JI78\" senderLotwUpload=\"2026-10-29\" sNR=\"-21\" />\n  <receptionReport receiverCallsign=\"MA3265SWL\" receiverLocator=\"IO91IP\" senderCallsign=\"PP1DX\" senderLocator=\"GG99up\" frequency=\"28076129\" flowStartSeconds=\"1794150705\" mode=\"FT8\" senderDXCC=\"Brazil\" senderDXCCCode=\"PY\" senderDXCCLocator=\"GI30\" senderLotwUpload=\"2026-10-19\" sNR=\"-19\" />\n  <receptionReport receiverCallsign=\"AE4JM\" receiverLocator=\"EM74AM\" senderCallsign=\"EA3JEM\" senderLocator=\"JN11LL\" frequency=\"28076468\" flowStartSeconds=\"1794150705\" mode=\"",
-    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"74612231298\"/>\n  <maxFlowStartSeconds value=\"1794150708\"/>\n  <receptionReport receiverCallsign=\"G6HIE\" receiverLocator=\"JO00dw03\" senderCallsign=\"IW5DHN\" senderLocator=\"JN53GI\" frequency=\"50314925\" flowStartSeconds=\"1794150689\" mode=\"FT8\" senderDXCC=\"Italy\" senderDXCCCode=\"I\" senderDXCCLocator=\"JN62\" senderEqslAuthGuar=\"A\" sNR=\"-11\" />\n  <receptionReport receiverCallsign=\"G0MBL\" receiverLocator=\"JO01QH\" senderCallsign=\"IW5DHN\" senderLocator=\"JN53GI\" frequency=\"50314845\" flowStartSeconds=\"1794150675\" mode=\"FT8\" senderDXCC=\"Italy\" senderDXCCCode=\"I\" senderDXCCLocator=\"JN62\" senderEqslAuthGuar=\"A\" sNR=\"7\" />\n  <receptionReport receiverCallsign=\"LX1JX\" receiverLocator=\"JO30AB\" senderCallsign=\"IW5DHN\" senderLocator=\"JN53GI\" frequency=\"50314912\" flowStartSeconds=\"1794150675\" mode=\"FT8\" senderDXCC=\"Italy\" senderDXCCCode=\"I\" senderDXCCLocator=\"JN62\" senderEqslAuthGuar=\"A\" sNR=\"-11\" />\n  <receptionReport receiverCallsign=\"I4MKN\" receiverLocator=\"JN64gc41\" senderCallsign=\"F6IRF\" senderLocator=\"JN35au08\" frequency=\"50313996\" flowStartSeconds=\"1794150675\" mode=\"FT8\" senderDXCC=\"France\" senderDXCCCode=\"F\" senderDXCCLocator=\"JN16\" senderLotwUpload=\"2026-10-30\" senderEqslAuthGuar=\"A\" sNR=\"-15\" />\n  <receptionReport receiverCallsign=\"N8ECI\" receiverLocator=\"EM79PI\" senderCallsign=\"W8TZ\" senderLocator=\"EM89KJ\" frequency=\"50313769\" flowStartSeconds=\"1794150674\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" sender"
+    "10m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"74612949487\"/>\n  <maxFlowStartSeconds value=\"1794151626\"/>\n  <receptionReport receiverCallsign=\"N1MIW\" receiverLocator=\"FN41fp44tt\" senderCallsign=\"XQ3SK\" senderLocator=\"FF46QJ\" frequency=\"28075828\" flowStartSeconds=\"1794151622\" mode=\"FT8\" senderDXCC=\"Chile\" senderDXCCCode=\"CE\" senderDXCCLocator=\"FG40\" senderLotwUpload=\"2026-10-07\" sNR=\"-24\" />\n  <receptionReport receiverCallsign=\"AI4FR\" receiverLocator=\"EL88TJ\" senderCallsign=\"DG3TF\" senderLocator=\"JO53HU\" frequency=\"28074704\" flowStartSeconds=\"1794151621\" mode=\"FT8\" senderDXCC=\"Fed. Rep. of Germany\" senderDXCCCode=\"DL\" senderDXCCLocator=\"JO51\" senderLotwUpload=\"2026-11-01\" senderEqslAuthGuar=\"A\" sNR=\"-9\" />\n  <receptionReport receiverCallsign=\"K1RA-4\" receiverLocator=\"FM18cr\" senderCallsign=\"UR5FFC\" senderLocator=\"KN56hl64\" frequency=\"28075956\" flowStartSeconds=\"1794151621\" mode=\"FT8\" senderDXCC=\"Ukraine\" senderDXCCCode=\"UR\" senderDXCCLocator=\"KO50\" senderLotwUpload=\"2026-11-02\" senderEqslAuthGuar=\"A\" sNR=\"-11\" />\n  <receptionReport receiverCallsign=\"K1RA-4\" receiverLocator=\"FM18cr\" senderCallsign=\"IZ5IOS\" senderLocator=\"jn53ku\" frequency=\"28076083\" flowStartSeconds=\"1794151621\" mode=\"FT8\" senderDXCC=\"Italy\" senderDXCCCode=\"I\" senderDXCCLocator=\"JN62\" senderLotwUpload=\"2026-10-30\" senderEqslAuthGuar=\"A\" sNR=\"8\" />\n  <receptionReport receiverCallsign=\"K1RA-4\" receiverLocator=\"FM18cr\" senderCallsign=\"IU7QBU\" senderLocator=\"JN80lw\" frequency=\"28075503\" flow",
+    "6m": "<?xml version=\"1.0\"?>\n<receptionReports >\n  <lastSequenceNumber value=\"74612950493\"/>\n  <maxFlowStartSeconds value=\"1794151631\"/>\n  <receptionReport receiverCallsign=\"N2HQI\" receiverLocator=\"FN13sa77\" senderCallsign=\"K2JRT\" senderLocator=\"FN12xd01\" frequency=\"50314119\" flowStartSeconds=\"1794151556\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-11-02\" senderEqslAuthGuar=\"A\" sNR=\"-18\" />\n  <receptionReport receiverCallsign=\"SM7FJE\" receiverLocator=\"JO65VU\" senderCallsign=\"IK4UOF\" senderLocator=\"JN54cx63\" frequency=\"50314849\" flowStartSeconds=\"1794151545\" mode=\"FT8\" senderDXCC=\"Italy\" senderDXCCCode=\"I\" senderDXCCLocator=\"JN62\" senderEqslAuthGuar=\"A\" sNR=\"-20\" />\n  <receptionReport receiverCallsign=\"WQ5S\" receiverLocator=\"EM13CI\" senderCallsign=\"N4SVC\" senderLocator=\"EM80MI\" frequency=\"50314581\" flowStartSeconds=\"1794151530\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-09-02\" senderEqslAuthGuar=\"A\" sNR=\"-5\" />\n  <receptionReport receiverCallsign=\"WB4JPG\" receiverLocator=\"EM71GF\" senderCallsign=\"N4SVC\" senderLocator=\"EM80MI\" frequency=\"50314561\" flowStartSeconds=\"1794151530\" mode=\"FT8\" senderDXCC=\"United States\" senderDXCCCode=\"K\" senderDXCCLocator=\"EM47\" senderLotwUpload=\"2026-09-02\" senderEqslAuthGuar=\"A\" sNR=\"-9\" />\n  <receptionReport receiverCallsign=\"DK8NE\" receiverLocator=\"JO50al\" senderCallsign=\"EA3GJO\" senderLocator=\"IN72AG\" frequency=\"50314578\" flowStart"
   },
   "nict_findings": {
     "status": "ok",
     "stations": {
-      "wakkanai": {
-        "storm": "Qui.",
-        "dis": "Qui.",
-        "foes_mhz": 2.7,
-        "esp_status": "ok"
-      },
       "kokubunji": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": null,
-        "esp_status": "quiet"
+        "foes_mhz": 2.3,
+        "esp_status": "ok"
       },
       "yamagawa": {
         "storm": "Qui.",
         "dis": "Qui.",
-        "foes_mhz": 5.1,
-        "esp_status": "ok"
-      },
-      "oogimi": {
-        "storm": "Qui.",
-        "dis": "Qui.",
-        "foes_mhz": 8.1,
+        "foes_mhz": 4.5,
         "esp_status": "ok"
       }
     }
